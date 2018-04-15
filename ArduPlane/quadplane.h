@@ -230,6 +230,11 @@ private:
     // transition deceleration, m/s/s
     AP_Float transition_decel;
 	
+	// Quadplane trim, radians
+	AP_Float quadplane_ahrs_trim_x;
+	AP_Float quadplane_ahrs_trim_y;
+	AP_Float quadplane_ahrs_trim_z;
+	
     AP_Int16 rc_speed;
 
     // min and max PWM for throttle

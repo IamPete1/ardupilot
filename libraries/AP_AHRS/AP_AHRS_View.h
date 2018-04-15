@@ -26,7 +26,7 @@ class AP_AHRS_View
 {
 public:
     // Constructor
-    AP_AHRS_View(AP_AHRS &ahrs, enum Rotation rotation);
+    AP_AHRS_View(AP_AHRS &ahrs, enum Rotation rotation, float x_trim, float y_trim, float z_trim);
 
     // update state
     void update(bool skip_ins_update=false);
