@@ -441,7 +441,7 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @DisplayName: Quadplane AHRS Trim Roll
     // @Description: Compensates for the roll angle trim difference between forward and vertical flight, NOTE! this is relative to forward flight trim not mounting locaiton
 	// @Units: radians
-    // @Range: -pi +pi
+    // @Range: -3.1415 +3.1415
     // @User: Standard
 	AP_GROUPINFO("AHRS_TRIM_X", 4, QuadPlane, quadplane_ahrs_trim_x, 0),
 	
@@ -449,15 +449,15 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @DisplayName: Quadplane AHRS Trim Pitch
     // @Description: Compensates for the Pitch angle trim difference between forward and vertical flight, NOTE! this is relative to forward flight trim not mounting locaiton
 	// @Units: radians
-    // @Range: -pi +pi
+    // @Range: -3.1415 +3.1415
     // @User: Standard
 	AP_GROUPINFO("AHRS_TRIM_Y", 5, QuadPlane, quadplane_ahrs_trim_y, 0),
 	
-	// @Param: AHRS_TRIM_X
+	// @Param: AHRS_TRIM_Z
     // @DisplayName: Quadplane AHRS Trim Yaw
     // @Description: Compensates for the Yaw angle trim difference between forward and vertical flight, NOTE! this is relative to forward flight trim not mounting locaiton
 	// @Units: radians
-    // @Range: -pi +pi
+    // @Range: -3.1415 +3.1415
     // @User: Standard
 	AP_GROUPINFO("AHRS_TRIM_Z", 6, QuadPlane, quadplane_ahrs_trim_z, 0),
 	
@@ -621,7 +621,8 @@ bool QuadPlane::setup(void)
     AP_Param::load_object_from_eeprom(motors, motors_var_info);
 
     // create the attitude view used by the VTOL code
-    ahrs_view = ahrs.create_view(rotation, quadplane_ahrs_trim_x, quadplane_ahrs_trim_y, quadplane_ahrs_trim_z);
+	ahrs_view = ahrs.create_view(rotation, (float)quadplane_ahrs_trim_x, (float)quadplane_ahrs_trim_y, (float)quadplane_ahrs_trim_z);
+    //ahrs_view = ahrs.create_view(rotation, float quadplane_ahrs_trim_x, float quadplane_ahrs_trim_y, float quadplane_ahrs_trim_z);
 	//ahrs_view = ahrs.create_view(rotation);
     if (ahrs_view == nullptr) {
         goto failed;

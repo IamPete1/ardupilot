@@ -550,8 +550,9 @@ public:
     virtual void getCorrectedDeltaVelocityNED(Vector3f& ret, float& dt) const { ret.zero(); _ins.get_delta_velocity(ret); dt = _ins.get_delta_velocity_dt(); }
 
     // create a view
-    AP_AHRS_View *create_view(enum Rotation rotation, AP_Float x_trim, AP_Float y_trim, AP_Float z_trim);
-    
+    //AP_AHRS_View *create_view(enum Rotation rotation, AP_Float x_trim, AP_Float y_trim, AP_Float z_trim);
+    AP_AHRS_View *create_view(enum Rotation rotation, float x_trim, float y_trim, float z_trim);
+
     // return calculated AOA
     float getAOA(void);
 
