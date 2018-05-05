@@ -106,6 +106,18 @@ RC_Channel::RC_Channel(void)
     AP_Param::setup_object_defaults(this, var_info);
 }
 
+const RC_Channels::OptionDefault RC_Channels::option_defaults[] {
+    // these are the user-visible channel numbers:
+    { 1, RC_Channel::AUX_FUNC::ROLL },
+    { 2, RC_Channel::AUX_FUNC::PITCH },
+    { 3, RC_Channel::AUX_FUNC::THROTTLE },
+    { 4, RC_Channel::AUX_FUNC::YAW },
+};
+void RC_Channels::get_option_defaults(const struct RC_Channels::OptionDefault *&defaults, uint8_t &num_defaults) {
+    defaults = option_defaults;
+    num_defaults = ARRAY_SIZE(option_defaults);
+};
+
 void
 RC_Channel::set_range(uint16_t high)
 {
@@ -464,6 +476,13 @@ void RC_Channel::init_aux_function(const aux_func_t ch_option, const aux_switch_
     case AUX_FUNC::RELAY4:
     case AUX_FUNC::RELAY5:
     case AUX_FUNC::RELAY6:
+    // the following functions aren't actually aux functions:
+    case AUX_FUNC::ROLL:
+    case AUX_FUNC::PITCH:
+    case AUX_FUNC::YAW:
+    case AUX_FUNC::THROTTLE:
+    case AUX_FUNC::STEER:
+    case AUX_FUNC::LATERAL:
         break;
     case AUX_FUNC::AVOID_ADSB:
     case AUX_FUNC::AVOID_PROXIMITY:
@@ -497,10 +516,21 @@ void RC_Channel::init_aux_function(const aux_func_t ch_option, const aux_switch_
 bool RC_Channel::read_aux()
 {
     const aux_func_t _option = (aux_func_t)option.get();
-    if (_option == AUX_FUNC::DO_NOTHING) {
-        // may wish to add special cases for other "AUXSW" things
-        // here e.g. RCMAP_ROLL etc once they become options
+    switch (_option) {
+    case AUX_FUNC::DO_NOTHING:
+    case AUX_FUNC::ROLL:
+    case AUX_FUNC::PITCH:
+    case AUX_FUNC::THROTTLE:
+    case AUX_FUNC::YAW:
+    case AUX_FUNC::STEER:
+    case AUX_FUNC::LATERAL:
+    case AUX_FUNC::MAINSAIL:
+    case AUX_FUNC::FORWARD:
+        // these are not actually auxillary functions, they're
+        // main-channel-inputs
         return false;
+    default:
+        break;
     }
     aux_switch_pos_t new_position;
     if (!read_3pos_switch(new_position)) {
@@ -903,6 +933,14 @@ void RC_Channel::do_aux_function(const aux_func_t ch_option, const aux_switch_po
         }
         break;
 #endif // HAL_MINIMIZE_FEATURES
+
+    case AUX_FUNC::ROLL:
+    case AUX_FUNC::PITCH:
+    case AUX_FUNC::THROTTLE:
+    case AUX_FUNC::YAW:
+    case AUX_FUNC::STEER:
+    case AUX_FUNC::LATERAL:
+        break;
 
     default:
         gcs().send_text(MAV_SEVERITY_INFO, "Invalid channel option (%u)", (unsigned int)ch_option);

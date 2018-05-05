@@ -179,12 +179,18 @@ public:
         RUNCAM_OSD_CONTROL =  79, // control RunCam OSD
         KILL_IMU1 =          100, // disable first IMU (for IMU failure testing)
         KILL_IMU2 =          101, // disable second IMU (for IMU failure testing)
+
+        ROLL         =       201, // roll pilot input
+        PITCH        =       202, // pitch pilot input
+        THROTTLE     =       203, // throttle pilot input
+        YAW          =       204, // yaw pilot input
+        STEER        =       205, // steering input
+        LATERAL      =       206, // lateral input
+        MAINSAIL     =       207, // mainsail input
+        FLAP         =       208, // flap input
+        FORWARD      =       209, // forward input
         // if you add something here, make sure to update the documentation of the parameter in RC_Channel.cpp!
         // also, if you add an option >255, you will need to fix duplicate_options_exist
-
-        // inputs eventually used to replace RCMAP
-        MAINSAIL =           207, // mainsail input
-        FLAP =               208, // flap input
     };
     typedef enum AUX_FUNC aux_func_t;
 
@@ -198,6 +204,9 @@ public:
     bool read_3pos_switch(aux_switch_pos_t &ret) const WARN_IF_UNUSED;
 
 protected:
+
+    // channel number, starts at 1, 3 typically being throttle channel.
+    uint8_t ch() const { return ch_in; };
 
     virtual void init_aux_function(aux_func_t ch_option, aux_switch_pos_t);
     virtual void do_aux_function(aux_func_t ch_option, aux_switch_pos_t);
@@ -221,7 +230,6 @@ protected:
     virtual void mode_switch_changed(modeswitch_pos_t new_pos) {
         // no action by default (e.g. Tracker, Sub, who do their own thing)
     };
-
 
 private:
 
@@ -279,7 +287,7 @@ public:
     // constructor
     RC_Channels(void);
 
-    void init(void);
+    virtual void init(void);
 
     // get singleton instance
     static RC_Channels *get_singleton() {
@@ -379,10 +387,39 @@ protected:
         has_new_overrides = true;
     }
 
+    // returns true if k_param_rcmap has been set to a Parameter
+    // storage identifier that has previously been used to store
+    // RCMAP_ values:
+    virtual bool k_param_rcmap_for_conversion(uint8_t &k_param_rcmap) const {
+        return false;
+    }
+    void populate_channel_options_from_old_rcmap();
+
+protected:
+
+    // initialise channel to point to the channel with function func.
+    // Critically, if that function is not assigned to a channel then
+    // we enter the config error loop, on the assumption that many
+    // other places in the code will simply assume that the channel
+    // has been assigned.
+    void init_channel(RC_Channel *&channel,
+                      RC_Channel::AUX_FUNC func,
+                      const char *function_name);
+
+    // set defaults:
+    struct OptionDefault {
+        uint8_t channel;
+        RC_Channel::AUX_FUNC func;
+    };
+
+    virtual void get_option_defaults(const RC_Channels::OptionDefault*&, uint8_t &count);
+
 private:
     static RC_Channels *_singleton;
     // this static arrangement is to avoid static pointers in AP_Param tables
     static RC_Channel *channels;
+
+    static const RC_Channels::OptionDefault option_defaults[];
 
     bool has_new_overrides;
 

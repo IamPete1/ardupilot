@@ -26,6 +26,8 @@ extern const AP_HAL::HAL& hal;
 
 #include <AP_Math/AP_Math.h>
 #include <AP_Logger/AP_Logger.h>
+#include <GCS_MAVLink/GCS.h>
+#include <AP_BoardConfig/AP_BoardConfig.h>
 
 #include "RC_Channel.h"
 
@@ -43,11 +45,103 @@ RC_Channels::RC_Channels(void)
     _singleton = this;
 }
 
+// if none of the basic control options (as defined by the things
+// we set defaults for) have been set, then assume we've just
+// upgraded from an RCMAP-using firmware, and set-and-save options
+// from the old RCMAP values.
+void RC_Channels::populate_channel_options_from_old_rcmap()
+{
+    uint8_t k_param_rcmap;
+    if (!k_param_rcmap_for_conversion(k_param_rcmap)) {
+        return;
+    }
+
+    // set defaults:
+    const RC_Channels::OptionDefault *defaults;
+    uint8_t default_count;
+
+    get_option_defaults(defaults, default_count);
+
+    for (uint8_t i=0; i<default_count; i++) {
+        const struct RC_Channels::OptionDefault &def = defaults[i];
+        for (uint8_t j=0; j<NUM_RC_CHANNELS; j++) {
+            if (channel(j)->option.get() == (uint16_t)def.func) {
+                // found at least one option set
+                return;
+            }
+        }
+    }
+
+    // this array maps from the old RCMAP_ parameters onto the
+    // equivalent RCn_OPTION value.  The offset within this list gives
+    // the old offset within the RCMAP_ parameter list, so YAW was:
+    // AP_GROUPINFO("YAW",         3, RCMapper, _ch_yaw, 4),
+
+    static const RC_Channel::AUX_FUNC mapping[] = {
+        RC_Channel::AUX_FUNC::ROLL,
+        RC_Channel::AUX_FUNC::PITCH,
+        RC_Channel::AUX_FUNC::THROTTLE,
+        RC_Channel::AUX_FUNC::YAW,
+        RC_Channel::AUX_FUNC::FORWARD,
+        RC_Channel::AUX_FUNC::LATERAL
+    };
+    for (uint8_t i=0; i<ARRAY_SIZE(mapping); i++) {
+        const AP_Param::ConversionInfo cinfo_ret {
+            k_param_rcmap,
+            i,
+            AP_PARAM_INT8,
+            nullptr
+        };
+        AP_Int8 old_rcmap_parameter;
+        if (!AP_Param::find_old_parameter(&cinfo_ret, &old_rcmap_parameter)) {
+            continue;
+        }
+        const uint8_t old_channel_number = old_rcmap_parameter.get();
+        RC_Channel *_ch = channel(old_channel_number-1);
+        if (_ch == nullptr) {
+            continue;
+        }
+        _ch->option.set_and_save((uint16_t)mapping[i]);
+    }
+}
+
 void RC_Channels::init(void)
 {
     // setup ch_in on channels
     for (uint8_t i=0; i<NUM_RC_CHANNELS; i++) {
         channel(i)->ch_in = i;
+    }
+
+    // run an upgrade to convert from old RCMAP_ parameters into
+    // rc-channel-options:
+    populate_channel_options_from_old_rcmap();
+
+    // set defaults:
+    const RC_Channels::OptionDefault *defaults;
+    uint8_t default_count;
+
+    get_option_defaults(defaults, default_count);
+
+    for (uint8_t i=0; i<default_count; i++) {
+        const struct RC_Channels::OptionDefault &def = defaults[i];
+        // only set the default if this function isn't assigned to
+        // another channel.  This may happen if someone has upgraded
+        // from an older firmware and was using a non-1-4 channel for
+        // RC input.
+        bool found = false;
+        for (uint8_t j=0; j<NUM_RC_CHANNELS; j++) {
+            if (channel(j)->option.get() == (uint16_t)def.func) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            continue;
+        }
+        AP_Int16 &option = rc_channel(def.channel-1)->option;
+        if (!option.configured_in_storage()) {
+            option.set((uint16_t)def.func);
+        }
     }
 
     init_aux_all();
@@ -220,6 +314,13 @@ bool RC_Channels::get_pwm(uint8_t c, uint16_t &pwm) const
     return true;
 }
 
+void RC_Channels::init_channel(RC_Channel *&_channel, RC_Channel::AUX_FUNC func, const char *function_name)
+{
+    _channel = find_channel_for_option(func);
+    if (_channel == nullptr) {
+        AP_BoardConfig::config_error("RC %s unset; need %u RCn_OPTION", function_name, (unsigned)func);
+    }
+}
 
 // singleton instance
 RC_Channels *RC_Channels::_singleton;
