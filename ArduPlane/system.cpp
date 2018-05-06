@@ -44,7 +44,8 @@ void Plane::init_ardupilot()
 
     ins.set_log_raw_bit(MASK_LOG_IMU_RAW);
 
-    set_control_channels();
+    // initialise rc channels including setting mode
+    g2.rc_channels.init();
 
     mavlink_system.sysid = g.sysid_this_mav;
 
@@ -59,9 +60,6 @@ void Plane::init_ardupilot()
 #if HAL_WITH_UAVCAN
     BoardConfig_CAN.init();
 #endif
-
-    // initialise rc channels including setting mode
-    rc().init();
 
     relay.init();
 
@@ -122,8 +120,6 @@ void Plane::init_ardupilot()
     // GPS Initialization
     gps.set_log_gps_bit(MASK_LOG_GPS);
     gps.init(serial_manager);
-
-    init_rc_in();               // sets up rc channels from radio
 
 #if MOUNT == ENABLED
     // initialise camera mount
