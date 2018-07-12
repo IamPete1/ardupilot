@@ -108,7 +108,7 @@ public:
     
     // user initiated takeoff for guided mode
     bool do_user_takeoff(float takeoff_altitude);
-    
+	   
     struct PACKED log_QControl_Tuning {
         LOG_PACKET_HEADER;
         uint64_t time_us;
@@ -124,7 +124,11 @@ public:
         float    day;
         float    throttle_mix;
     };
-        
+	
+	// tailsitter pitch limits
+    //float tailsitter_max_pitch_forward() const { return tailsitter.max_pitch_forward;}
+    //float tailsitter_max_pitch_back() const { return tailsitter.max_pitch_backwards;}
+
 private:
     AP_AHRS_NavEKF &ahrs;
     AP_Vehicle::MultiCopter aparm;
@@ -414,6 +418,10 @@ private:
         AP_Float vectored_hover_power;
 		AP_Float throttle_scale_max;
 		AP_Float throttle_scale;
+		AP_Float vector_max_angle;
+		AP_Float vector_min_angle;
+		//AP_Float max_pitch_forward;
+        //AP_Float max_pitch_backwards;
     } tailsitter;
 
     // the attitude view of the VTOL attitude controller

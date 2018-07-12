@@ -461,6 +461,40 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @User: Standard
 	AP_GROUPINFO("AHRS_TRIM_Z", 6, QuadPlane, quadplane_ahrs_trim_z, 0),
 	
+    // @Param: TAILSIT_VC_MAX
+    // @DisplayName: Max Thrust Vectoring Angle upwards
+    // @Description: The max angle from forward flight postion of vectored thrust upwards, left and right should be the same
+	// @Units: deg
+    // @Range: 0 90
+    // @User: Standard
+	AP_GROUPINFO("TAILSIT_VC_MAX", 7, QuadPlane, tailsitter.vector_max_angle, 45),
+	
+	// @Param: TAILSIT_VC_MIN
+    // @DisplayName: Min Thrust Vectoring Angle upwards
+    // @Description: The max angle from forward flight postion of vectored thrust downwards, left and right should be the same
+	// @Units: deg
+    // @Range: 0 90
+    // @User: Standard
+	AP_GROUPINFO("TAILSIT_VC_MIN", 8, QuadPlane, tailsitter.vector_min_angle, 45),
+	
+	// @Param: TAILSIT_PITMAX
+    // @DisplayName: Maximum forward pitch
+    // @Description: Maximum Allowed forward pitch for tailsitters
+    // @Units: cdeg
+    // @Range: 1000 8000
+    // @User: Standard
+	//AP_GROUPINFO("TAILSIT_PITMAX", 9, QuadPlane, tailsitter.max_pitch_forward, 3000),
+	
+	// @Param: TAILSIT_PITMIN
+    // @DisplayName: Maximum backwards pitch
+    // @Description: The max angle from forward flight postion of vectored thrust downwards, left and right should be the same
+    // @Units: cdeg
+    // @Range: 1000 8000
+    // @User: Standard
+	//AP_GROUPINFO("TAILSIT_PITMIN", 10, QuadPlane, tailsitter.max_pitch_backwards, 3000),	
+	
+
+	
     AP_GROUPEND
 };
 
@@ -622,8 +656,7 @@ bool QuadPlane::setup(void)
 
     // create the attitude view used by the VTOL code
 	ahrs_view = ahrs.create_view(rotation, (float)quadplane_ahrs_trim_x, (float)quadplane_ahrs_trim_y, (float)quadplane_ahrs_trim_z);
-    //ahrs_view = ahrs.create_view(rotation, float quadplane_ahrs_trim_x, float quadplane_ahrs_trim_y, float quadplane_ahrs_trim_z);
-	//ahrs_view = ahrs.create_view(rotation);
+
     if (ahrs_view == nullptr) {
         goto failed;
     }
@@ -1239,7 +1272,7 @@ bool QuadPlane::assistance_needed(float aspeed)
 
     /*
       now check if we should provide assistance due to attitude error
-     */
+    */
 
     const uint16_t allowed_envelope_error_cd = 500U;
     if (labs(ahrs.roll_sensor) <= plane.aparm.roll_limit_cd+allowed_envelope_error_cd &&
@@ -1303,18 +1336,21 @@ void QuadPlane::update_transition(void)
      */
     if (have_airspeed &&
         assistance_needed(aspeed) &&
-        !is_tailsitter() &&
+        //!is_tailsitter() &&
         hal.util->get_soft_armed() &&
         ((plane.auto_throttle_mode && !plane.throttle_suppressed) ||
          plane.channel_throttle->get_control_in()>0 ||
          plane.is_flying())) {
-        // the quad should provide some assistance to the plane
-        if (transition_state != TRANSITION_AIRSPEED_WAIT) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
+
+		if (!is_tailsitter()){
+		// the quad should provide some assistance to the plane
+            if (transition_state != TRANSITION_AIRSPEED_WAIT) {
+                   gcs().send_text(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
+            }     
+			transition_state = TRANSITION_AIRSPEED_WAIT;
+			transition_start_ms = millis();
         }
-        transition_state = TRANSITION_AIRSPEED_WAIT;
-        transition_start_ms = millis();
-        assisted_flight = true;
+		assisted_flight = true;
     } else {
         assisted_flight = false;
     }
@@ -1808,7 +1844,6 @@ bool QuadPlane::in_vtol_mode(void) const
             ((plane.control_mode == GUIDED || plane.control_mode == AVOID_ADSB) && plane.auto_state.vtol_loiter) ||
             in_vtol_auto());
 }
-
 
 /*
   main landing controller. Used for landing and RTL.

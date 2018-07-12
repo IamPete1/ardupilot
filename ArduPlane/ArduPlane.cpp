@@ -758,16 +758,26 @@ void Plane::update_flight_mode(void)
     case QLOITER:
     case QLAND:
     case QRTL: {
-        // set nav_roll and nav_pitch using sticks
-        int16_t roll_limit = MIN(roll_limit_cd, quadplane.aparm.angle_max);
-        nav_roll_cd  = (channel_roll->get_control_in() / 4500.0) * roll_limit;
-        nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit, roll_limit);
+		
+        // set nav_roll and nav_pitch using sticks		
         float pitch_input = channel_pitch->norm_input();
-        // Scale from normalized input [-1,1] to centidegrees
+		int16_t roll_limit = 0;
+		        
+		// Scale from normalized input [-1,1] to centidegrees
         if (quadplane.tailsitter_active()) {
-            // For tailsitters, the pitch range is symmetrical: [-Q_ANGLE_MAX,Q_ANGLE_MAX]
-            nav_pitch_cd = pitch_input * quadplane.aparm.angle_max;
+			// use Angle Max only use  for tailsitter roll
+		    roll_limit = quadplane.aparm.angle_max;
+
+            // None Symetrical Pitch Range
+            if (pitch_input > 0) {
+                nav_pitch_cd = pitch_input * 5000;//quadplane.tailsitter_max_pitch_back();
+            } else {
+                nav_pitch_cd = pitch_input * 10000;//quadplane.tailsitter_max_pitch_forward();
+            }
         } else {
+		    // Roll limit
+			roll_limit = MIN(roll_limit_cd, quadplane.aparm.angle_max);
+
             // pitch is further constrained by LIM_PITCH_MIN/MAX which may impose
             // tighter (possibly asymmetrical) limits than Q_ANGLE_MAX
             if (pitch_input > 0) {
@@ -777,7 +787,13 @@ void Plane::update_flight_mode(void)
             }
             nav_pitch_cd = constrain_int32(nav_pitch_cd, pitch_limit_min_cd, aparm.pitch_limit_max_cd.get());
         }
+		
+		nav_roll_cd  = (channel_roll->get_control_in() / 4500.0) * roll_limit;
+        nav_roll_cd = constrain_int32(nav_roll_cd, -roll_limit, roll_limit);
+		
         break;
+		
+	
     }
         
     case INITIALISING:
