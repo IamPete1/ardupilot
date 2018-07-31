@@ -330,8 +330,8 @@ const AP_Param::GroupInfo QuadPlane::var_info[] = {
     // @Description: This provides a set of additional control options for quadplanes. LevelTransition means that the wings should be held level to within LEVEL_ROLL_LIMIT degrees during transition to fixed wing flight. If AllowFWTakeoff bit is not set then fixed wing takeoff on quadplanes will instead perform a VTOL takeoff. If AllowFWLand bit is not set then fixed wing land on quadplanes will instead perform a VTOL land.
     // @Bitmask: 0:LevelTransition,1:AllowFWTakeoff,2:AllowFWLand
     AP_GROUPINFO("OPTIONS", 58, QuadPlane, options, 0),
-
-    AP_SUBGROUPEXTENSION("",59, QuadPlane, var_info2),
+	
+	AP_SUBGROUPEXTENSION("",59, QuadPlane, var_info2),
     
     AP_GROUPEND
 };
@@ -358,6 +358,22 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @Range: 1 5
     // @User: Standard
     AP_GROUPINFO("TAILSIT_THSCMX", 3, QuadPlane, tailsitter.throttle_scale_max, 5),
+	                     
+	// @Param: TAILSIT_PIT_FW
+    // @DisplayName: Maximum forward pitch
+    // @Description: Maximum Allowed forward pitch for tailsitters
+    // @Units: cdeg
+    // @Range: 1000 8000
+    // @User: Standard
+	AP_GROUPINFO("TAILSIT_PIT_FW", 4, QuadPlane, tailsitter.max_pitch_forward, 3000),
+	
+	// @Param: TAILSIT_PIT_BK
+    // @DisplayName: Maximum backwards pitch
+    // @Description: Maximum Allowed backwards pitch for tailsitters
+    // @Units: cdeg
+    // @Range: 1000 8000
+    // @User: Standard
+	AP_GROUPINFO("TAILSIT_PIT_BK", 5, QuadPlane, tailsitter.max_pitch_backwards, 3000),	
 	
     AP_GROUPEND
 };
