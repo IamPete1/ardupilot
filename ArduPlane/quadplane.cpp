@@ -369,7 +369,7 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
 	
 	// @Param: TAILSIT_PIT_BK
     // @DisplayName: Maximum backwards pitch
-    // @Description: The max angle from forward flight postion of vectored thrust downwards, left and right should be the same
+    // @Description: Maximum Allowed backwards pitch for tailsitters
     // @Units: cdeg
     // @Range: 1000 8000
     // @User: Standard
