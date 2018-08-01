@@ -365,12 +365,25 @@ void Plane::stabilize()
     float speed_scaler = get_speed_scaler();
 
     if (quadplane.in_tailsitter_vtol_transition()) {
-        /*
+		
+		// Tailsitters should slow down as much as posible before entering Angle wait to stop large gain in altitude
+	    float aspeed;
+        bool have_airspeed = ahrs.airspeed_estimate(&aspeed);
+		
+		if (have_airspeed && aspeed > 15){
+         // attitude_control->set_throttle_out(0, true, 0);
+	      nav_roll_cd = 0;
+	      nav_pitch_cd = 0;
+	    } else {				
+          /*
           during transition to vtol in a tailsitter try to raise the
           nose rapidly while keeping the wings level
-         */
-        nav_pitch_cd = constrain_float((quadplane.tailsitter.transition_angle+5)*100, 5500, 8500),
-        nav_roll_cd = 0;
+          */
+          nav_pitch_cd = constrain_float((quadplane.tailsitter.transition_angle+5)*100, 5500, 8500);
+          nav_roll_cd = 0;
+	    }    
+		
+  
     }
     
     if (control_mode == TRAINING) {

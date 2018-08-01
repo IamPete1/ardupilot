@@ -65,18 +65,18 @@ void QuadPlane::tailsitter_output(void)
             SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorLeft, 0);
             SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorRight, 0);
         }
-        if (in_tailsitter_vtol_transition() && !throttle_wait && is_flying() && hal.util->get_soft_armed()) {
+        if (in_tailsitter_vtol_transition() && !throttle_wait && is_flying() && hal.util->get_soft_armed()) { 
             /*
               during transitions to vtol mode set the throttle to the
               hover throttle, and set the altitude controller
               integrator to the same throttle level
              */
-            uint8_t throttle = motors->get_throttle_hover() * 100;
-            SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, throttle);
-            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleLeft, throttle);
-            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleRight, throttle);
-            SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
-            pos_control->get_accel_z_pid().set_integrator(throttle*10);
+           // uint8_t throttle = motors->get_throttle_hover() * 100;
+           // SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, throttle);
+           // SRV_Channels::set_output_scaled(SRV_Channel::k_throttleLeft, throttle);
+           // SRV_Channels::set_output_scaled(SRV_Channel::k_throttleRight, throttle);
+           // SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
+           // pos_control->get_accel_z_pid().set_integrator(throttle*10);
         }
         return;
     }
@@ -170,7 +170,7 @@ bool QuadPlane::tailsitter_transition_vtol_complete(void) const
     }
     if (labs(plane.ahrs.pitch_sensor) > tailsitter.transition_angle*100 ||
         labs(plane.ahrs.roll_sensor) > tailsitter.transition_angle*100 ||
-        AP_HAL::millis() - transition_start_ms > 2000) {
+        AP_HAL::millis() - transition_start_ms > 200000) {
         return true;
     }
     // still waiting
