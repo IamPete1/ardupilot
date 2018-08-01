@@ -893,6 +893,8 @@ private:
     bool landing_with_GPS();
     bool loiter_init(bool ignore_checks);
     void loiter_run();
+	bool unstabilize_init(bool ignore_checks);
+	void unstabilize_run();
 #if PRECISION_LANDING == ENABLED
     bool do_precision_loiter();
     void precision_loiter_xy();
