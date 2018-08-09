@@ -404,7 +404,12 @@ private:
         AP_Float vectored_forward_gain;
         AP_Float vectored_hover_gain;
         AP_Float vectored_hover_power;
+<<<<<<< HEAD
         AP_Float throttle_scale_max;
+=======
+        AP_Float scaling_speed;
+        AP_Float scaling_range;
+>>>>>>> 0ae64fb39... Scale gains with airspeed
     } tailsitter;
 
     // the attitude view of the VTOL attitude controller
