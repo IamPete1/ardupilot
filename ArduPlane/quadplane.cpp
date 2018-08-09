@@ -347,10 +347,28 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @Range: 0.2 5
     // @User: Standard
     AP_GROUPINFO("TRANS_DECEL", 1, QuadPlane, transition_decel, 2.0),
-
+    
     // @Group: LOIT_
     // @Path: ../libraries/AC_WPNav/AC_Loiter.cpp
     AP_SUBGROUPPTR(loiter_nav, "LOIT_",  2, QuadPlane, AC_Loiter),
+
+    // @Param: TAILSIT_SCLSPD
+    // @DisplayName: Tailsitter airspeed scaling 50-50 point
+    // @Description: airspeed at which tailster is controlled equaly by VTOL and forward flight gains  
+    // @Units: m/s
+    // @Range: 0 50
+    // @User: Standard
+    AP_GROUPINFO("TAILSIT_SCLSPD", 4, QuadPlane, tailsitter.scaling_speed, 10),
+    
+    // @Param: TAILSIT_SCLRNG
+    // @DisplayName: Range of airspeed that tailsitter airspeed scaling takes place
+    // @Description: At air speeds below TAILSIT_SCLSPD - 0.5 * TAILSIT_SCLRNG tailsitter will be contoled by 100% VTOL gains, at air speeds above TAILSIT_SCLSPD + 0.5 * TAILSIT_SCLRNG it will be 100% forward flight gains  
+    // @Units: m/s  
+    // @Range: 0 20
+    // @User: Standard
+    AP_GROUPINFO("TAILSIT_SCLRNG", 5, QuadPlane, tailsitter.scaling_range, 10),
+    
+
 
     AP_GROUPEND
 };

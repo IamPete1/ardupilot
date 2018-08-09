@@ -401,6 +401,8 @@ private:
         AP_Float vectored_forward_gain;
         AP_Float vectored_hover_gain;
         AP_Float vectored_hover_power;
+        AP_Float scaling_speed;
+        AP_Float scaling_range;
     } tailsitter;
 
     // the attitude view of the VTOL attitude controller
