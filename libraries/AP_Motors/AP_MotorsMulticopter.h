@@ -171,9 +171,10 @@ protected:
     // time to spool motors to min throttle
     AP_Float            _spool_up_time;
 
-    // scaling for booster motor throttle
+    // boost motor scailing and stabalisation motors fixed throttle percentage
     AP_Float            _boost_scale;
-    
+    AP_Float            _fixed_throttle_percentage;
+
     // motor output variables
     bool                motor_enabled[AP_MOTORS_MAX_NUM_MOTORS];    // true if motor is enabled
     int16_t             _throttle_radio_min;        // minimum PWM from RC input's throttle channel (i.e. minimum PWM input from receiver, RC3_MIN)

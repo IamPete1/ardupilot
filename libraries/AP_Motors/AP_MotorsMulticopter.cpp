@@ -183,6 +183,14 @@ const AP_Param::GroupInfo AP_MotorsMulticopter::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("BAT_IDX",  39, AP_MotorsMulticopter,  _batt_idx, 0),
 
+    // @Param: THR_PCT_FX
+    // @DisplayName: Throttle percentage fixed
+    // @Description: Fix throttle at this percentage at all times, this is for use with boost motors to allow maximm contol power for stabalisation, boost_scale should be 1
+    // @Range: 0 1
+    // @Units: %
+    // @User: Advanced
+    AP_GROUPINFO("THR_PCT_FX", 40, AP_MotorsMulticopter, _fixed_throttle_percentage, 0.0f),
+
     AP_GROUPEND
 };
 

@@ -162,6 +162,11 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     throttle_thrust = get_throttle() * compensation_gain;
     throttle_avg_max = _throttle_avg_max * compensation_gain;
 
+    // Fix throttle at single value, this is used with boost motors to provide maximum control power
+    if (!is_zero(throttle_thrust) && !is_zero(_fixed_throttle_percentage) && !is_zero(_boost_scale)) {
+        throttle_thrust = _fixed_throttle_percentage;
+    }
+
     // sanity check throttle is above zero and below current limited throttle
     if (throttle_thrust <= 0.0f) {
         throttle_thrust = 0.0f;

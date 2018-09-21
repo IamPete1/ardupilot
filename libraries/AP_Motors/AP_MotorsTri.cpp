@@ -147,6 +147,11 @@ void AP_MotorsTri::output_armed_stabilizing()
     throttle_thrust = get_throttle() * compensation_gain;
     throttle_avg_max = _throttle_avg_max * compensation_gain;
 
+    // Fix throttle at single value, this is used with boost motors to provide maximum control power
+    if (!is_zero(throttle_thrust) && !is_zero(_fixed_throttle_percentage) && !is_zero(_boost_scale)) {
+        throttle_thrust = _fixed_throttle_percentage;
+    }
+
     // calculate angle of yaw pivot
     _pivot_angle = safe_asin(yaw_thrust);
     if (fabsf(_pivot_angle) > radians(_yaw_servo_angle_max_deg)) {
