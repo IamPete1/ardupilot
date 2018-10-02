@@ -44,26 +44,26 @@ void Sailboat::calc_lift_and_drag(float wind_speed, float angle_of_attack_deg, f
     const uint16_t index_width_deg = 10;
     const uint8_t index_max = ARRAY_SIZE(lift_curve) - 1;
 
+    float lift_coef;
+    float drag_coef;
+
     // check extremes
     if (angle_of_attack_deg <= 0.0f) {
-        lift = lift_curve[0];
-        drag = drag_curve[0];
-        return;
+        lift_coef = lift_curve[0];
+        drag_coef = drag_curve[0];
+    } else if (angle_of_attack_deg >= index_max * index_width_deg) {
+        lift_coef = lift_curve[index_max];
+        drag_coef = drag_curve[index_max];
+    } else {
+        uint8_t index = constrain_int16(angle_of_attack_deg / index_width_deg, 0, index_max);
+        float remainder = angle_of_attack_deg - (index * index_width_deg);
+        lift_coef = linear_interpolate(lift_curve[index], lift_curve[index+1], remainder, 0.0f, index_width_deg);
+        drag_coef = linear_interpolate(drag_curve[index], drag_curve[index+1], remainder, 0.0f, index_width_deg);
     }
-    if (angle_of_attack_deg >= index_max * index_width_deg) {
-        lift = lift_curve[index_max];
-        drag = drag_curve[index_max];
-        return;
-    }
-
-    uint8_t index = constrain_int16(angle_of_attack_deg / index_width_deg, 0, index_max);
-    float remainder = angle_of_attack_deg - (index * index_width_deg);
-    lift = linear_interpolate(lift_curve[index], lift_curve[index+1], remainder, 0.0f, index_width_deg);
-    drag = linear_interpolate(drag_curve[index], drag_curve[index+1], remainder, 0.0f, index_width_deg);
 
     // apply scaling by wind speed
-    lift *= wind_speed;
-    drag *= wind_speed;
+    lift = lift_coef; // * 0.5f * SSL_AIR_DENSITY * sail_area * pow(wind_speed,2.0f);
+    drag = drag_coef; //* 0.5f * SSL_AIR_DENSITY * sail_area * pow(wind_speed,2.0f);
 }
 
 // return turning circle (diameter) in meters for steering angle proportion in the range -1 to +1
@@ -97,15 +97,15 @@ float Sailboat::get_lat_accel(float steering, float speed) const
 }
 
 // Cauclate hull friction using delft Yacht series, (N)
-// http://www.deno.oceanica.ufrj.br/deno/prod_academic/relatorios/2012/pinheiro/relat1/Subpasta3/__Delft%20systematic%20yacht%20hull%20series__Hydrodynamic%20forces%20sailing%20yachts.pdf
+// From paper - Approximation of the hydrodynamic forces on a sailing ytacht based on the delft systematic yacht hull series
 // Hull drag only, keel and rudder not considered
 float Sailboat::calc_hull_drag(float speed, float heel)
 {
     // Froude number
-    const float fn = speed / sqrt(g * LWL);
+    const float fn = speed / sqrt(GRAVITY_MSS * hull_coef.LWL);
 
    // reynolds number
-    const float Rn = (speed * 0.7 * hull_coef.LWL) / hull_coef.v;
+    const float Rn = (abs(speed) * 0.7 * hull_coef.LWL) / hull_coef.v;
 
     //  Residuary resistance  //
     // Interpolate coefficents based on froude number
@@ -119,11 +119,11 @@ float Sailboat::calc_hull_drag(float speed, float heel)
     const float a7 =  0.0001f;
     const float a8 =  0.0052f;
 
-    const float term_1 = a1 * (hull_coef.LCB/hull_coef.LWL) + a2 * hull_coef.Cp + a3 * pow(hull_coef.Disp,2.0f/3.0f)/hull_coef.AW + a4 * hull_coef.BWL/hull_coef.LWL);
-    const float term_2 = a5 * pow(hull_coef.Disp,2.0f/3.0f)/hull_coef.AW + a6 hull_coef.LCB/hull_coef.LCF + a7 * pow(hull_coef.LCB/hull_coef.LWL,2.0f) + a8 * pow(hull_coef.Cp,2.0f);
+    const float term_1 = a1 * (hull_coef.LCB/hull_coef.LWL) + a2 * hull_coef.Cp + a3 * pow(hull_coef.Disp,2.0f/3.0f)/hull_coef.AW + a4 * hull_coef.BWL/hull_coef.LWL;
+    const float term_2 = a5 * pow(hull_coef.Disp,2.0f/3.0f)/hull_coef.AW + a6 * hull_coef.LCB/hull_coef.LCF + a7 * pow(hull_coef.LCB/hull_coef.LWL,2.0f) + a8 * pow(hull_coef.Cp,2.0f);
 
     const float rhs = a0 + (term_1 + term_2) * (pow(hull_coef.Disp,1.0f/3.0f) / hull_coef.LWL);
-    const float Rrh = rhs * hull_coef.Disp * hull_coef.rho * g;
+    const float Rrh = rhs * hull_coef.Disp * hull_coef.rho * GRAVITY_MSS;
 
     // Aditonal residuary resistance due to heel angle //
     // Interpolate coefficents based on froude number
@@ -134,12 +134,12 @@ float Sailboat::calc_hull_drag(float speed, float heel)
     const float u4 = -0.007f;
     const float u5 = -0.0017f;
 
-    const float rhs_1 = u0 + u1 * (hull_coef.LWL / hull_coef.BWL) + u2 * (hull_coef.BWL/hull_coef.Tc) + u3 * pow(hull_coef.BWL/hull_coef.Tc,2) + u4 * hull_coef.LCB + pow(hull_coef.LCB,2);
-    const float Rfh_heel = (rhs_1 * hull_coef.Disp * hull_coef.rho * g) * 6.0f * pow(heel,1.7f);
+    const float rhs_1 = u0 + u1 * (hull_coef.LWL / hull_coef.BWL) + u2 * (hull_coef.BWL/hull_coef.Tc) + u3 * pow(hull_coef.BWL/hull_coef.Tc,2.0f) + u4 * hull_coef.LCB + u5 * pow(hull_coef.LCB,2.0f);
+    const float Rrh_heel = rhs_1 * hull_coef.Disp * hull_coef.rho * GRAVITY_MSS * 6.0f * pow(abs(heel),1.7f);
 
     // Viscous resistance  //
-    const float Cf = 0.075f / pow(log(Rn) - 2,2);
-    const float Sc = (1.97f + 0.171f * (hull_coef.BWL/hull_coef.Tc)) * pow(0.65f/hull_coef.Cm,1.0f/3.0f) * pow(hull_coef.lwl * hull_coef.Disp,0.5f);
+    const float Cf = 0.075f / pow( logf(Rn) - 2.0f,2.0f);
+    const float Sc = (1.97f + 0.171f * (hull_coef.BWL/hull_coef.Tc)) * pow(0.65f/hull_coef.Cm,1.0f/3.0f) * pow(hull_coef.LWL * hull_coef.Disp,0.5f);
     float Rfh = 0.5f  * hull_coef.rho * Sc * Cf;
 
     // heel ratio
@@ -148,10 +148,17 @@ float Sailboat::calc_hull_drag(float speed, float heel)
     const float s2 = -0.027f;
     const float s3 =  6.329f;
 
-    const float ratio = 1.01f + (s0 + s1 * (hull_coef.BWL/hull_coef.Tc) + s2 * pow(hull_coef.BWL/hull_coef.Tc,2) + s3 * hull_coef.Cm)
+    const float ratio = 1.0f + 0.01f * (s0 + s1 * (hull_coef.BWL/hull_coef.Tc) + s2 * pow(hull_coef.BWL/hull_coef.Tc,2.0f) + s3 * hull_coef.Cm);
     Rfh *= ratio;
 
-    return Rrh + Rfh_heel + Rfh
+    // Total
+    float total_drag = Rrh + Rrh_heel + Rfh;
+
+    if (!is_positive(total_drag)) {
+        total_drag = 0.0f;
+    }
+
+    return total_drag;
 }
 
 /*
@@ -166,26 +173,28 @@ void Sailboat::update(const struct sitl_input &input)
     float steering = 2*((input.servos[STEERING_SERVO_CH]-1000)/1000.0f - 0.5f);
 
     // calculate mainsail angle from servo output 4, 0 to 90 degrees
-    float mainsail_angle_bf = constrain_float((input.servos[MAINSAIL_SERVO_CH]-1000)/1000.0f * 90.0f, 0.0f, 90.0f);
+    float mainsail_angle_bf = linear_interpolate(1000.0f, 2000.0f, input.servos[MAINSAIL_SERVO_CH], 0.0f, 90.f);
 
     // calculate apparent wind in earth-frame (this is the direction the wind is coming from)
     Vector3f wind_apparent_ef = wind_ef + velocity_ef;
-    const float wind_apparent_dir_ef = degrees(atan2f(wind_apparent_ef.y, wind_apparent_ef.x));
+    const float wind_apparent_dir_ef = wrap_180(180.0f + degrees(atan2f(wind_apparent_ef.y, wind_apparent_ef.x)));
     const float wind_apparent_speed = safe_sqrt(sq(wind_apparent_ef.x)+sq(wind_apparent_ef.y));
 
+    // Aparent wind angle in body frame
+    const float wind_apparent_dir_bf = wrap_180(wind_apparent_dir_ef - degrees(AP::ahrs().yaw));
+
     // calculate angle-of-attack from wind to mainsail
-    float aoa_deg = MAX(fabsf(wrap_180(wind_apparent_dir_ef - degrees(AP::ahrs().yaw))) - mainsail_angle_bf, 0);
+    float aoa_deg = MAX(fabsf(wind_apparent_dir_bf) - mainsail_angle_bf, 0);
 
     // calculate Lift force (perpendicular to wind direction) and Drag force (parallel to wind direction)
     float lift_wf, drag_wf;
     calc_lift_and_drag(wind_apparent_speed, aoa_deg, lift_wf, drag_wf);
 
     // rotate lift and drag from wind frame into body frame
-    const float wind_to_veh_rot_angle_deg = wrap_180(180 + wind_apparent_dir_ef - degrees(AP::ahrs().yaw));
-    const float sin_rot_rad = sinf(radians(wind_to_veh_rot_angle_deg));
-    const float cos_rot_rad = cosf(radians(wind_to_veh_rot_angle_deg));
-    float force_fwd = (lift_wf * sin_rot_rad) + (drag_wf * cos_rot_rad);
-    float heel_force = (lift_wf * cos_rot_rad) + (drag_wf * sin_rot_rad);
+    const float sin_rot_rad = sinf(radians(wind_apparent_dir_bf));
+    const float cos_rot_rad = cosf(radians(wind_apparent_dir_bf));
+    const float force_fwd = (lift_wf * sin_rot_rad) + (drag_wf * cos_rot_rad);
+    const float heel_force = (lift_wf * cos_rot_rad) + (drag_wf * sin_rot_rad);
 
     // how much time has passed?
     float delta_time = frame_time_us * 1.0e-6f;
@@ -197,10 +206,7 @@ void Sailboat::update(const struct sitl_input &input)
     float speed = velocity_body.x;
 
     // caculate heel angle
-    float heel = asin((heel_force * sail_cp)/(keel_mass * keel_lenght));
-
-    // Caculate hull drag and subtract from forward force
-    force_fwd -= calc_hull_drag(speed, heel);
+    float heel = safe_asin((heel_force * sail_cp)/(keel_mass * keel_lenght));
 
     // yaw rate in degrees/s
     float yaw_rate = get_yaw_rate(steering, speed);
@@ -212,7 +218,7 @@ void Sailboat::update(const struct sitl_input &input)
     dcm.normalize();
 
     // accel in body frame due acceleration from sail and deceleration from hull friction
-    accel_body = Vector3f((force_fwd * 1.0f) - (velocity_body.x * 0.5f), 0, 0);
+    accel_body = Vector3f((force_fwd + calc_hull_drag(speed, heel))/mass, 0, 0);
 
     // add in accel due to direction change
     accel_body.y += radians(yaw_rate) * speed;

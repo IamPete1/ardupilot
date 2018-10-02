@@ -51,6 +51,8 @@ private:
     // return lateral acceleration in m/s/s given a steering input (in the range -1 to +1) and speed in m/s
     float get_lat_accel(float steering, float speed) const;
 
+    float calc_hull_drag(float speed, float heel);
+
     float steering_angle_max;   // vehicle steering mechanism's max angle in degrees
     float turning_circle;       // vehicle minimum turning circle diameter in meters
 
@@ -61,9 +63,10 @@ private:
 
     // Sail ceneter of pressure above cg
     const float sail_cp = 0.75f; // m
+    const float sail_area = 0.41f;// m^2
 
-    // gravitiaonal constant
-    const float g = 9.81; // m/s^2
+    // Total mass of the boat
+    const float mass = 4.0f; // kg
 
     // Hull drag coefficents for Delft Yacht Series
     // https://mail.radiosailingtechnology.com/index.php/hulls/estimating-the-hull-drag-of-an-iom-yacht-august-2014
@@ -79,11 +82,12 @@ private:
         const float LCF = 0.5461f;    // C of Water-plane from forward perpendicular, m
         const float AWP = 0.11186f;   // Water plane aresm, m^2
         const float Cm = 0.683f;      // Mid-ship section coefficent
-        const float rho = 1025f;      // Water densiry, kg/m^3
+        const float rho = 1025.0f;      // Water densiry, kg/m^3
         const float Tc = 0.0572f;     // Hull draft, m
-        const flaot v = 1.13e-6f;     // Water Kinematic viscosity, m^2/s
+        const float v = 1.13e-6f;     // Water Kinematic viscosity, m^2/s
     } hull_coef;
 
+    /*
     // Coefficients for Delft Yacht Series look up table
     const float Coefficient_DYS[9][13] = {
     { 0.15f,    0.2f,     0.25f,    0.3f,     0.35f,    0.4f,     0.45f,    0.5f,     0.55f,    0.6f,     0.65f,    0.7f,     0.75f},   // Fn
@@ -92,7 +96,7 @@ private:
     {-0.0086f, -0.0064f,  0.0031f,  0.0337f,  0.0446f, -0.125f,  -0.2945f, -0.3038f, -0.2361f, -0.296f,  -0.3667f, -0.2026f,  0.504f},  // a2
     {-0.0015f,  0.007f,  -0.0021f, -0.0285f, -0.1091f,  0.0273f,  0.2485f,  0.6033f,  0.8726f,  0.9661f,  1.3957f,  1.1282f,  1.7867f}, // a3
     { 0.0061f,  0.0014f, -0.007f,  -0.0367f, -0.0707f, -0.1341f, -0.2428f, -0.043f,   0.4219f,  0.6123f,  1.0343f,  1.1836f,  2.1934f}, // a4
-    { 0.001f,   0.0013f,  0.0148f,  0.0218f,  0.0914f,  0.3578f,  0.6293f,  0.8332f,  0.899f,   0.7534f,  0.3230f,  4973f,   -1.5479f}, // a5
+    { 0.001f,   0.0013f,  0.0148f,  0.0218f,  0.0914f,  0.3578f,  0.6293f,  0.8332f,  0.899f,   0.7534f,  0.3230f,  4973.0f,   -1.5479f}, // a5
     { 0.0001f,  0.0005f,  0.001f,   0.0015f,  0.0021f,  0.0045f,  0.0081f,  0.0106f,  0.0096f,  0.01f,    0.0072f,  0.0038f, -0.0115f}, // a6
     { 0.0052f, -0.002f,  -0.0043f, -0.0172f, -0.0078f,  0.1115f,  0.2086f,  0.1336f, -0.2272f, -0.3352f, -0.4632f, -0.4477f, -0.0977f}  // a7
     };
@@ -109,14 +113,14 @@ private:
     };
 
     // Coefficients for viscous heel angle
-    const float Coefficient_DYS_heel[5][7] = {
+    const float Coefficient_visc_heel[5][7] = {
     { 5.0f,    10.f,     15.0f,    20.0f,     25.0f,    30.0f,    35.0f},   // heel angle deg
     {-0.0005f, -0.0003f, -0.0002f, -0.0009f, -0.0026f, -0.0064f, -0.0218f}, // s0
     { 0.0023f,  0.0059f, -0.0156f,  0.0016f, -0.0567f, -0.4034f, -0.5261f}, // s1
     {-0.0086f, -0.0064f,  0.0031f,  0.0337f,  0.0446f, -0.125f,  -0.2945f}, // s2
     {-0.0015f,  0.007f,  -0.0021f, -0.0285f, -0.1091f,  0.0273f,  0.2485f}, // s3
     };
-
+*/
     // Righting force
     const float keel_mass = 2.0f; // kg
     const float keel_lenght = 0.3f; // m
