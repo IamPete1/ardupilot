@@ -37,10 +37,11 @@ Sailboat::Sailboat(const char *home_str, const char *frame_str) :
 {
 }
 
-// calculate the lift and drag as values from 0 to 1
+// calculate the lift and drag as values in N
 // given an apparent wind speed in m/s and angle-of-attack in degrees
 void Sailboat::calc_lift_and_drag(float wind_speed, float angle_of_attack_deg, float& lift, float& drag) const
 {
+
     const uint16_t index_width_deg = 10;
     const uint8_t index_max = ARRAY_SIZE(lift_curve) - 1;
 
@@ -62,8 +63,8 @@ void Sailboat::calc_lift_and_drag(float wind_speed, float angle_of_attack_deg, f
     }
 
     // apply scaling by wind speed
-    lift = lift_coef; // * 0.5f * SSL_AIR_DENSITY * sail_area * pow(wind_speed,2.0f);
-    drag = drag_coef; //* 0.5f * SSL_AIR_DENSITY * sail_area * pow(wind_speed,2.0f);
+    lift = lift_coef * 0.5f * SSL_AIR_DENSITY * sail_area * pow(wind_speed,2.0f);
+    drag = drag_coef * 0.5f * SSL_AIR_DENSITY * sail_area * pow(wind_speed,2.0f)+0.001f;
 }
 
 // return turning circle (diameter) in meters for steering angle proportion in the range -1 to +1
@@ -102,7 +103,7 @@ float Sailboat::get_lat_accel(float steering, float speed) const
 float Sailboat::calc_hull_drag(float speed, float heel)
 {
     // Froude number
-    const float fn = speed / sqrt(GRAVITY_MSS * hull_coef.LWL);
+    const float fn = abs(speed) / sqrt(GRAVITY_MSS * hull_coef.LWL);
 
    // reynolds number
     const float Rn = (abs(speed) * 0.7 * hull_coef.LWL) / hull_coef.v;
@@ -158,6 +159,10 @@ float Sailboat::calc_hull_drag(float speed, float heel)
         total_drag = 0.0f;
     }
 
+    if (is_negative(speed)) {
+        total_drag *= -1.0f;
+    }
+
     return total_drag;
 }
 
@@ -173,7 +178,7 @@ void Sailboat::update(const struct sitl_input &input)
     float steering = 2*((input.servos[STEERING_SERVO_CH]-1000)/1000.0f - 0.5f);
 
     // calculate mainsail angle from servo output 4, 0 to 90 degrees
-    float mainsail_angle_bf = linear_interpolate(1000.0f, 2000.0f, input.servos[MAINSAIL_SERVO_CH], 0.0f, 90.f);
+    float mainsail_angle_bf = linear_interpolate(1000.0f, 2000.0f, input.servos[MAINSAIL_SERVO_CH], 0.0f, 90.0f);
 
     // calculate apparent wind in earth-frame (this is the direction the wind is coming from)
     Vector3f wind_apparent_ef = wind_ef + velocity_ef;
@@ -194,7 +199,7 @@ void Sailboat::update(const struct sitl_input &input)
     const float sin_rot_rad = sinf(radians(wind_apparent_dir_bf));
     const float cos_rot_rad = cosf(radians(wind_apparent_dir_bf));
     const float force_fwd = (lift_wf * sin_rot_rad) + (drag_wf * cos_rot_rad);
-    const float heel_force = (lift_wf * cos_rot_rad) + (drag_wf * sin_rot_rad);
+    //const float heel_force = (lift_wf * cos_rot_rad) + (drag_wf * sin_rot_rad);
 
     // how much time has passed?
     float delta_time = frame_time_us * 1.0e-6f;
@@ -206,7 +211,7 @@ void Sailboat::update(const struct sitl_input &input)
     float speed = velocity_body.x;
 
     // caculate heel angle
-    float heel = safe_asin((heel_force * sail_cp)/(keel_mass * keel_lenght));
+    float heel = 10;//safe_asin((heel_force * sail_cp)/(keel_mass * keel_lenght));
 
     // yaw rate in degrees/s
     float yaw_rate = get_yaw_rate(steering, speed);
