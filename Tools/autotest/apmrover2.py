@@ -64,8 +64,9 @@ class AutoTestRover(AutoTest):
     def is_rover(self):
         return True
 
-    def get_stick_arming_channel(self):
-        return int(self.get_parameter("RCMAP_ROLL"))
+    def rc_option_value_for_arming_channel(self):
+        # Rover uses the "steer" channel for arming
+        return 205
 
     def arming_test_mission(self):
         return os.path.join(testdir, "ArduRover-Missions", "test_arming.txt")
