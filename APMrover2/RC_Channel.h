@@ -32,6 +32,9 @@ class RC_Channels_Rover : public RC_Channels
 
 public:
 
+    void init() override;
+    void set_control_channels(void);
+
     bool has_valid_input() const override;
 
     RC_Channel_Rover obj_channels[NUM_RC_CHANNELS];
@@ -43,7 +46,21 @@ public:
         return &obj_channels[chan];
     }
 
+    // primary control channels
+    RC_Channel *channel_throttle;
+    RC_Channel *channel_steer;
+    RC_Channel *channel_lateral;
+
+protected:
+
+    bool k_param_rcmap_for_conversion(uint8_t &k_param_rcmap) const override;
+
+    void get_option_defaults(const struct RC_Channels::OptionDefault *&defaults, uint8_t &num_defaults) override;
+
 private:
 
     int8_t flight_mode_channel_number() const override;
+
+    static const RC_Channels::OptionDefault option_defaults[];
+
 };

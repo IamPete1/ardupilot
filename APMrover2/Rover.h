@@ -45,7 +45,6 @@
 #include <AP_OpticalFlow/AP_OpticalFlow.h>          // Optical Flow library
 #include <AP_Param/AP_Param.h>
 #include <AP_RangeFinder/AP_RangeFinder.h>          // Range finder library
-#include <AP_RCMapper/AP_RCMapper.h>                // RC input mapping library
 #include <AP_Scheduler/AP_Scheduler.h>              // main loop scheduler
 #include <AP_Stats/AP_Stats.h>                      // statistics library
 #include <AP_Terrain/AP_Terrain.h>
@@ -144,13 +143,10 @@ private:
     // main loop scheduler
     AP_Scheduler scheduler;
 
-    // mapping between input channels
-    RCMapper rcmap;
-
-    // primary control channels
-    RC_Channel *channel_steer;
-    RC_Channel *channel_throttle;
-    RC_Channel *channel_lateral;
+    // primary control channels; references to avoid code churn
+    RC_Channel *&channel_steer = g2.rc_channels.channel_steer;
+    RC_Channel *&channel_throttle = g2.rc_channels.channel_throttle;
+    RC_Channel *&channel_lateral = g2.rc_channels.channel_lateral;
 
     AP_Logger logger;
 
@@ -365,8 +361,6 @@ private:
     void load_parameters(void);
 
     // radio.cpp
-    void set_control_channels(void);
-    void init_rc_in();
     void rudder_arm_disarm_check();
     void read_radio();
     void radio_failsafe_check(uint16_t pwm);
