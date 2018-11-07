@@ -175,7 +175,7 @@ protected:
     AP_Float            _boost_scale;
     
     // motor output variables
-    bool                motor_enabled[AP_MOTORS_MAX_NUM_MOTORS];    // true if motor is enabled
+    bool                motor_enabled[AP_MOTORS_MAX_NUM_ACTUATORS];    // true if motor is enabled
     int16_t             _throttle_radio_min;        // minimum PWM from RC input's throttle channel (i.e. minimum PWM input from receiver, RC3_MIN)
     int16_t             _throttle_radio_max;        // maximum PWM from RC input's throttle channel (i.e. maximum PWM input from receiver, RC3_MAX)
 

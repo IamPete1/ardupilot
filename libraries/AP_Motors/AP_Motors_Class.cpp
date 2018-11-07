@@ -158,7 +158,7 @@ uint32_t AP_Motors::rc_map_mask(uint32_t mask) const
 void AP_Motors::add_motor_num(int8_t motor_num)
 {
     // ensure valid motor number is provided
-    if( motor_num >= 0 && motor_num < AP_MOTORS_MAX_NUM_MOTORS ) {
+    if( motor_num >= 0 && motor_num < AP_MOTORS_MAX_NUM_ACTUATORS ) {
         uint8_t chan;
         SRV_Channel::Aux_servo_function_t function = SRV_Channels::get_motor_function(motor_num);
         SRV_Channels::set_aux_channel_default(function, motor_num);

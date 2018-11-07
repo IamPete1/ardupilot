@@ -19,8 +19,13 @@
 #define AP_MOTORS_MOT_10 9U
 #define AP_MOTORS_MOT_11 10U
 #define AP_MOTORS_MOT_12 11U
+#define AP_MOTORS_THROTTLE_LEFT 12U
+#define AP_MOTORS_THROTTLE_RIGHT 13U
+#define AP_MOTORS_TILT_LEFT 14U
+#define AP_MOTORS_TILT_RIGHT 15U
 
 #define AP_MOTORS_MAX_NUM_MOTORS 12
+#define AP_MOTORS_MAX_NUM_ACTUATORS 16
 
 // motor update rate
 #define AP_MOTORS_SPEED_DEFAULT     490 // default output rate to the motors
@@ -40,7 +45,7 @@ public:
         MOTOR_FRAME_TRI = 7,
         MOTOR_FRAME_SINGLE = 8,
         MOTOR_FRAME_COAX = 9,
-        MOTOR_FRAME_TAILSITTER = 10,
+        MOTOR_FRAME_TAILSITTER = 10, // also bicopter
         MOTOR_FRAME_HELI_DUAL = 11,
         MOTOR_FRAME_DODECAHEXA = 12,
         MOTOR_FRAME_HELI_QUAD = 13,
