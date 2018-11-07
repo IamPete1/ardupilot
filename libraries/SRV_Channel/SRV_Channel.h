@@ -435,6 +435,8 @@ public:
     static SRV_Channel::Aux_servo_function_t get_motor_function(uint8_t channel) {
         if (channel < 8) {
             return SRV_Channel::Aux_servo_function_t(SRV_Channel::k_motor1+channel);
+        } else if (channel > 11) {
+            return SRV_Channel::Aux_servo_function_t(SRV_Channel::k_throttleLeft+(channel-12));
         }
         return SRV_Channel::Aux_servo_function_t((SRV_Channel::k_motor9+(channel-8)));
     }
