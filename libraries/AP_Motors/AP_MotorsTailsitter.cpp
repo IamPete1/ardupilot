@@ -144,7 +144,6 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
     yaw_thrust = _yaw_in * compensation_gain;
     throttle_thrust = get_throttle() * compensation_gain;
 
-
     // sanity check throttle is above zero and below current limited throttle
     if (throttle_thrust <= 0.0f) {
         throttle_thrust = 0.0f;
@@ -155,9 +154,18 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
         limit.throttle_upper = true;
     }
 
-    // caculate left and right throttle outputs
-    _thrust_left  = throttle_thrust + roll_thrust*0.5;
-    _thrust_right = throttle_thrust - roll_thrust*0.5;
+     // thrust vectoring
+    _tilt_left  = pitch_thrust - yaw_thrust;
+    _tilt_right = pitch_thrust + yaw_thrust;
+
+    /*
+    calculate left and right throttle outputs
+    only apply roll thrust proportional to pitch angle
+    this stops vectored belly sitter trying to correct roll when motors are pointing in yaw direction on take off
+    */
+    const float pitch_scale = cosf(radians(pitch_thrust * 0.01f));
+    _thrust_left  = throttle_thrust + roll_thrust*pitch_scale*0.5;
+    _thrust_right = throttle_thrust - roll_thrust*pitch_scale*0.5;
 
     // if max thrust is more than one reduce average throttle
     thrust_max = MAX(_thrust_right,_thrust_left);
@@ -167,15 +175,21 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
         limit.roll_pitch = true;
     }
 
-    // Add ajustment to reduce average throttle
+    // add adjustment to reduce average throttle
     _thrust_left  = constrain_float(_thrust_left  + thr_adj, 0.0f, 1.0f);
     _thrust_right = constrain_float(_thrust_right + thr_adj, 0.0f, 1.0f);
     _throttle = throttle_thrust + thr_adj;
 
-    // thrust vectoring
-    _tilt_left  = pitch_thrust - yaw_thrust;
-    _tilt_right = pitch_thrust + yaw_thrust;
-}
+    // convert from angle to thrust at hover
+    // this scales yaw and pitch gains with throttle
+    const float hover_throttle = get_throttle_hover();
+    _tilt_left = hover_throttle * sinf(radians(_tilt_left * 0.01f));
+    _tilt_right = hover_throttle * sinf(radians(_tilt_right * 0.01f));
+
+    // convert back the an angle
+    _tilt_left = asinf(_thrust_left/_thrust_left);
+    _tilt_right = asinf(_thrust_right/_thrust_right);
+    }
 
 // output_test_seq - spin a motor at the pwm value specified
 //  motor_seq is the motor's sequence number from 1 to the number of motors on the frame
