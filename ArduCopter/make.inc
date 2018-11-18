@@ -63,3 +63,4 @@ LIBRARIES += AP_WheelEncoder
 LIBRARIES += AP_Follow
 LIBRARIES += AP_Devo_Telem
 LIBRARIES += AP_OSD
+LIBRARIES += AP_UnderSlung
