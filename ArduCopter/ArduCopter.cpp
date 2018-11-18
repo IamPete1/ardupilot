@@ -196,6 +196,7 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
 #if OSD_ENABLED == ENABLED
     SCHED_TASK(publish_osd_info, 1, 10),
 #endif
+    SCHED_TASK_CLASS(AP_UnderSlung,        &copter.g2.underslung,       update,         20,  100),
 };
 
 void Copter::read_aux_all()
