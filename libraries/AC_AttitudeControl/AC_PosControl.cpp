@@ -1080,6 +1080,9 @@ void AC_PosControl::run_xy_controller(float dt)
     _accel_target.x += _accel_desired.x;
     _accel_target.y += _accel_desired.y;
 
+    // add acceleration offset for under slung load control
+//     _accel_target += get_underslung_accel();
+
     // the following section converts desired accelerations provided in lat/lon frame to roll/pitch angles
 
     // limit acceleration using maximum lean angles
