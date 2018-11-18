@@ -586,6 +586,9 @@ public:
     UserParameters user_parameters;
 #endif
 
+    // Under slung load
+    AP_UnderSlung underslung;
+
 };
 
 extern const AP_Param::Info        var_info[];
