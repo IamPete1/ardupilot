@@ -82,6 +82,7 @@
 #include <AP_Arming/AP_Arming.h>
 #include <AP_SmartRTL/AP_SmartRTL.h>
 #include <AP_TempCalibration/AP_TempCalibration.h>
+#include <AP_UnderSlung/AP_UnderSlung.h>
 
 // Configuration
 #include "defines.h"
