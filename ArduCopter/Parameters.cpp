@@ -948,6 +948,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(user_parameters, "USR", 28, ParametersG2, UserParameters),
 #endif
 
+    // @Group: UNDLD_
+    // @Path: ../libraries/AP_UnderSlung/AP_UnderSlung.cpp
+    AP_SUBGROUPINFO(underslung, "UNDLD_", 29, ParametersG2, AP_UnderSlung),
+
     AP_GROUPEND
 };
 
@@ -1016,6 +1020,7 @@ ParametersG2::ParametersG2(void)
 #ifdef USER_PARAMS_ENABLED
     ,user_parameters()
 #endif
+    ,underslung()
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
