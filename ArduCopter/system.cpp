@@ -241,6 +241,9 @@ void Copter::init_ardupilot()
     g2.smart_rtl.init();
 #endif
 
+    // initialize Under slung load library
+    g2.underslung.init();
+
     // initialise DataFlash library
 #if MODE_AUTO_ENABLED == ENABLED
     DataFlash.set_mission(&mission);
