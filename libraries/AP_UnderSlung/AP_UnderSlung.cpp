@@ -17,8 +17,9 @@
 #include <AP_BoardConfig/AP_BoardConfig.h>
 #include <AP_AHRS/AP_AHRS.h>
 #include <GCS_MAVLink/GCS.h>
-#include <utility>
 #include <AP_Common/AP_Common.h>
+#include <DataFlash/DataFlash.h>
+#include <utility>
 
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_PX4 || CONFIG_HAL_BOARD == HAL_BOARD_VRBRAIN
@@ -337,6 +338,20 @@ bool AP_UnderSlung::start_calibration()
         return true;
     }
     return false;
+}
+
+// write log to dataflash
+void AP_UnderSlung::write_log()
+{
+    DataFlash_Class::instance()->Log_Write("UNDL", "TimeUS,V_PITCH,V_ROLL,ANG_PITCH,ANG_ROLL,ACL_PITCH,ACL_ROLL",
+                                           "svvddnn", "F000000", "Qffffff",
+                                           AP_HAL::micros64(),
+                                          (double)_current_analog_voltage_pitch,
+                                          (double)_current_analog_voltage_roll,
+                                          (double)degrees(_pitch_angle_bf),
+                                          (double)degrees(_roll_angle_bf),
+                                          (double)_pitch_output,
+                                          (double)_roll_output);
 }
 
 // read an analog port and calculate angle of the under slung load

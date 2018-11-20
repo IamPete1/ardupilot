@@ -68,6 +68,9 @@ public:
     // start calibration routine
     bool start_calibration();
 
+    // write log to dataflash
+    void write_log();
+
     // parameter block
     static const struct AP_Param::GroupInfo var_info[];
 
