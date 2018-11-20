@@ -374,6 +374,10 @@ void Copter::ten_hz_logging_loop()
 #if FRAME_CONFIG == HELI_FRAME
     Log_Write_Heli();
 #endif
+
+    if (copter.g2.underslung.enabled()) {
+        copter.g2.underslung.write_log();
+    }
 }
 
 // twentyfive_hz_logging - should be run at 25hz
