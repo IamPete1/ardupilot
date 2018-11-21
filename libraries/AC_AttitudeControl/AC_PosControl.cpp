@@ -1080,9 +1080,11 @@ void AC_PosControl::run_xy_controller(float dt)
     _accel_target.x += _accel_desired.x;
     _accel_target.y += _accel_desired.y;
 
+#if APM_BUILD_TYPE(APM_BUILD_ArduCopter)
     // add acceleration offset for under slung load control
     _accel_target.x += AP::underslung()->get_accel_x();
     _accel_target.y += AP::underslung()->get_accel_y();
+#endif
 
     // the following section converts desired accelerations provided in lat/lon frame to roll/pitch angles
 
