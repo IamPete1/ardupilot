@@ -81,7 +81,7 @@ const AP_Param::GroupInfo AP_UnderSlung::var_info[] = {
 
     // @Param: PIT_ANGLE
     // @DisplayName: Angle when pitch under slung load sensor is at min and max voltage
-    // @Description: Maximum and minimum angle the sensors is at when reading maximum and minimum voltage, the angle range must be symmetrical, voltage must increase as angle increases (load swinging ahead of copter)
+    // @Description: Maximum and minimum angle the sensors is at when reading maximum and minimum voltage, the angle range must be symmetrical, Make this negative to reverse pitch axis sensor
     // @Units: deg
     // @Increment: 1
     // @Range: 0 60
@@ -124,7 +124,7 @@ const AP_Param::GroupInfo AP_UnderSlung::var_info[] = {
 
     // @Param: RLL_ANGLE
     // @DisplayName: Angle when roll under slung load sensor is at min and max voltage
-    // @Description: Maximum and minimum angle the sensors is at when reading maximum and minimum voltage, the angle range must be symmetrical, voltage must increase as angle increases (load swinging to right?? of copter)
+    // @Description: Maximum and minimum angle the sensors is at when reading maximum and minimum voltage, the angle range must be symmetrical, Make this negative to reverse pitch axis sensor
     // @Units: deg
     // @Increment: 1
     // @Range: 0 60
@@ -355,7 +355,8 @@ void AP_UnderSlung::write_log()
 }
 
 // read an analog port and calculate angle of the under slung load
-// assumes voltage increases as load moves ahead and to the right?? of the copter
+// assumes voltage increases as load moves ahead and to the left of the copter
+// this can be reversed buy a negative angle max param
 void AP_UnderSlung::update_load_angle()
 {
     float voltage_ratio;
@@ -408,7 +409,7 @@ void AP_UnderSlung::calibrate()
         return;
     }
 
-    /* Not yet done this yet
+    /* Not yet done this yet!!
     switch (_type) {
         case WindVaneType::WINDVANE_HOME_HEADING:
         case WindVaneType::WINDVANE_PWM_PIN:
