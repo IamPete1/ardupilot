@@ -138,69 +138,43 @@ const AP_Param::GroupInfo AP_UnderSlung::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("CAL", 12, AP_UnderSlung, _calibration, 0),
 
-    // @Param: _PIT_P
+    // @Param: RAT_P
     // @DisplayName: Under slung load control angle P gain
     // @Description: Under slung load control angle P gain. Converts angle error (in radians) to acceleration output
     // @Range: 0.100 2.000
     // @User: Standard
 
-    // @Param: _PIT_I
+    // @Param: RAT_I
     // @DisplayName: Under slung load control angle I gain
     // @Description: Under slung load control angle I gain. Corrects long term error between the desired angle (in rad) and actual
     // @Range: 0.000 2.000
     // @User: Standard
 
-    // @Param: _PIT_IMAX
+    // @Param: RAT_IMAX
     // @DisplayName: Under slung load control angle I gain maximum
     // @Description: Under slung load control angle I gain maximum. Constrains the output (range -1 to +1) that the I term will generate
     // @Range: 0.000 1.000
     // @User: Standard
 
-    // @Param: _PIT_D
+    // @Param: RAT_D
     // @DisplayName: Under slung load control angle D gain
     // @Description: Under slung load control angle D gain. Compensates for short-term change in desired angle vs actual
     // @Range: 0.000 0.400
     // @User: Standard
 
-    // @Param: _PIT_FILT
+    // @Param: RAT_FILT
     // @DisplayName: Under slung load control angle filter frequency
     // @Description: Under slung load control angle input filter. Lower values reduce noise but add delay.
     // @Range: 1.000 100.000
     // @Units: Hz
     // @User: Standard
-    AP_SUBGROUPINFO(pitch_pid, "PIT_", 13, AP_UnderSlung, AC_PID),
+    AP_SUBGROUPINFO(pitch_pid, "RAT_", 13, AP_UnderSlung, AC_PID),
 
-    // @Param: _RLL_P
-    // @DisplayName: Under slung load control angle P gain
-    // @Description: Under slung load control angle P gain. Converts angle error (in radians) to acceleration output
-    // @Range: 0.100 2.000
+    // @Param: ANG_P
+    // @DisplayName: under slung load angle error to rate gain
+    // @Description: under slung load angle error to rate gain
     // @User: Standard
-
-    // @Param: _RLL_I
-    // @DisplayName: Under slung load control angle I gain
-    // @Description: Under slung load control angle I gain. Corrects long term error between the desired angle (in rad) and actual
-    // @Range: 0.000 2.000
-    // @User: Standard
-
-    // @Param: _RLL_IMAX
-    // @DisplayName: Under slung load control angle I gain maximum
-    // @Description: Under slung load control angle I gain maximum. Constrains the output (range -1 to +1) that the I term will generate
-    // @Range: 0.000 1.000
-    // @User: Standard
-
-    // @Param: _RLL_D
-    // @DisplayName: Under slung load control angle D gain
-    // @Description: Under slung load control angle D gain. Compensates for short-term change in desired angle vs actual
-    // @Range: 0.000 0.400
-    // @User: Standard
-
-    // @Param: _RLL_FILT
-    // @DisplayName: Under slung load control angle filter frequency
-    // @Description: Under slung load control angle input filter. Lower values reduce noise but add delay.
-    // @Range: 1.000 100.000
-    // @Units: Hz
-    // @User: Standard
-    AP_SUBGROUPINFO(roll_pid, "RLL_", 14, AP_UnderSlung, AC_PID),
+    AP_GROUPINFO("ANG_P", 14, AP_UnderSlung, _angle_p_gain, 0),
 
     AP_GROUPEND
 };
@@ -257,12 +231,9 @@ void AP_UnderSlung::update()
     _pitch_angle_ef = _pitch_angle_bf + AP::ahrs().pitch;
     _roll_angle_ef = _roll_angle_bf + AP::ahrs().roll;
 
-    // run PID controller to calculate required acceleration to return the load to the neutral pointer
+    // run PID controller to calculate required acceleration to return the load to the neutral point
     // currently the control always targets the load to be at its neutral point
-    // I gain should be left at zero to ensure the under slung load offsets do not overpower the navigation controller
-    // maybe go to PID control rates not angles??
 
-    /* left over from AP_Winch, might be useful if move to rate contorl
     // calculate dt since last iteration
     uint32_t now = AP_HAL::millis();
     float dt = (now - _last_update_ms) / 1000.0f;
@@ -272,34 +243,23 @@ void AP_UnderSlung::update()
     _last_update_ms = now;
 
     // calculate latest rate
-    float distance = _wheel_encoder->get_distance(0);
-    float rate = 0.0f;
+    float pitch_rate = 0.0f;
+    float roll_rate = 0.0f;
     if (is_positive(dt)) {
-        rate = (distance - config.length_curr) / dt;
+        pitch_rate = (_last_pitch_angle - _pitch_angle_ef) / dt;
+        roll_rate = (_last_roll_angle - _roll_angle_ef) / dt;
     }
+    _last_pitch_angle = _pitch_angle_ef;
+    _last_roll_angle = _roll_angle_ef;
 
-    // update distance from wheel encoder
-    config.length_curr = distance;
+    // Calculate angle error to desired rate, assume target of straight down
+    const float pitch_rate_desired = (0.0f - _pitch_angle_ef) * _angle_p_gain;
+    const float roll_rate_desired = (0.0f - _roll_angle_ef) * _angle_p_gain;
 
-    // if doing position control, calculate position error to desired rate
-    float rate_desired = 0.0f;
-    if (config.state == AP_Winch::STATE_POSITION) {
-        float position_error = config.length_desired - config.length_curr;
-        rate_desired = constrain_float(position_error * config.pos_p, -config.rate_desired, config.rate_desired);
-    }
+    //pass to pid controller
 
-    // if doing rate control, set desired rate
-    if (config.state == AP_Winch::STATE_RATE) {
-        rate_desired = config.rate_desired;
-    }
-    */
-    
-    // calculate error and pass to pid controller
-    // assume target of straight down
-    
     // pitch -----------------------------------------------
-    float angle_error = 0.0f - _pitch_angle_ef;
-    pitch_pid.set_input_filter_all(angle_error);
+    pitch_pid.set_input_filter_all(pitch_rate_desired - pitch_rate);
 
     // get p
     float p = pitch_pid.get_p();
@@ -312,9 +272,7 @@ void AP_UnderSlung::update()
     _pitch_output = p + i + d;
 
     // roll ------------------------------------------------
-    // assume target of straight down
-    angle_error = 0.0f - _roll_angle_ef;
-    roll_pid.set_input_filter_all(angle_error);
+    roll_pid.set_input_filter_all(roll_rate_desired - roll_rate);
 
     // get p
     p = roll_pid.get_p();
@@ -329,6 +287,15 @@ void AP_UnderSlung::update()
     // convert to x and y in earth frame
     _x_output = _pitch_output*AP::ahrs().cos_yaw() + _roll_output*AP::ahrs().sin_yaw();
     _y_output = _pitch_output*AP::ahrs().sin_yaw() + _roll_output*AP::ahrs().cos_yaw();
+
+    // zero output and reset integrator if not armed and in suitable mode
+    if (hal.util->get_soft_armed()) {
+        _x_output = 0.0f;
+        _y_output = 0.0f;
+
+        pitch_pid.reset_I();
+        roll_pid.reset_I();
+    }
 }
 
 bool AP_UnderSlung::start_calibration()

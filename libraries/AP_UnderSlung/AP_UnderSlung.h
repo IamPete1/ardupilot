@@ -19,20 +19,14 @@
 #include <AP_Math/AP_Math.h>
 #include <AC_PID/AC_PID.h>
 
-// angle control default gains, roll and pitch the same
-#define AP_UNDERSLUNG_PITCH_ANGLE_P     0.00f // set all gains to zero initially
-#define AP_UNDERSLUNG_PITCH_ANGLE_I     0.00f
-#define AP_UNDERSLUNG_PITCH_ANGLE_IMAX  1.00f
-#define AP_UNDERSLUNG_PITCH_ANGLE_D     0.00f
-#define AP_UNDERSLUNG_PITCH_ANGLE_FILT  5.00f
-#define AP_UNDERSLUNG_PITCH_ANGLE_DT    0.05f // 20 Hz
+// rate control default gains, roll and pitch are the same
+#define AP_UNDERSLUNG_RATE_P     0.00f // set all gains to zero initially
+#define AP_UNDERSLUNG_RATE_I     0.00f
+#define AP_UNDERSLUNG_RATE_IMAX  1.00f
+#define AP_UNDERSLUNG_RATE_D     0.00f
+#define AP_UNDERSLUNG_RATE_FILT  5.00f
+#define AP_UNDERSLUNG_RATE_DT    0.05f // 20 Hz
 
-#define AP_UNDERSLUNG_ROLL_ANGLE_P      0.00f // set all gains to zero initially
-#define AP_UNDERSLUNG_ROLL_ANGLE_I      0.00f
-#define AP_UNDERSLUNG_ROLL_ANGLE_IMAX   1.00f
-#define AP_UNDERSLUNG_ROLL_ANGLE_D      0.00f
-#define AP_UNDERSLUNG_ROLL_ANGLE_FILT   5.00f
-#define AP_UNDERSLUNG_ROLL_ANGLE_DT     0.05f // 20 Hz
 
 class AP_UnderSlung
 {
@@ -95,20 +89,21 @@ private:
     AP_Float _roll_analog_volt_center;              // voltage with load at neutral point
     AP_Float _roll_max_angle;                       // angle when roll sensor is at maximum and minimum voltage
     AP_Int8 _calibration;                           // enter calibration
+    AP_Float _angle_p_gain;                         // under slung load angle error to rate gain
 
-    AC_PID       pitch_pid = AC_PID(AP_UNDERSLUNG_PITCH_ANGLE_P,
-                                    AP_UNDERSLUNG_PITCH_ANGLE_I,
-                                    AP_UNDERSLUNG_PITCH_ANGLE_D,
-                                    AP_UNDERSLUNG_PITCH_ANGLE_IMAX,
-                                    AP_UNDERSLUNG_PITCH_ANGLE_FILT,
-                                    AP_UNDERSLUNG_PITCH_ANGLE_DT);
+    AC_PID       pitch_pid = AC_PID(AP_UNDERSLUNG_RATE_P,
+                                    AP_UNDERSLUNG_RATE_I,
+                                    AP_UNDERSLUNG_RATE_D,
+                                    AP_UNDERSLUNG_RATE_IMAX,
+                                    AP_UNDERSLUNG_RATE_FILT,
+                                    AP_UNDERSLUNG_RATE_DT);
 
-    AC_PID        roll_pid = AC_PID(AP_UNDERSLUNG_ROLL_ANGLE_P,
-                                    AP_UNDERSLUNG_ROLL_ANGLE_I,
-                                    AP_UNDERSLUNG_ROLL_ANGLE_D,
-                                    AP_UNDERSLUNG_ROLL_ANGLE_IMAX,
-                                    AP_UNDERSLUNG_ROLL_ANGLE_FILT,
-                                    AP_UNDERSLUNG_ROLL_ANGLE_DT);
+    AC_PID        roll_pid = AC_PID(AP_UNDERSLUNG_RATE_P,
+                                    AP_UNDERSLUNG_RATE_I,
+                                    AP_UNDERSLUNG_RATE_D,
+                                    AP_UNDERSLUNG_RATE_IMAX,
+                                    AP_UNDERSLUNG_RATE_FILT,
+                                    AP_UNDERSLUNG_RATE_DT);
 
     static AP_UnderSlung *_singleton;
 
@@ -124,6 +119,10 @@ private:
     float _pitch_angle_ef;
     float _roll_angle_ef;
 
+    // last load angle in earth frame (radians)
+    float _last_pitch_angle;
+    float _last_roll_angle;
+
     // Acceleration output from PID controller (x and y relative to body yaw (m/s^2))
     float _pitch_output;
     float _roll_output;
@@ -135,6 +134,9 @@ private:
     // pin for reading analog voltage
     AP_HAL::AnalogSource *pitch_analog_source;
     AP_HAL::AnalogSource *roll_analog_source;
+
+
+    float _last_update_ms;
 };
 
 namespace AP {
