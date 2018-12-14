@@ -19,6 +19,8 @@
 #include <GCS_MAVLink/GCS.h>
 #include <AP_Common/AP_Common.h>
 #include <DataFlash/DataFlash.h>
+#include <AC_AttitudeControl/AC_PosControl.h>
+
 #include <utility>
 
 
@@ -289,7 +291,7 @@ void AP_UnderSlung::update()
     _y_output = _pitch_output*AP::ahrs().sin_yaw() + _roll_output*AP::ahrs().cos_yaw();
 
     // zero output and reset integrator if not armed and in suitable mode
-    if (hal.util->get_soft_armed()) {
+    if (hal.util->get_soft_armed()) {  // && AC::PosControl()->is_active_xy()) {
         _x_output = 0.0f;
         _y_output = 0.0f;
 
