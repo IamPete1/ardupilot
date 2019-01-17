@@ -425,6 +425,7 @@ private:
         AP_Float max_roll_angle;
         AP_Float scaling_speed_min;
         AP_Float scaling_speed_max;
+        AP_Int16 motor_mask;
     } tailsitter;
 
     // the attitude view of the VTOL attitude controller

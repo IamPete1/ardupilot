@@ -418,6 +418,13 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @User: Standard
     AP_GROUPINFO("TAILSIT_SPDMAX", 10, QuadPlane, tailsitter.scaling_speed_max, 20),
 
+    // @Param: TAILSIT_MOTMX
+    // @DisplayName: Tailsiter mask
+    // @Description: Bitmask of motors to remain active in forward flight for a 'copter' tailsitter. Non-zero indicates airframe is a tailsitter which pitches forward 90 degrees in forward flight modes.
+    // @User: Standard
+    // @Bitmask: 0:Motor 1,1:Motor 2,2:Motor 3,3:Motor 4, 4:Motor 5,5:Motor 6,6:Motor 7,7:Motor 8
+    AP_GROUPINFO("TAILSIT_MOTMX", 11, QuadPlane, tailsitter.motor_mask, 0),
+
     AP_GROUPEND
 };
 
@@ -589,8 +596,14 @@ bool QuadPlane::setup(void)
         rotation = ROTATION_PITCH_90;
         break;
     default:
-        motors = new AP_MotorsMatrix(plane.scheduler.get_loop_rate_hz(), rc_speed);
-        motors_var_info = AP_MotorsMatrix::var_info;
+        if (tailsitter.motor_mask == 0) {
+            motors = new AP_MotorsMatrix(plane.scheduler.get_loop_rate_hz(), rc_speed);
+            motors_var_info = AP_MotorsMatrix::var_info;
+         } else {
+            rotation = ROTATION_PITCH_90;
+            motors = new AP_MotorsMatrixTS(plane.scheduler.get_loop_rate_hz(), rc_speed);
+            motors_var_info = AP_MotorsMatrixTS::var_info;            
+         }
         break;
     }
     const static char *strUnableToAllocate = "Unable to allocate";
@@ -1450,7 +1463,7 @@ void QuadPlane::update_transition(void)
         plane.nav_pitch_cd = constrain_float((-transition_rate * dt)*100, -8500, 0);
         plane.nav_roll_cd = 0;
         check_attitude_relax();
-        attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
+        attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd, 
                                                                       plane.nav_pitch_cd,
                                                                       0);
         attitude_control->set_throttle_out(motors->get_throttle_hover(), true, 0);
@@ -1656,6 +1669,7 @@ void QuadPlane::motors_output(bool run_rate_controller)
     // see if motors should be shut down
     check_throttle_suppression();
     
+    // this calls the AP_MotorsMulticopter virtual methods output_armed_stabilizing() then output_to_motors()
     motors->output();
     if (motors->armed() && motors->get_throttle() > 0) {
         plane.logger.Write_Rate(ahrs_view, *motors, *attitude_control, *pos_control);
