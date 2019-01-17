@@ -162,7 +162,7 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
         thr_adj = 1.0f - thrust_max;
         limit.throttle_upper = true;
         limit.roll_pitch = true;
-    }
+}
 
     // Add adjustment to reduce average throttle
     _thrust_left  = constrain_float(_thrust_left  + thr_adj, 0.0f, 1.0f);
