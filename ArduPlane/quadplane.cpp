@@ -416,7 +416,7 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @Units: m/s
     // @Range: 0 50
     // @User: Standard
-    AP_GROUPINFO("TAILSIT_SPDMAX", 10, QuadPlane, tailsitter.scaling_speed_max, 10),
+    AP_GROUPINFO("TAILSIT_SPDMAX", 10, QuadPlane, tailsitter.scaling_speed_max, 20),
 
     AP_GROUPEND
 };
