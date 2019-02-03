@@ -152,8 +152,9 @@ void QuadPlane::tailsitter_output(void)
     // apply speed scaling to interpolate between fixed wing and VTOL outputs based on airspeed
     float aspeed;
     bool have_airspeed = ahrs.airspeed_estimate(&aspeed);
+    const float scailing_range = tailsitter.scaling_speed_max - tailsitter.scaling_speed_min;
     // only bother if it will change the output
-    if (aspeed > tailsitter.scaling_speed_min && have_airspeed) {
+    if (aspeed > tailsitter.scaling_speed_min && have_airspeed && !is_zero(scailing_range)) {
 
         // match the Q rates with plane controller
         if (!assisted_flight) {
@@ -169,7 +170,7 @@ void QuadPlane::tailsitter_output(void)
         }
 
         // calculate ratio of  gains
-        float fw_ratio = (aspeed - tailsitter.scaling_speed_min) / (tailsitter.scaling_speed_max - tailsitter.scaling_speed_min);
+        float fw_ratio = (aspeed - tailsitter.scaling_speed_min) / scailing_range;
         fw_ratio = constrain_float(fw_ratio, 0.0f, 1.0f);
         const float VTOL_rato = 1.0f - fw_ratio;
 
