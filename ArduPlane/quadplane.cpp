@@ -402,21 +402,21 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @User: Advanced
     AP_GROUPINFO("TRANS_FAIL", 8, QuadPlane, transition_failure, 0),
 
-    // @Param: TAILSIT_SCLSPD
-    // @DisplayName: Tailsitter airspeed scaling 50-50 point
-    // @Description: airspeed at which tailster is controlled equaly by VTOL and forward flight gains
+    // @Param: TAILSIT_SPDMIN
+    // @DisplayName: Tailsitter minimum airspeed scaling
+    // @Description: bellow this airspeed tailsiter is controlled by copter gains, gains scaled linearly between TAILSIT_SPDMIN and TAILSIT_SPDMAX, this apply s in Q modes and during Q assist if enabled
     // @Units: m/s
     // @Range: 0 50
     // @User: Standard
-    AP_GROUPINFO("TAILSIT_SCLSPD", 9, QuadPlane, tailsitter.scaling_speed, 10),
+    AP_GROUPINFO("TAILSIT_SPDMIN", 9, QuadPlane, tailsitter.scaling_speed_min, 10),
 
-    // @Param: TAILSIT_SCLRNG
-    // @DisplayName: Range of airspeed that tailsitter airspeed scaling takes place
-    // @Description: At air speeds below TAILSIT_SCLSPD - 0.5 * TAILSIT_SCLRNG tailsitter will be contoled by 100% VTOL gains, at air speeds above TAILSIT_SCLSPD + 0.5 * TAILSIT_SCLRNG it will be 100% forward flight gains
+    // @Param: TAILSIT_SPDMAX
+    // @DisplayName: Tailsitter maximum airspeed scaling
+    // @Description: above this airspeed tailsiter is controlled by plane gains, gains scaled linearly between TAILSIT_SPDMIN and TAILSIT_SPDMAX, this apply s in Q modes and during Q assist if enabled
     // @Units: m/s
-    // @Range: 0 20
+    // @Range: 0 50
     // @User: Standard
-    AP_GROUPINFO("TAILSIT_SCLRNG", 10, QuadPlane, tailsitter.scaling_range, 10),
+    AP_GROUPINFO("TAILSIT_SPDMAX", 10, QuadPlane, tailsitter.scaling_speed_max, 10),
 
     AP_GROUPEND
 };
