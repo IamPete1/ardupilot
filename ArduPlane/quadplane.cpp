@@ -585,27 +585,28 @@ bool QuadPlane::setup(void)
         break;
     }
 
-    switch (motor_class) {
-    case AP_Motors::MOTOR_FRAME_TRI:
-        motors = new AP_MotorsTri(plane.scheduler.get_loop_rate_hz(), rc_speed);
-        motors_var_info = AP_MotorsTri::var_info;
-        break;
-    case AP_Motors::MOTOR_FRAME_TAILSITTER:
-        motors = new AP_MotorsTailsitter(plane.scheduler.get_loop_rate_hz(), rc_speed);
-        motors_var_info = AP_MotorsTailsitter::var_info;
-        rotation = ROTATION_PITCH_90;
-        break;
-    default:
-        if (tailsitter.motor_mask == 0) {
-            motors = new AP_MotorsMatrix(plane.scheduler.get_loop_rate_hz(), rc_speed);
-            motors_var_info = AP_MotorsMatrix::var_info;
-         } else {
+    if (tailsitter.motor_mask == 0) {
+        motors = new AP_MotorsMatrix(plane.scheduler.get_loop_rate_hz(), rc_speed);
+        motors_var_info = AP_MotorsMatrix::var_info;
+        switch (motor_class) {
+        case AP_Motors::MOTOR_FRAME_TRI:
+            motors = new AP_MotorsTri(plane.scheduler.get_loop_rate_hz(), rc_speed);
+            motors_var_info = AP_MotorsTri::var_info;
+            break;
+        case AP_Motors::MOTOR_FRAME_TAILSITTER:
+            motors = new AP_MotorsTailsitter(plane.scheduler.get_loop_rate_hz(), rc_speed);
+            motors_var_info = AP_MotorsTailsitter::var_info;
             rotation = ROTATION_PITCH_90;
-            motors = new AP_MotorsMatrixTS(plane.scheduler.get_loop_rate_hz(), rc_speed);
-            motors_var_info = AP_MotorsMatrixTS::var_info;            
-         }
-        break;
-    }
+            break;
+        default:
+            break;
+        }
+     } else {
+        rotation = ROTATION_PITCH_90;
+        motors = new AP_MotorsMatrixTS(plane.scheduler.get_loop_rate_hz(), rc_speed);
+        motors_var_info = AP_MotorsMatrixTS::var_info;            
+     }
+    
     const static char *strUnableToAllocate = "Unable to allocate";
     if (!motors) {
         hal.console->printf("%s motors\n", strUnableToAllocate);
