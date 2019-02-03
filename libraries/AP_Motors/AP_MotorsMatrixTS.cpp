@@ -78,6 +78,13 @@ void AP_MotorsMatrixTS::setup_motors(motor_frame_class frame_class, motor_frame_
 
     switch (frame_class) {
 
+        case MOTOR_FRAME_TRI:
+            add_motor(AP_MOTORS_MOT_1,  90, 0, 2);
+            add_motor(AP_MOTORS_MOT_2, -90, 0, 4);
+            add_motor(AP_MOTORS_MOT_4, 180, 0,  3);
+            success = true;
+            break;
+
         case MOTOR_FRAME_QUAD:
             switch (frame_type) {
                 case MOTOR_FRAME_TYPE_PLUS:
