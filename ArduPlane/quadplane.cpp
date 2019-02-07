@@ -586,8 +586,6 @@ bool QuadPlane::setup(void)
     }
 
     if (tailsitter.motor_mask == 0) {
-        motors = new AP_MotorsMatrix(plane.scheduler.get_loop_rate_hz(), rc_speed);
-        motors_var_info = AP_MotorsMatrix::var_info;
         switch (motor_class) {
         case AP_Motors::MOTOR_FRAME_TRI:
             motors = new AP_MotorsTri(plane.scheduler.get_loop_rate_hz(), rc_speed);
@@ -599,6 +597,8 @@ bool QuadPlane::setup(void)
             rotation = ROTATION_PITCH_90;
             break;
         default:
+            motors = new AP_MotorsMatrix(plane.scheduler.get_loop_rate_hz(), rc_speed);
+            motors_var_info = AP_MotorsMatrix::var_info;
             break;
         }
      } else {
