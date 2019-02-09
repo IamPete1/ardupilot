@@ -80,16 +80,16 @@ void QuadPlane::tailsitter_output(void)
              */
             fw_throttle = motors->get_throttle_hover() * 100;
             SRV_Channels::set_output_scaled(SRV_Channel::k_rudder, 0);
-            pos_control->get_accel_z_pid().set_integrator(throttle*10);
+            pos_control->get_accel_z_pid().set_integrator(fw_throttle*10);
 
             // override AP_MotorsTailsitter throttles during back transition
-            SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, throttle);
-            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleLeft, throttle);
-            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleRight, throttle);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_throttle, fw_throttle);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleLeft, fw_throttle);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleRight, fw_throttle);
         }
 
         // set AP_MotorsMatrix throttles enabled for forward flight
-        motors->output_motor_mask(fw_throttle * 0.01f, mask, plane.rudder_dt);
+        motors->output_motor_mask(fw_throttle * 0.01f, tailsitter.motor_mask, plane.rudder_dt);
 
         // output tilts for forward flight
         SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorLeft, fw_tilt_left);
