@@ -115,11 +115,13 @@ void QuadPlane::tailsitter_output(void)
             scaling = constrain_float(hover_throttle / (throttle * 0.01f), 0, tailsitter.throttle_scale_max);
         }
 
+        rudder *= scaling;
         aileron *= scaling;
         elevator *= scaling;
         tilt_left *= scaling;
         tilt_right *= scaling;
 
+        rudder = constrain_float(rudder, -SERVO_MAX, SERVO_MAX);
         aileron = constrain_float(aileron, -SERVO_MAX, SERVO_MAX);
         elevator = constrain_float(elevator, -SERVO_MAX, SERVO_MAX);
         tilt_left = constrain_float(tilt_left, -SERVO_MAX, SERVO_MAX);
@@ -152,9 +154,9 @@ void QuadPlane::tailsitter_output(void)
     // apply speed scaling to interpolate between fixed wing and VTOL outputs based on airspeed
     float aspeed;
     bool have_airspeed = ahrs.airspeed_estimate(&aspeed);
-    const float scailing_range = tailsitter.scaling_speed_max - tailsitter.scaling_speed_min;
+    const float scaling_range = tailsitter.scaling_speed_max - tailsitter.scaling_speed_min;
     // only bother if it will change the output
-    if (aspeed > tailsitter.scaling_speed_min && have_airspeed && !is_zero(scailing_range)) {
+    if (aspeed > tailsitter.scaling_speed_min && have_airspeed && !is_zero(scaling_range)) {
 
         // match the Q rates with plane controller
         if (!assisted_flight) {
@@ -170,7 +172,7 @@ void QuadPlane::tailsitter_output(void)
         }
 
         // calculate ratio of  gains
-        float fw_ratio = (aspeed - tailsitter.scaling_speed_min) / scailing_range;
+        float fw_ratio = (aspeed - tailsitter.scaling_speed_min) / scaling_range;
         fw_ratio = constrain_float(fw_ratio, 0.0f, 1.0f);
         const float VTOL_rato = 1.0f - fw_ratio;
 
