@@ -108,6 +108,7 @@ void QuadPlane::tailsitter_output(void)
     // if in Q assist still a good idea to use copter I term and zero plane I to prevent windup
     plane.pitchController.reset_I();
     plane.rollController.reset_I();
+    plane.yawController.reset_I();
 
     // pull in copter control outputs
     float aileron = motors->get_yaw()*-SERVO_MAX;
@@ -162,12 +163,19 @@ void QuadPlane::tailsitter_output(void)
             // no fixed wing yaw controller so cannot stabilize VTOL roll
             const float pitch_rate = attitude_control->get_rate_pitch_pid().get_pid_info().desired * 100;
             const float yaw_rate = attitude_control->get_rate_yaw_pid().get_pid_info().desired * 100;
+            const float roll_rate = attitude_control->get_rate_roll_pid().get_pid_info().desired * 100;
             const float speed_scaler = plane.get_speed_scaler();
 
             // due to reference frame change roll and yaw are swapped, use roll as rudder input and output direct as with plane
             fw_aileron = plane.rollController.get_rate_out(-yaw_rate, speed_scaler);
             fw_elevator = plane.pitchController.get_rate_out(pitch_rate, speed_scaler);
-            fw_rudder = plane.channel_roll->get_control_in();
+            //if (tailsitter.input_type == TAILSITTER_INPUT_BF_ROLL || tailsitter.input_type == TAILSITTER_INPUT_PLANE) {
+            //    fw_rudder = plane.channel_rudder->get_control_in();
+            //} else {
+            //    fw_rudder = plane.channel_roll->get_control_in();
+            //}
+            //fw_rudder += plane.yawController.get_rate_out(roll_rate, speed_scaler); // apply yaw damper
+            rudder += plane.yawController.get_rate_out(0.0f, speed_scaler); // apply yaw damper
         }
 
         // calculate ratio of gains
@@ -178,7 +186,7 @@ void QuadPlane::tailsitter_output(void)
         // calculate interpolated outputs
         aileron = aileron * VTOL_rato + fw_aileron * fw_ratio;
         elevator = elevator * VTOL_rato + fw_elevator * fw_ratio;
-        rudder = rudder * VTOL_rato + fw_rudder * fw_ratio;
+        //rudder = rudder * //VTOL_rato + fw_rudder * fw_ratio;
         tilt_left = tilt_left * VTOL_rato + fw_tilt_left * fw_ratio;
         tilt_right = tilt_right * VTOL_rato + fw_tilt_right * fw_ratio;
     }

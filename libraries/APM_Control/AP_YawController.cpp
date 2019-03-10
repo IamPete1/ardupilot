@@ -75,108 +75,118 @@ const AP_Param::GroupInfo AP_YawController::var_info[] = {
 
 int32_t AP_YawController::get_servo_out(float scaler, bool disable_integrator)
 {
-	uint32_t tnow = AP_HAL::millis();
-	uint32_t dt = tnow - _last_t;
-	if (_last_t == 0 || dt > 1000) {
-		dt = 0;
-	}
-	_last_t = tnow;
-	
-
     int16_t aspd_min = aparm.airspeed_min;
-    if (aspd_min < 1) {
-        aspd_min = 1;
+    aspd_min = MAX(aspd_min, 1.0f);
+
+    // Calculate yaw rate required to keep up with a constant height coordinated turn
+    float aspeed;
+    float rate_offset;
+    float bank_angle = _ahrs.roll;
+    // limit bank angle between +- 80 deg if right way up
+    if (fabsf(bank_angle) < 1.5707964f) {
+        bank_angle = constrain_float(bank_angle,-1.3962634f,1.3962634f);
     }
-	
-	float delta_time = (float) dt / 1000.0f;
-	
-	// Calculate yaw rate required to keep up with a constant height coordinated turn
-	float aspeed;
-	float rate_offset;
-	float bank_angle = _ahrs.roll;
-	// limit bank angle between +- 80 deg if right way up
-	if (fabsf(bank_angle) < 1.5707964f)	{
-	    bank_angle = constrain_float(bank_angle,-1.3962634f,1.3962634f);
-	}
-	if (!_ahrs.airspeed_estimate(&aspeed)) {
-	    // If no airspeed available use average of min and max
+    if (!_ahrs.airspeed_estimate(&aspeed)) {
+        // If no airspeed available use average of min and max
         aspeed = 0.5f*(float(aspd_min) + float(aparm.airspeed_max));
-	}
+    }
     rate_offset = (GRAVITY_MSS / MAX(aspeed , float(aspd_min))) * sinf(bank_angle) * _K_FF;
 
     // Get body rate vector (radians/sec)
-	float omega_z = _ahrs.get_gyro().z;
-	
-	// Get the accln vector (m/s^2)
-	float accel_y = AP::ins().get_accel().y;
+    float omega_z = _ahrs.get_gyro().z;
 
-	// Subtract the steady turn component of rate from the measured rate
-	// to calculate the rate relative to the turn requirement in degrees/sec
-	float rate_hp_in = ToDeg(omega_z - rate_offset);
-	
-	// Apply a high-pass filter to the rate to washout any steady state error
-	// due to bias errors in rate_offset
-	// Use a cut-off frequency of omega = 0.2 rad/sec
-	// Could make this adjustable by replacing 0.9960080 with (1 - omega * dt)
-	float rate_hp_out = 0.9960080f * _last_rate_hp_out + rate_hp_in - _last_rate_hp_in;
-	_last_rate_hp_out = rate_hp_out;
-	_last_rate_hp_in = rate_hp_in;
+    // Subtract the steady turn component of rate from the measured rate
+    // to calculate the rate relative to the turn requirement in degrees/sec
+    float rate_hp_in = ToDeg(omega_z - rate_offset);
 
-	//Calculate input to integrator
-	float integ_in = - _K_I * (_K_A * accel_y + rate_hp_out);
-	
-	// Apply integrator, but clamp input to prevent control saturation and freeze integrator below min FBW speed
-	// Don't integrate if in stabilise mode as the integrator will wind up against the pilots inputs
-	// Don't integrate if _K_D is zero as integrator will keep winding up
-	if (!disable_integrator && _K_D > 0) {
-		//only integrate if airspeed above min value
-		if (aspeed > float(aspd_min))
-		{
-			// prevent the integrator from increasing if surface defln demand is above the upper limit
-			if (_last_out < -45) {
+    // Apply a high-pass filter to the rate to washout any steady state error
+    // due to bias errors in rate_offset
+    // Use a cut-off frequency of omega = 0.2 rad/sec
+    // Could make this adjustable by replacing 0.9960080 with (1 - omega * dt)
+    float rate_hp_out = 0.9960080f * _last_rate_hp_out + rate_hp_in - _last_rate_hp_in;
+    _last_rate_hp_out = rate_hp_out;
+    _last_rate_hp_in = rate_hp_in;
+
+    return get_rate_out(rate_hp_out, scaler, disable_integrator);
+}
+
+int32_t AP_YawController::get_rate_out(float rate_in, float scaler, bool disable_integrator)
+{
+    uint32_t tnow = AP_HAL::millis();
+    uint32_t dt = tnow - _last_t;
+    if (_last_t == 0 || dt > 1000) {
+        dt = 0;
+    }
+    _last_t = tnow;
+    float delta_time = (float) dt / 1000.0f;
+
+    int16_t aspd_min = aparm.airspeed_min;
+    aspd_min = MAX(aspd_min, 1.0f);
+
+    float aspeed;
+    if (!_ahrs.airspeed_estimate(&aspeed)) {
+        // If no airspeed available use average of min and max
+        aspeed = 0.5f*(float(aspd_min) + float(aparm.airspeed_max));
+    }
+
+    // Get the accln vector (m/s^2) for sideslip
+    float accel_y = AP::ins().get_accel().y;
+
+    //Calculate input to integrator
+    float integ_in = - _K_I * (_K_A * accel_y + rate_in);
+
+    // Apply integrator, but clamp input to prevent control saturation and freeze integrator below min FBW speed
+    // Don't integrate if in stabilise mode as the integrator will wind up against the pilots inputs
+    // Don't integrate if _K_D is zero as integrator will keep winding up
+    if (!disable_integrator && _K_D > 0) {
+        //only integrate if airspeed above min value
+        if (aspeed > float(aspd_min))
+        {
+            // prevent the integrator from increasing if surface defln demand is above the upper limit
+            if (_last_out < -45) {
                 _integrator += MAX(integ_in * delta_time , 0);
             } else if (_last_out > 45) {
                 // prevent the integrator from decreasing if surface defln demand  is below the lower limit
                 _integrator += MIN(integ_in * delta_time , 0);
-			} else {
+            } else {
                 _integrator += integ_in * delta_time;
             }
-		}
-	} else {
-		_integrator = 0;
-	}
+        }
+    } else {
+        _integrator = 0;
+    }
 
     if (_K_D < 0.0001f) {
         // yaw damping is disabled, and the integrator is scaled by damping, so return 0
         return 0;
     }
-	
+
     // Scale the integration limit
     float intLimScaled = _imax * 0.01f / (_K_D * scaler * scaler);
 
     // Constrain the integrator state
     _integrator = constrain_float(_integrator, -intLimScaled, intLimScaled);
-	
-	// Protect against increases to _K_D during in-flight tuning from creating large control transients
-	// due to stored integrator values
-	if (_K_D > _K_D_last && _K_D > 0) {
-	    _integrator = _K_D_last/_K_D * _integrator;
-	}
-	_K_D_last = _K_D;
-	
-	// Calculate demanded rudder deflection, +Ve deflection yaws nose right
-	// Save to last value before application of limiter so that integrator limiting
-	// can detect exceedance next frame
-	// Scale using inverse dynamic pressure (1/V^2)
-	_pid_info.I = _K_D * _integrator * scaler * scaler;
-	_pid_info.D = _K_D * (-rate_hp_out) * scaler * scaler;
-	_last_out =  _pid_info.I + _pid_info.D;
 
-	// Convert to centi-degrees and constrain
-	return constrain_float(_last_out * 100, -4500, 4500);
+    // Protect against increases to _K_D during in-flight tuning from creating large control transients
+    // due to stored integrator values
+    if (_K_D > _K_D_last && _K_D > 0) {
+        _integrator = _K_D_last/_K_D * _integrator;
+    }
+    _K_D_last = _K_D;
+
+    // Calculate demanded rudder deflection, +Ve deflection yaws nose right
+    // Save to last value before application of limiter so that integrator limiting
+    // can detect exceedance next frame
+    // Scale using inverse dynamic pressure (1/V^2)
+    _pid_info.I = _K_D * _integrator * scaler * scaler;
+    _pid_info.D = _K_D * (-rate_in) * scaler * scaler;
+    _last_out =  _pid_info.I + _pid_info.D;
+
+    // Convert to centi-degrees and constrain
+    return constrain_float(_last_out * 100, -4500, 4500);
 }
 
 void AP_YawController::reset_I()
 {
-	_integrator = 0;
+    _integrator = 0;
 }
