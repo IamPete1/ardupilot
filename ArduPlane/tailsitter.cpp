@@ -18,7 +18,60 @@
   to a configuration supported by AP_MotorsMatrix
  */
 
+#include <math.h>
+
 #include "Plane.h"
+
+#define DEBUG_SPEED_SCALING 1
+
+#if DEBUG_SPEED_SCALING
+// first order IIR high pass filter
+// coefficients b0 = b, b1 = -b
+// equation: y_n = b0 x_n + b1 x_{n-1} - a y_{n-1}
+// given b1 = -b0 = b: y_n = b (x_n - x_{n-1} - a y_{n-1}
+// x1 is the new input value, y is the filtered result
+// x0 is used to save the previous input
+inline void high_pass(float x1, float &x0, float &y) {
+    // coefficients for nyquist/30 cutoff:
+    const float b = 0.974482;
+    const float a = -0.948964;
+    y = b * (x1 - x0) - a * y;
+    x0 = x1;
+}
+
+// log speed scaler and highpass filtered gyro rates for validation
+void log_CTHP(float spd_scaler, Vector3f rates) {
+
+    // detect oscillation by monitoring gyros
+    static float in0[3] = {0};
+    static float hpOut[3] = {0};
+
+    // highpass filter each gyro output
+    high_pass(rates.x, in0[0], hpOut[0]);
+    high_pass(rates.y, in0[1], hpOut[1]);
+    high_pass(rates.z, in0[2], hpOut[2]);
+
+    // square then lowpass filter the highpass outputs
+    constexpr float lpcoef = 0.02f;
+    static float msq[3] = {0};
+
+    for (int i=0; i<3; i++) {
+        msq[i] = (1 - lpcoef) * msq[i] +lpcoef * sq(hpOut[i]);
+    }
+
+    static uint32_t last_log_time = 0;
+    uint32_t now = AP_HAL::millis();
+    if ((now - last_log_time) >= (1000 / 100)) {
+        last_log_time = now;
+
+        AP::logger().Write("CTHP", "TimeUS,MSQr,MSQp,MSQy,HPr,HPp,HPy,Scl,ASpd", "Qfffffff",
+                            AP_HAL::micros64(),
+                            msq[0], msq[1], msq[2],
+                            hpOut[0], hpOut[1], hpOut[2],
+                            spd_scaler);
+    }
+}
+#endif
 
 /*
   return true when flying a tailsitter
@@ -321,7 +374,7 @@ float QuadPlane::get_tailsitter_speed_scaling(void)
             // (angles here are represented by their cosines)
             constexpr float c_trans_angle = cosf(.125f * M_PI);
             const float alpha = (1 - max_atten) / (c_trans_angle - cosf(radians(90)));
-            constexpr float beta = 1 - alpha * c_trans_angle;
+            const float beta = 1 - alpha * c_trans_angle;
             const float c_tilt = ahrs_view->get_rotation_body_to_ned().c.z;
             if (c_tilt < c_trans_angle) {
                 spd_scaler = constrain_float(beta + alpha * c_tilt, max_atten, 1.0f);
@@ -342,6 +395,7 @@ float QuadPlane::get_tailsitter_speed_scaling(void)
             const float negdelta = plane.G_Dt / negTC;
             spd_scaler = constrain_float(spd_scaler, last_spd_scaler - negdelta, last_spd_scaler + posdelta);
             last_spd_scaler = spd_scaler;
+            log_CTHP(spd_scaler, ahrs_view->get_gyro_latest());
             return spd_scaler;
         }
     }
