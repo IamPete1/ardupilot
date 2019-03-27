@@ -152,7 +152,7 @@ void QuadPlane::tailsitter_output(void)
     }
 
     if (assisted_flight && tailsitter_transition_fw_complete()) {
-        hold_stabilize(throttle);
+        hold_stabilize(throttle * 0.01f);
         motors_output(true);
     } else {
         motors_output(false);
