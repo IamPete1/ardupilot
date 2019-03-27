@@ -113,6 +113,7 @@ void QuadPlane::tailsitter_output(void)
     float fw_aileron = SRV_Channels::get_output_scaled(SRV_Channel::k_aileron);
     float fw_elevator = SRV_Channels::get_output_scaled(SRV_Channel::k_elevator);
     float fw_rudder = SRV_Channels::get_output_scaled(SRV_Channel::k_rudder);
+    float throttle = SRV_Channels::get_output_scaled(SRV_Channel::k_throttle);
 
      // thrust vectoring in fixed wing flight
     float fw_tilt_left = 0;
@@ -128,7 +129,6 @@ void QuadPlane::tailsitter_output(void)
         SRV_Channels::set_output_scaled(SRV_Channel::k_tiltMotorRight, fw_tilt_right);
 
          // get FW controller throttle demand and mask of motors enabled during forward flight
-        float throttle = SRV_Channels::get_output_scaled(SRV_Channel::k_throttle);
         if (in_tailsitter_vtol_transition() && !throttle_wait && is_flying() && hal.util->get_soft_armed()) {
             /*
               during transitions to vtol mode set the throttle to
@@ -151,8 +151,8 @@ void QuadPlane::tailsitter_output(void)
         return;
     }
 
-    if (assisted_flight) {
-        control_stabilize();
+    if (assisted_flight && tailsitter_transition_fw_complete()) {
+        hold_stabilize(throttle);
         motors_output(true);
     } else {
         motors_output(false);
@@ -166,7 +166,7 @@ void QuadPlane::tailsitter_output(void)
     float aileron = motors->get_yaw()*-SERVO_MAX;
     float elevator = motors->get_pitch()*SERVO_MAX;
     float rudder = motors->get_roll()*SERVO_MAX;
-    float throttle = motors->get_throttle() * 100;
+    throttle = motors->get_throttle() * 100;
     float tilt_left = SRV_Channels::get_output_scaled(SRV_Channel::k_tiltMotorLeft);
     float tilt_right = SRV_Channels::get_output_scaled(SRV_Channel::k_tiltMotorRight);
 

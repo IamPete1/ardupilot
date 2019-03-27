@@ -1424,12 +1424,12 @@ void QuadPlane::update_transition(void)
          plane.is_flying())) {
         // the quad should provide some assistance to the plane
         if (!is_tailsitter()) {
-        if (transition_state != TRANSITION_AIRSPEED_WAIT) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
-        }
-        transition_state = TRANSITION_AIRSPEED_WAIT;
-        if (transition_start_ms == 0) {
-            transition_start_ms = now;
+            if (transition_state != TRANSITION_AIRSPEED_WAIT) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
+            }
+            transition_state = TRANSITION_AIRSPEED_WAIT;
+            if (transition_start_ms == 0) {
+                transition_start_ms = now;
             }
         }
         assisted_flight = true;
