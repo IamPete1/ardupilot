@@ -79,6 +79,9 @@ public:
     // true if vehicle has vectored thrust (i.e. boat with motor on steering servo)
     bool have_vectored_thrust() const { return is_positive(_vector_throttle_base); }
 
+    // set roll pitch outputs
+    void set_roll_pitch(float roll, float pitch);
+
     // output to motors and steering servos
     // ground_speed should be the vehicle's speed over the surface in m/s
     // dt should be expected time between calls to this function
@@ -156,6 +159,9 @@ protected:
     // use rate controller to achieve desired throttle
     float get_rate_controlled_throttle(SRV_Channel::Aux_servo_function_t function, float throttle, float dt);
 
+    // output roll and pitch stabilization
+    void output_roll_pitch();
+
     // external references
     AP_ServoRelayEvents &_relayEvents;
 
@@ -174,11 +180,14 @@ protected:
 
     // internal variables
     float   _steering;  // requested steering as a value from -4500 to +4500
+    float   _scaling;  // scaling factor used for steering
     float   _throttle;  // requested throttle as a value from -100 to 100
     float   _throttle_prev; // throttle input from previous iteration
     bool    _scale_steering = true; // true if we should scale steering by speed or angle
     float   _lateral;  // requested lateral input as a value from -100 to +100
     float   _mainsail;  // requested mainsail input as a value from 0 to 100
+    float   _roll;  // requested roll output from -4500 to +4500
+    float   _pitch;  // requested pitch output from -4500 to +4500
 
     // omni variables
     float   _throttle_factor[AP_MOTORS_NUM_MOTORS_MAX];
