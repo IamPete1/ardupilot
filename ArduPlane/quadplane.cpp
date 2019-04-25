@@ -470,6 +470,36 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @User: Standard
     AP_GROUPINFO("ASSIST_ALT", 16, QuadPlane, assist_alt, 0),
 
+    // @Param: TAILSIT_SPDMIN
+    // @DisplayName: INTERP method Tailsitter minimum airspeed scaling
+    // @Description: INTERP method only, below this airspeed tailsitter is controlled by copter gains, gains scaled linearly between TAILSIT_SPDMIN and TAILSIT_SPDMAX, this apply s in Q modes and during Q assist if enabled
+    // @Units: m/s
+    // @Range: 0 50
+    // @User: Standard
+    AP_GROUPINFO("TAILSIT_SPDMIN", 17, QuadPlane, tailsitter.scaling_speed_min, 10),
+
+    // @Param: TAILSIT_SPDMAX
+    // @DisplayName: INTERP method Tailsitter maximum airspeed scaling
+    // @Description: INTERP method only, above this airspeed tailsitter is controlled by plane gains, gains scaled linearly between TAILSIT_SPDMIN and TAILSIT_SPDMAX, this apply s in Q modes and during Q assist if enabled
+    // @Units: m/s
+    // @Range: 0 50
+    // @User: Standard
+    AP_GROUPINFO("TAILSIT_SPDMAX", 18, QuadPlane, tailsitter.scaling_speed_max, 20),
+
+    // @Param: TAILSIT_GSCMSK
+    // @DisplayName: Tailsitter gain scaling mask
+    // @Description: Bitmask of gain scaling methods to be applied: BOOST: boost gain at low throttle, ATT_THR: reduce gain at high throttle/tilt, INTERP: interpolate between fixed-wing and copter controls
+    // @User: Standard
+    // @Bitmask: 1:BOOST,2:ATT_THR,4:INTERP
+    AP_GROUPINFO("TAILSIT_GSCMSK", 19, QuadPlane, tailsitter.gain_scaling_mask, 1),
+
+    // @Param: TAILSIT_GSCMIN
+    // @DisplayName: Minimum gain scaling based on throttle and attitude
+    // @Description: Minimum gain scaling at high throttle/tilt angle
+    // @Range: 0.1 1
+    // @User: Standard
+    AP_GROUPINFO("TAILSIT_GSCMIN", 20, QuadPlane, tailsitter.gain_scaling_min, 0.4),
+
     AP_GROUPEND
 };
 
