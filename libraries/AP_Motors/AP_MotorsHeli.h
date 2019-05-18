@@ -32,6 +32,7 @@
 // default main rotor ramp up time in seconds
 #define AP_MOTORS_HELI_RSC_RAMP_TIME            1       // 1 second to ramp output to main rotor ESC to setpoint
 #define AP_MOTORS_HELI_RSC_RUNUP_TIME           10      // 10 seconds for rotor to reach full speed
+#define AP_MOTORS_HELI_AROT_BAILOUT_RAMP_TIME   0.5f    // time in seconds to ramp motors when bailing out of autorotation
 
 // flybar types
 #define AP_MOTORS_HELI_NOFLYBAR                 0
@@ -136,6 +137,9 @@ public:
     void enable_rsc_parameters(void);
 
 
+    // set_in_autorotation - allows main code to set when aircraft is in autorotation.
+    void set_in_autorotation(bool autorotation) { _heliflags.in_autorotation = autorotation; }
+
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -202,6 +206,7 @@ protected:
         uint8_t rotor_runup_complete    : 1;    // true if the rotors have had enough time to wind up
         uint8_t inverted_flight         : 1;    // true for inverted flight
         uint8_t init_targets_on_arming  : 1;    // 0 if targets were initialized, 1 if targets were not initialized after arming
+        uint8_t in_autorotation         : 1;    // true if aircraft is in autorotation
     } _heliflags;
 
     // parameters
