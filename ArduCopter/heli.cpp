@@ -180,4 +180,14 @@ void Copter::heli_update_rotor_speed_targets()
     rotor_runup_complete_last = motors->rotor_runup_complete();
 }
 
+// heli_update_autorotation - determines if aircraft is in autorotation and sets motors flag
+void Copter::heli_update_autorotation()
+{
+
+    if (!ap.land_complete && !motors->get_interlock()) {
+        motors->set_in_autorotation(true);
+    } else if (ap.land_complete) {
+        motors->set_in_autorotation(false);
+    }
+}
 #endif  // FRAME_CONFIG == HELI_FRAME

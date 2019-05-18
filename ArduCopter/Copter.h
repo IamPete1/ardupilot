@@ -736,6 +736,7 @@ private:
     void update_heli_control_dynamics(void);
     void heli_update_landing_swash();
     void heli_update_rotor_speed_targets();
+    void heli_update_autorotation();
 
     // inertia.cpp
     void read_inertia();
