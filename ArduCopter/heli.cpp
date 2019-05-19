@@ -186,8 +186,13 @@ void Copter::heli_update_autorotation()
 
     if (!ap.land_complete && !motors->get_interlock()) {
         motors->set_in_autorotation(true);
-    } else if (ap.land_complete) {
+    } else if (ap.land_complete || (flightmode->has_manual_throttle() && motors->get_interlock())) {
         motors->set_in_autorotation(false);
+    }
+    if (!ap.land_complete) {
+        motors->set_enable_bailout(true);
+    } else {
+        motors->set_enable_bailout(false);
     }
 }
 #endif  // FRAME_CONFIG == HELI_FRAME
