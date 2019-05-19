@@ -167,9 +167,16 @@ const AP_Param::GroupInfo SITL::var_info2[] = {
 
     AP_GROUPINFO("GND_BEHAV",   41, SITL,  gnd_behav, -1),
 
+    // sailboat wave simulation parameters
+    AP_GROUPINFO("WAVE_ENABLE", 42, SITL,  wave.enable, 0.0f),
+    AP_GROUPINFO("WAVE_LENGTH", 43, SITL,  wave.length, 10.0f),
+    AP_GROUPINFO("WAVE_AMP",    44, SITL,  wave.amp, 0.5f),
+    AP_GROUPINFO("WAVE_DIR",    45, SITL,  wave.direction, 0.0f),
+    AP_GROUPINFO("WAVE_SPEED",  46, SITL,  wave.speed, 0.5f),
+
     AP_GROUPEND
 };
-    
+
 
 /* report SITL state via MAVLink */
 void SITL::simstate_send(mavlink_channel_t chan)
