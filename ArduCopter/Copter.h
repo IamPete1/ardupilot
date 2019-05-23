@@ -583,6 +583,7 @@ private:
     typedef struct {
         uint8_t dynamic_flight          : 1;    // 0   // true if we are moving at a significant speed (used to turn on/off leaky I terms)
         uint8_t inverted_flight         : 1;    // 1   // true for inverted flight mode
+        uint8_t in_autorotation         : 1;    // 2   // true when heli is in autorotation
     } heli_flags_t;
     heli_flags_t heli_flags;
 
@@ -737,6 +738,7 @@ private:
     void heli_update_landing_swash();
     void heli_update_rotor_speed_targets();
     void heli_update_autorotation();
+    void heli_set_autorotation(bool autotrotation);
 
     // inertia.cpp
     void read_inertia();

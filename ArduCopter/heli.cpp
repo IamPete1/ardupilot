@@ -183,16 +183,24 @@ void Copter::heli_update_rotor_speed_targets()
 // heli_update_autorotation - determines if aircraft is in autorotation and sets motors flag
 void Copter::heli_update_autorotation()
 {
-
     if (!ap.land_complete && !motors->get_interlock()) {
-        motors->set_in_autorotation(true);
+        heli_flags.in_autorotation = true;
     } else if (ap.land_complete || (flightmode->has_manual_throttle() && motors->get_interlock())) {
-        motors->set_in_autorotation(false);
+        heli_flags.in_autorotation = false;
     }
+    // sets autorotation flags through out libraries
+    heli_set_autorotation(heli_flags.in_autorotation);
     if (!ap.land_complete) {
         motors->set_enable_bailout(true);
     } else {
         motors->set_enable_bailout(false);
     }
+}
+
+// heli_set_autorotation - set the autorotation flag throughout libraries
+void Copter::heli_set_autorotation(bool autorotation)
+{
+    motors->set_in_autorotation(autorotation);
+    input_manager.set_in_autorotation(autorotation);
 }
 #endif  // FRAME_CONFIG == HELI_FRAME
