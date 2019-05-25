@@ -361,9 +361,3 @@ void AR_WPNav::set_turn_params(float turn_max_g, float turn_radius, bool pivot_p
     _turn_radius = turn_radius;
     _pivot_possible = pivot_possible;
 }
-
-// set default overshoot (used for sailboats)
-void AR_WPNav::set_default_overshoot(float overshoot)
-{
-    _overshoot.set_default(overshoot);
-}
