@@ -263,6 +263,8 @@ public:
         AP_Float speed;     // m/s
     } wave;
 
+    AP_Int8 sailboat_options; // bitmask, bit 0 = has throttle
+
     uint16_t irlock_port;
 
     void simstate_send(mavlink_channel_t chan);
