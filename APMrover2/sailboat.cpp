@@ -25,7 +25,7 @@ const AP_Param::GroupInfo Sailboat::var_info[] = {
     // @Param: ENABLE
     // @DisplayName: Enable Sailboat
     // @Description: This enables Sailboat functionality
-    // @Values: 0:Disable,1:Enable
+    // @Values: 0:Disable,1:Enable,2:Enable sail assist only
     // @User: Standard
     // @RebootRequired: True
     AP_GROUPINFO_FLAGS("ENABLE", 1, Sailboat, enable, 0, AP_PARAM_FLAG_ENABLE),
