@@ -49,7 +49,7 @@ public:
     void handle_tack_request_acro();
 
     // return target heading in radians when tacking (only used in acro)
-    float get_tack_heading_rad() const;
+    float get_tack_heading_rad();
 
     // handle user initiated tack while in autonomous modes (Auto, Guided, RTL, SmartRTL, etc)
     void handle_tack_request_auto();
@@ -58,10 +58,10 @@ public:
     void clear_tack();
 
     // returns true if boat is currently tacking
-    bool tacking() const;
+    bool  tacking();
 
     // returns true if sailboat should take a indirect navigation route to go upwind
-    bool use_indirect_route(float desired_heading_cd) const;
+    bool  use_indirect_route(float desired_heading_cd);
 
     // calculate the heading to sail on if we cant go upwind
     float calc_heading(float desired_heading_cd);
@@ -80,6 +80,9 @@ public:
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo var_info[];
 
+    // return sailboat loiter radius
+    float get_loiter_radius() const {return loit_radius;}
+
 private:
 
     // true if motor is on to assist with slow tack
@@ -95,17 +98,19 @@ private:
     AP_Float sail_angle_ideal;
     AP_Float sail_heel_angle_max;
     AP_Float sail_no_go;
-    AP_Float sail_windspeed_min;
+    AP_Float max_cross_track;
+    AP_Float loit_radius;
 
     enum Sailboat_Tack {
         TACK_PORT,
         TACK_STARBOARD
     };
+    Sailboat_Tack current_tack;  // the tack the nav controller in calc_heading thinks we are on
 
     RC_Channel *channel_mainsail;   // rc input channel for controlling mainsail
     bool currently_tacking;         // true when sailboat is in the process of tacking to a new heading
     float tack_heading_rad;         // target heading in radians while tacking in either acro or autonomous modes
-    uint32_t auto_tack_request_ms;  // system time user requested tack in autonomous modes
+    uint32_t tack_request_ms;       // system time user requested tack
     uint32_t auto_tack_start_ms;    // system time when tack was started in autonomous mode
     bool tack_assist;               // true if we should use some throttle to assist tack
     UseMotor motor_state;           // current state of motor output
