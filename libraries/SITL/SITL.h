@@ -263,6 +263,11 @@ public:
         AP_Float speed;     // m/s
     } wave;
 
+    struct {
+        AP_Float direction; // deg (direction tide is coming from)
+        AP_Float speed;     // m/s
+    } tide;
+
     AP_Int8 sailboat_options; // bitmask, bit 0 = has throttle
 
     uint16_t irlock_port;

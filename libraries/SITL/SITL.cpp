@@ -176,6 +176,9 @@ const AP_Param::GroupInfo SITL::var_info2[] = {
 
     AP_GROUPINFO("SAIL_OPTS",  47, SITL,  sailboat_options, 0),
 
+    AP_GROUPINFO("TIDE_DIR",    48, SITL,  tide.direction, 0.0f),
+    AP_GROUPINFO("TIDE_SPEED",  49, SITL,  tide.speed, 0.0f),
+
     AP_GROUPEND
 };
 
