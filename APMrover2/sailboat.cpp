@@ -75,6 +75,42 @@ const AP_Param::GroupInfo Sailboat::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("NO_GO_ANGLE", 6, Sailboat, sail_no_go, 45),
 
+    // @Param: SAIL_MAX_X_TRACK
+    // @DisplayName: Sailing vehicle max cross track error
+    // @Description: The sail boat will tack when it reaches this cross track error, defines a corridor of 2 times this value wide, 0 disables
+    // @Units: m
+    // @Range: 5 25
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("MAX_X_TRACK", 7, Sailboat, max_cross_track, 10),
+
+    // @Param: SAIL_LOIT_RADIUS
+    // @DisplayName: Loiter radius
+    // @Description: Vehicle will sail when within this distance of the target position
+    // @Units: m
+    // @Range: 0 20
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("LOIT_RADIUS", 8, Sailboat, loit_radius, 5),
+
+    // @Param: SAIL_OPTIONS
+    // @DisplayName: Sailboat options bitmask
+    // @Description: Sailboat options bitmask
+    // @Values: 0:None,1:Aux Sail,2:Aux Throttle Limit
+    // @Bitmask: 0:Aux throttle main for sail,1:Aux Throttle Limit
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("OPTIONS", 9, Sailboat, sail_options, 0),
+
+    // @Param: SAIL_MIN_WNDSPD
+    // @DisplayName: Minimum wind speed to sail in
+    // @Description: Sailboat minimum wind speed to continue sail in, at lower wind speeds the sailboat will motor if one is fitted
+    // @Units: m/s
+    // @Range: 0 5
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("MIN_WNDSPD", 10, Sailboat, sail_assist_windspeed, 0),
+
     AP_GROUPEND
 };
 
@@ -96,8 +132,11 @@ void Sailboat::init()
 
     if (nav_enabled()) {
         rover.g2.loit_type.set_default(1);
-        rover.g2.loit_radius.set_default(5);
-        rover.g2.wp_nav.set_default_overshoot(10);
+    }
+
+    // if we have a throttle of some sort allow to use it
+    if (rover.g2.motors.have_skid_steering() || SRV_Channels::function_assigned(SRV_Channel::k_throttle)) {
+        throttle_state = sailboat_throttle::ASSIST;
     }
 }
 
@@ -108,8 +147,8 @@ float Sailboat::update_sail_control(float desired_speed, float throttle_out)
         return throttle_out;
     }
 
-    // relax sail if desired speed is zero
-    if (!is_positive(desired_speed)) {
+    // relax sail if desired speed is zero, or motoring
+    if (!is_positive(desired_speed) || throttle_state == sailboat_throttle::FORCE_MOTOR) {
         rover.g2.motors.set_mainsail(100.0f);
         return throttle_out;
     }
@@ -141,6 +180,32 @@ float Sailboat::update_sail_control(float desired_speed, float throttle_out)
     mainsail = constrain_float((mainsail + pid_offset + speed_offset), 0.0f ,100.0f);
     rover.g2.motors.set_mainsail(mainsail);
 
+    // see if we should allow throttle
+    if (throttle_state == sailboat_throttle::NEVER ||
+       (throttle_state == sailboat_throttle::ASSIST && !throttle_assist())) {
+        throttle_out = 0.0f;
+        if (enable == 2) {
+            rover.g2.attitude_control.relax_throttle();
+        }
+    }
+
+    // see if we should limit the throttle allowed
+    if ( (sail_options & options::AUX_THROTTLE) != 0 && (sail_options & options::AUX_THROTTLE_LIMIT) != 0 ) {
+        RC_Channel *rc_ptr = rc().find_channel_for_option(RC_Channel::AUX_FUNC::SAILBOAT_THR);
+        if (rc_ptr != nullptr) {
+            rc_ptr->set_angle(100);
+            rc_ptr->set_default_dead_zone(30);
+            float aux_thr = rc_ptr->get_control_in();
+            if (is_positive(throttle_out)) {
+                aux_thr = MAX(aux_thr, 0.0f);
+                throttle_out = MIN(throttle_out, aux_thr);
+            } else {
+                aux_thr = MIN(aux_thr, 0.0f);
+                throttle_out = MAX(throttle_out, aux_thr);
+            }
+        }
+    }
+
     return throttle_out;
 }
 
@@ -149,14 +214,15 @@ float Sailboat::update_sail_control(float desired_speed, float throttle_out)
 // https://en.wikipedia.org/wiki/Velocity_made_good
 float Sailboat::get_VMG() const
 {
-    // return 0 if not heading towards waypoint
-    if (!rover.control_mode->is_autopilot_mode()) {
-        return 0.0f;
-    }
-
+    // return zero if we don't have a valid speed
     float speed;
     if (!rover.g2.attitude_control.get_forward_speed(speed)) {
         return 0.0f;
+    }
+    
+    // return speed if not heading towards waypoint
+    if (!rover.control_mode->is_autopilot_mode()) {
+        return speed;
     }
 
     return (speed * cosf(wrap_PI(radians(rover.g2.wp_nav.wp_bearing_cd() * 0.01f) - rover.ahrs.yaw)));
@@ -165,6 +231,9 @@ float Sailboat::get_VMG() const
 // handle user initiated tack while in acro mode
 void Sailboat::handle_tack_request_acro()
 {
+    if (!nav_enabled()) {
+        return;
+    }
     // set tacking heading target to the current angle relative to the true wind but on the new tack
     currently_tacking = true;
     tack_heading_rad = wrap_2PI(rover.ahrs.yaw + 2.0f * wrap_PI((rover.g2.windvane.get_absolute_wind_direction_rad() - rover.ahrs.yaw)));
@@ -186,19 +255,20 @@ void Sailboat::handle_tack_request_auto()
 // clear tacking state variables
 void Sailboat::clear_tack()
 {
+    tack_assist = false;
     currently_tacking = false;
     auto_tack_request_ms = 0;
 }
 
 // returns true if boat is currently tacking
-bool Sailboat::tacking() const
+bool Sailboat::tacking()
 {
     return nav_enabled() && currently_tacking;
 }
 
 // returns true if sailboat should take a indirect navigation route to go upwind
 // desired_heading should be in centi-degrees
-bool Sailboat::use_indirect_route(float desired_heading_cd) const
+bool Sailboat::use_indirect_route(float desired_heading_cd)
 {
     if (!nav_enabled()) {
         return false;
@@ -215,6 +285,7 @@ bool Sailboat::use_indirect_route(float desired_heading_cd) const
 // this function assumes the caller has already checked sailboat_use_indirect_route(desired_heading_cd) returned true
 float Sailboat::calc_heading(float desired_heading_cd)
 {
+    // have we come here by mistake?
     if (!nav_enabled()) {
         return desired_heading_cd;
     }
@@ -244,7 +315,7 @@ float Sailboat::calc_heading(float desired_heading_cd)
     // trigger tack if cross track error larger than waypoint_overshoot parameter
     // this effectively defines a 'corridor' of width 2*waypoint_overshoot that the boat will stay within
     const float cross_track_error = rover.g2.wp_nav.crosstrack_error();
-    if ((fabsf(cross_track_error) >= rover.g2.wp_nav.get_overshoot()) && !is_zero(rover.g2.wp_nav.get_overshoot()) && !currently_tacking) {
+    if ((fabsf(cross_track_error) >= max_cross_track) && !is_zero(max_cross_track) && !currently_tacking) {
         // make sure the new tack will reduce the cross track error
         // if were on starboard tack we are traveling towards the left hand boundary
         if (is_positive(cross_track_error) && (current_tack == TACK_STARBOARD)) {
@@ -279,8 +350,13 @@ float Sailboat::calc_heading(float desired_heading_cd)
             clear_tack();
         } else if ((now - auto_tack_start_ms) > SAILBOAT_AUTO_TACKING_TIMEOUT_MS) {
             // tack has taken too long
-            gcs().send_text(MAV_SEVERITY_INFO, "Sailboat: Tacking timed out");
-            clear_tack();
+            if (throttle_state == sailboat_throttle::ASSIST && (now - auto_tack_start_ms) < (2.0f * SAILBOAT_AUTO_TACKING_TIMEOUT_MS)) {
+                // if we have throttle available use it for another time period to get the tack done
+                tack_assist = true;
+            } else {
+                gcs().send_text(MAV_SEVERITY_INFO, "Sailboat: Tacking timed out");
+                clear_tack();
+            }
         }
         // return tack target heading
         return degrees(tack_heading_rad) * 100.0f;
@@ -293,3 +369,80 @@ float Sailboat::calc_heading(float desired_heading_cd)
         return degrees(right_no_go_heading_rad) * 100.0f;
     }
 }
+
+// update manual mode throttle, used for dual throttle inputs, one for sail one for motor
+float Sailboat::update_manual_throttle(float desired_throttle)
+{
+    if (!sail_enabled()) {
+        return desired_throttle;
+    }
+
+    // get auxiliary throttle value
+    RC_Channel *rc_ptr = rc().find_channel_for_option(RC_Channel::AUX_FUNC::SAILBOAT_THR);
+    float aux_thr = 0.0f;
+    if (rc_ptr != nullptr) {
+        rc_ptr->set_angle(100);
+        rc_ptr->set_default_dead_zone(30);
+        aux_thr = rc_ptr->get_control_in();
+    }
+
+    // set throttle or sail
+    const bool sail_throttle = (sail_options & options::AUX_THROTTLE) != 0;
+    if (sail_throttle) {
+        rover.g2.motors.set_mainsail(desired_throttle);
+        if (!(rover.failsafe.bits & FAILSAFE_EVENT_THROTTLE)) {
+            desired_throttle = aux_thr;
+        }
+    } else {
+        rover.g2.motors.set_mainsail(aux_thr);
+    }
+
+    return desired_throttle;
+}
+
+// check dual throttles for arming
+bool Sailboat::aux_throttle_pre_arm_check()
+{
+    if (!sail_enabled()) {
+        return false;
+    }
+
+    const bool sail_throttle = (sail_options & options::AUX_THROTTLE) != 0;
+    if (sail_throttle) {
+        // get auxiliary throttle value
+        RC_Channel *rc_ptr = rc().find_channel_for_option(RC_Channel::AUX_FUNC::SAILBOAT_THR);
+        float aux_thr = 0.0f;
+        if (rc_ptr != nullptr) {
+            rc_ptr->set_angle(100);
+            rc_ptr->set_default_dead_zone(30);
+            aux_thr = rc_ptr->get_control_in();
+        }
+        if (!is_zero(aux_thr)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// should we use the throttle?
+bool Sailboat::throttle_assist() {
+
+    if ((!is_zero(sail_assist_windspeed) &&
+        rover.g2.windvane.wind_speed_enabled() &&
+        rover.g2.windvane.get_true_wind_speed() < sail_assist_windspeed) ||
+        tack_assist) {
+        return true;
+    }
+
+    return false;
+}
+
+// Should we use sailboat navigation?
+bool Sailboat::nav_enabled()
+{
+    return enable >= 2 &&
+           (throttle_state != sailboat_throttle::FORCE_MOTOR) &&
+           (throttle_assist() && !tack_assist && (throttle_state != sailboat_throttle::NEVER));
+}
+

@@ -25,7 +25,7 @@ public:
 
     // enabled
     bool sail_enabled() const { return enable != 0;}
-    bool nav_enabled() const { return enable >= 2;}
+    bool nav_enabled();
 
     // constructor
     Sailboat();
@@ -52,13 +52,29 @@ public:
     void  clear_tack();
 
     // returns true if boat is currently tacking
-    bool  tacking() const;
+    bool  tacking();
 
     // returns true if sailboat should take a indirect navigation route to go upwind
-    bool  use_indirect_route(float desired_heading_cd) const;
+    bool  use_indirect_route(float desired_heading_cd);
 
     // calculate the heading to sail on if we cant go upwind
     float calc_heading(float desired_heading_cd);
+
+    // return sailboat loiter radius
+    float get_loiter_radius() const {return loit_radius;}
+
+    // update throttle for manual throttle modes
+    float update_manual_throttle(float desired_throttle);
+
+    // check aux throttle at arming
+    bool aux_throttle_pre_arm_check();
+
+    enum sailboat_throttle {
+        NEVER        = 0,
+        ASSIST       = 1,
+        FORCE_MOTOR  = 2
+    };
+    uint8_t throttle_state; // throttle state used with throttle enum
 
 private:
 
@@ -69,14 +85,27 @@ private:
     AP_Float sail_angle_ideal;
     AP_Float sail_heel_angle_max;
     AP_Float sail_no_go;
+    AP_Float max_cross_track;
+    AP_Float loit_radius;
+    AP_Int16 sail_options;
+    AP_Float sail_assist_windspeed;
 
     enum Sailboat_Tack {
         TACK_PORT,
         TACK_STARBOARD
     };
 
+    enum options {
+        AUX_THROTTLE       = (1 << 0),
+        AUX_THROTTLE_LIMIT = (1 << 1)
+    };
+
     bool currently_tacking;         // true when sailboat is in the process of tacking to a new heading
     float tack_heading_rad;         // target heading in radians while tacking in either acro or autonomous modes
     uint32_t auto_tack_request_ms;  // system time user requested tack in autonomous modes
     uint32_t auto_tack_start_ms;    // system time when tack was started in autonomous mode
+    bool tack_assist;               // true if we should use some throttle to assist tack
+
+    // Check if we should assist with throttle
+    bool throttle_assist();
 };

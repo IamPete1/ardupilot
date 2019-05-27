@@ -90,6 +90,11 @@ bool AP_Arming_Rover::pre_arm_checks(bool report)
         return false;
     }
 
+    if (rover.g2.sailboat.aux_throttle_pre_arm_check()) {
+        check_failed(ARMING_CHECK_NONE, report, "Zero Sailboat Aux Throttle");
+        return false;
+    }
+
     return (AP_Arming::pre_arm_checks(report)
             & rover.g2.motors.pre_arm_check(report)
             & fence_checks(report)
