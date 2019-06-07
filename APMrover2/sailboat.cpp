@@ -384,6 +384,10 @@ float Sailboat::update_manual_throttle(float desired_throttle)
         rc_ptr->set_angle(100);
         rc_ptr->set_default_dead_zone(30);
         aux_thr = rc_ptr->get_control_in();
+    } else {
+        // aux throttle not set up
+        rover.g2.motors.set_mainsail(desired_throttle);
+        return desired_throttle;
     }
 
     // set throttle or sail
@@ -427,6 +431,9 @@ bool Sailboat::aux_throttle_pre_arm_check()
 
 // should we use the throttle?
 bool Sailboat::throttle_assist() {
+    if (throttle_state == sailboat_throttle::NEVER) {
+        return false;
+    }
 
     if ((!is_zero(sail_assist_windspeed) &&
         rover.g2.windvane.wind_speed_enabled() &&
@@ -443,6 +450,6 @@ bool Sailboat::nav_enabled()
 {
     return enable >= 2 &&
            (throttle_state != sailboat_throttle::FORCE_MOTOR) &&
-           (throttle_assist() && !tack_assist && (throttle_state != sailboat_throttle::NEVER));
+           (!throttle_assist() && !tack_assist);
 }
 
