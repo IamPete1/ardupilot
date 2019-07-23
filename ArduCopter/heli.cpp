@@ -180,14 +180,20 @@ void Copter::heli_update_rotor_speed_targets()
     rotor_runup_complete_last = motors->rotor_runup_complete();
 }
 
-// heli_update_autorotation - determines if aircraft is in autorotation and sets motors flag
+// heli_update_autorotation - determines if aircraft is in autorotation and sets motors flag and switches
+// to autorotation flight mode if manual collective is not being used.
 void Copter::heli_update_autorotation()
 {
     if (!ap.land_complete && !motors->get_interlock()) {
         heli_flags.in_autorotation = true;
+        // Check if an auto collective mode is being used
+        if (!flightmode->has_manual_throttle()){
+            set_mode(AUTOROTATE, MODE_REASON_AUTO_AUTOROTATION);
+        }
     } else if (ap.land_complete || (flightmode->has_manual_throttle() && motors->get_interlock())) {
         heli_flags.in_autorotation = false;
     }
+
     // sets autorotation flags through out libraries
     heli_set_autorotation(heli_flags.in_autorotation);
     if (!ap.land_complete) {

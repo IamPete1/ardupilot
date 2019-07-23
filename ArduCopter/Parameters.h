@@ -372,6 +372,9 @@ public:
 
         // 254,255: reserved
 
+        k_param_helispdhgtctrl = 256,
+        k_param_arot = 257,  // Autorotation controller library
+
         // the k_param_* space is 9-bits in size
         // 511: reserved
     };

@@ -78,6 +78,9 @@
 #include <AP_TempCalibration/AP_TempCalibration.h>
 #include <AC_AutoTune/AC_AutoTune.h>
 #include <AP_Common/AP_FWVersion.h>
+#include <AC_Autorotation/AC_Autorotation.h> // Autorotation controllers
+#include <AP_SpdHgtControl/AP_SpdHgtControl.h>
+#include <AP_SpdHgtControl/AP_SpdHgtControl_Heli.h>
 
 // Configuration
 #include "defines.h"
@@ -481,9 +484,13 @@ private:
     AC_PosControl *pos_control;
     AC_WPNav *wp_nav;
     AC_Loiter *loiter_nav;
+    AC_Autorotation *arot;
 #if MODE_CIRCLE_ENABLED == ENABLED
     AC_Circle *circle_nav;
 #endif
+
+    AP_SpdHgtControl_Heli *helispdhgtctrl;
+
 
     // System Timers
     // --------------
@@ -883,6 +890,7 @@ private:
     void userhook_auxSwitch2(uint8_t ch_flag);
     void userhook_auxSwitch3(uint8_t ch_flag);
 
+
 #if OSD_ENABLED == ENABLED
     void publish_osd_info();
 #endif
@@ -956,6 +964,9 @@ private:
 #endif
 #if MODE_ZIGZAG_ENABLED == ENABLED
     ModeZigZag mode_zigzag;
+#endif
+#if MODE_AUTOROTATE_ENABLED == ENABLED
+    ModeAutorotate mode_autorotate;
 #endif
 
     // mode.cpp

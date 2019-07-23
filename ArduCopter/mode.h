@@ -99,6 +99,8 @@ protected:
     RC_Channel *&channel_throttle;
     RC_Channel *&channel_yaw;
     float &G_Dt;
+    AC_Autorotation *&arot;
+    AP_SpdHgtControl_Heli *&helispdhgtctrl;
 
     // note that we support two entirely different automatic takeoffs:
 
@@ -1284,3 +1286,92 @@ private:
 
     uint32_t reach_wp_time_ms = 0;  // time since vehicle reached destination (or zero if not yet reached)
 };
+
+#if MODE_AUTOROTATE_ENABLED == ENABLED
+
+#define AUTOROTATE_ENTRY_TIME          3.0f    // (s) number of seconds that the entry phase operates for
+#define AUTOROTATE_HS_ADJUST_TIME      4.0f    // (s) number of seconds during which the head speed target is adjusted after starting glide phase
+
+class ModeAutorotate : public Mode {
+
+public:
+
+    // inherit constructor
+    using Copter::Mode::Mode;
+
+    bool init(bool ignore_checks) override;
+    void run() override;
+
+    bool is_autopilot() const override { return true; }
+    bool requires_GPS() const override { return false; }
+    bool has_manual_throttle() const override { return false; }
+    bool allows_arming(bool from_gcs) const override { return false; };
+
+    static const struct AP_Param::GroupInfo  var_info[];
+
+protected:
+
+    const char *name() const override { return "AUTOROTATE"; }
+    const char *name4() const override { return "AROT"; }
+
+private:
+
+    //-------- Internal variables --------
+    float _inital_airspeed;
+    float _initial_rpm;
+    float _target_head_speed;
+    float _aspeed;
+    float _desired_v_z;
+    int32_t _pitch_target;
+    float _collective_aggression;   //The 'aggresiveness' of collective appliction
+    float _z_touch_down_start;      //The height in cm that the touch down phase began at
+    float _t_touch_down_initiate;   //The time in ms that the touch down phase began at
+    float _att_accel_max;
+    float now = 0;
+    float _entry_time_remain;
+    float _hs_decay;
+
+    // ------- Values to be retrieved from parameters in set in the autorotation library -------
+    float _param_target_head_speed;  //(rpm) normalised head speed to be maintined in the autorotation (normalised by hover head speed)
+    float _param_head_speed_hover;   //(rpm) head speed during normal hover
+    float _param_accel_max;
+    float _param_target_airspeed;
+    float _param_td_alt;
+    float _param_col_entry_cutoff_freq;
+    float _param_col_glide_cutoff_freq;
+
+    enum autorotation_phase {
+        ENTRY,
+        SS_GLIDE,
+        FLARE,
+        TOUCH_DOWN } phase_switch;
+        
+    enum navigation_position_decision {
+        STRAIGHT_AHEAD,
+        INTO_WIND,
+        NEAREST_RALLY,
+        BREAK,
+        LEVEL } nav_pos_switch;
+
+    //internal flags
+    struct controller_flags {
+            bool entry_initial             : 1;    // 1 
+            bool ss_glide_initial          : 1;    // 1 if 
+            bool flare_initial             : 1;
+            bool touch_down_initial        : 1;
+            bool straight_ahead_initial    : 1;
+            bool level_initial             : 1;
+            bool break_initial             : 1;
+    } _flags;
+
+    //-------- Internal functions --------
+    float get_ned_glide_angle(void);
+
+    //organises and outputs error messages to the gcs.
+    void errormessage(int message_number);
+
+    uint16_t message_counter = 0;
+    uint16_t log_counter = 0;
+
+};
+#endif

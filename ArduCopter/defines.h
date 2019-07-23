@@ -54,6 +54,7 @@ enum control_mode_t {
     FLOWHOLD  =    22,  // FLOWHOLD holds position with optical flow without rangefinder
     FOLLOW    =    23,  // follow attempts to follow another vehicle or ground station
     ZIGZAG    =    24,  // ZIGZAG mode is able to fly in a zigzag manner with predefined point A and point B
+    AUTOROTATE =   25,  // Autonomous autorotation
 };
 
 enum mode_reason_t {
@@ -76,6 +77,8 @@ enum mode_reason_t {
     MODE_REASON_THROW_COMPLETE,
     MODE_REASON_TERMINATE,
     MODE_REASON_TMODE,
+    MODE_REASON_AUTOROTATION_BAILOUT,
+    MODE_REASON_AUTO_AUTOROTATION,
 };
 
 // Tuning enumeration
