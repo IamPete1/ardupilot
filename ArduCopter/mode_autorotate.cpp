@@ -41,7 +41,7 @@ if (motors->get_interlock()) {
     gcs().send_text(MAV_SEVERITY_INFO, "Autorotation initiated");
 
     //Retrieve parameter values from autorotation library
-    arot->set_param_values(&_param_target_head_speed, &_param_head_speed_hover, &_param_accel_max, &_param_target_airspeed, &_param_td_alt, &_param_col_entry_cutoff_freq, &_param_col_glide_cutoff_freq);
+    arot->set_param_values(&_param_target_head_speed, &_param_head_speed_hover, &_param_accel_max, &_param_target_airspeed, &_param_td_alt, &_param_col_entry_cutoff_freq, &_param_col_glide_cutoff_freq, &_param_bail_time);
 
      //set all inial flags to on
     _flags.entry_initial = 1;
@@ -51,6 +51,7 @@ if (motors->get_interlock()) {
     _flags.level_initial = 1;
     _flags.break_initial = 1;
     _flags.straight_ahead_initial = 1;
+    _flags.bail_out_initial = 1;
 
     //Prevent divide by zero error
     if (_param_head_speed_hover < 500) {
@@ -92,17 +93,18 @@ void Copter::ModeAutorotate::run()
 
     //check if interlock becomes engaged
     if (motors->get_interlock()) {
-        set_mode(copter.prev_control_mode, MODE_REASON_AUTOROTATION_BAILOUT);
+        //set_mode(copter.prev_control_mode, MODE_REASON_AUTOROTATION_BAILOUT);
+        phase_switch = BAIL_OUT;
     }
 
     // current time
     now = millis(); //milliseconds
 
     //initialise internal variables
-    float des_z;
     float curr_alt = inertial_nav.get_position().z;     // Current altitude
     float curr_vel_z = inertial_nav.get_velocity().z;
 
+    pos_control->write_log();
 
     //----------------------------------------------------------------
     //                  State machine logic
@@ -279,13 +281,89 @@ void Copter::ModeAutorotate::run()
             }
 
             //Calculate desired z
-            des_z = _z_touch_down_start * 0.1f * expf(-_collective_aggression * (now - _t_touch_down_initiate)/1000.0f); // + terrain_offset (cm)
+            _des_z = _z_touch_down_start * 0.1f * expf(-_collective_aggression * (now - _t_touch_down_initiate)/1000.0f); // + terrain_offset (cm)
 
-            pos_control->set_alt_target(des_z);
+            pos_control->set_alt_target(_des_z);
 
             pos_control->update_z_controller();
 
             break;
+
+
+        case BAIL_OUT:
+        
+        if (_flags.bail_out_initial == 1) {
+                //functions and settings to be done once are done here.
+
+                #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+                    gcs().send_text(MAV_SEVERITY_INFO, "Bailing Out of Autorotation");
+                #endif
+
+                //Set bail out timer remaining equal to the paramter value
+                if (_param_bail_time < BAILOUT_RAMP_TIME) {
+                    bail_time_remain = BAILOUT_RAMP_TIME;
+                } else {
+                    bail_time_remain = _param_bail_time;
+                }
+
+                //set initial target vertical speed
+                _desired_v_z = curr_vel_z;
+
+                //Initialise position and desired velocity
+                if (!pos_control->is_active_z()) {
+                    pos_control->relax_alt_hold_controllers(arot->get_last_collective());
+                }
+
+                //Get pilot parameter limits
+                float pilot_spd_dn = -get_pilot_speed_dn();
+                float pilot_spd_up = g.pilot_speed_up;
+
+                float pilot_des_v_z = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
+                pilot_des_v_z = constrain_float(pilot_des_v_z, pilot_spd_dn, pilot_spd_up);
+
+                //calculate target climb rate adjustment to transition from bail out decent speed to requested climb rate on stick.
+                _target_climb_rate_adjust = (curr_vel_z - pilot_des_v_z)/(_param_bail_time - BAILOUT_RAMP_TIME); //accounting for 0.5s motor spool time
+
+                //calculate pitch target adjustment rate to return to level
+                _target_pitch_adjust = _pitch_target/(_param_bail_time - BAILOUT_RAMP_TIME); //accounting for 0.5s motor spool time_param_bail_time;
+
+                //set neccessay acceleration limit
+                pos_control->set_accel_z(abs(_target_climb_rate_adjust));
+
+                motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+
+                _flags.bail_out_initial = 0;
+
+            }
+
+        if (bail_time_remain >= BAILOUT_RAMP_TIME) {
+            //update desired vertical speed and pitch target after the bailout ramp timer has completed
+            _desired_v_z -= _target_climb_rate_adjust*G_Dt;
+            _pitch_target -= _target_pitch_adjust*G_Dt;
+        }
+        //set position controller
+        pos_control->set_alt_target_from_climb_rate(_desired_v_z, G_Dt, false);
+
+        //get desired control inputs
+        float pilot_roll, pilot_pitch;
+        get_pilot_desired_lean_angles(pilot_roll, pilot_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
+
+        //get pilot's desired yaw rate
+        float pilot_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
+
+        //update controllers
+        pos_control->update_z_controller();
+        attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(pilot_roll, _pitch_target, pilot_yaw_rate);
+
+        //update bail out timer
+        bail_time_remain -= G_Dt;
+        
+        if (bail_time_remain <= 0.0f) {
+            //bail out timer complete.  Change flight mode.
+            set_mode(copter.prev_control_mode, MODE_REASON_AUTOROTATION_BAILOUT);
+        }
+
+        break;
 
     }
 
@@ -355,11 +433,11 @@ message_counter++;
 
     //Write to data flash log
     if (log_counter++ % 20 == 0) {
-        DataFlash_Class::instance()->Log_Write("AROT", "TimeUS,InVz,Glide,DPz,CRPM,AcL,ASTg,Pit", "Qfffffff",
+        DataFlash_Class::instance()->Log_Write("AROT", "TimeUS,InVz,Alt,DPz,CRPM,AcL,ASTg,Pit", "Qfffffff",
                                                 AP_HAL::micros64(),
                                                (double)curr_vel_z,
-                                               (double)get_ned_glide_angle(),
-                                               (double)des_z,
+                                               (double)curr_alt,
+                                               (double)_des_z,
                                                (double)arot->get_rpm(),
                                                (double)_att_accel_max,
                                                (double)_aspeed,

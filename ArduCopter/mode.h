@@ -1291,6 +1291,7 @@ private:
 
 #define AUTOROTATE_ENTRY_TIME          3.0f    // (s) number of seconds that the entry phase operates for
 #define AUTOROTATE_HS_ADJUST_TIME      4.0f    // (s) number of seconds during which the head speed target is adjusted after starting glide phase
+#define BAILOUT_RAMP_TIME              0.5f    // (s) time set on bailout ramp up timer for motors - See AC_MotorsHeli_Single
 
 class ModeAutorotate : public Mode {
 
@@ -1340,11 +1341,22 @@ private:
     float _param_col_entry_cutoff_freq;
     float _param_col_glide_cutoff_freq;
 
+    float _param_bail_time;
+
+    float bail_time_remain;
+
+    float _des_z;
+
+    float _target_climb_rate_adjust;
+
+    float _target_pitch_adjust;
+
     enum autorotation_phase {
         ENTRY,
         SS_GLIDE,
         FLARE,
-        TOUCH_DOWN } phase_switch;
+        TOUCH_DOWN,
+        BAIL_OUT } phase_switch;
         
     enum navigation_position_decision {
         STRAIGHT_AHEAD,
@@ -1355,13 +1367,14 @@ private:
 
     //internal flags
     struct controller_flags {
-            bool entry_initial             : 1;    // 1 
-            bool ss_glide_initial          : 1;    // 1 if 
+            bool entry_initial             : 1;
+            bool ss_glide_initial          : 1;
             bool flare_initial             : 1;
             bool touch_down_initial        : 1;
             bool straight_ahead_initial    : 1;
             bool level_initial             : 1;
             bool break_initial             : 1;
+            bool bail_out_initial          : 1;
     } _flags;
 
     //-------- Internal functions --------
