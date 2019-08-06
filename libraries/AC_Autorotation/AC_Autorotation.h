@@ -55,7 +55,7 @@ AC_Autorotation(const AP_AHRS_View& ahrs,
 
     void set_col_cutoff_freq(float freq) { _col_cutoff_freq = freq; }
 
-    void set_param_values(float* targ_hs, float* hs_hov, float* accel, float* targ_s, float* td_alt, float* ent_freq, float* glide_freq);
+    void set_param_values(float* targ_hs, float* hs_hov, float* accel, float* targ_s, float* td_alt, float* ent_freq, float* glide_freq, float* bail_time);
 
     float get_last_collective() { return _collective_out; }
 
@@ -94,6 +94,7 @@ protected:
     AP_Float _param_td_alt;
     AP_Float _param_col_entry_cutoff_freq;
     AP_Float _param_col_glide_cutoff_freq;
+    AP_Float _param_bail_time;
 
     // low pass filter for collective trim
     LowPassFilterFloat col_trim_lpf;

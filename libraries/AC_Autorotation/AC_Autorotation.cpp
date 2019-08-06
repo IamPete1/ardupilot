@@ -83,6 +83,14 @@ const AP_Param::GroupInfo AC_Autorotation::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("AS_ACC_MAX", 9, AC_Autorotation, _param_accel_max, 100.0f),
 
+    // @Param: BAIL_TIME
+    // @DisplayName: Bail out timer
+    // @Description: Time in seconds from bail out initiated to the exit of autorotation flight mode
+    // @Units: s
+    // @Range: 0.5 - 3
+    // @Increment: 0.1
+    // @User: Advanced
+    AP_GROUPINFO("BAIL_TIME", 10, AC_Autorotation, _param_bail_time, 2.0f),
 
     AP_GROUPEND
 };
@@ -171,7 +179,7 @@ void AC_Autorotation::set_collective(float collective_filter_cutoff)
 
 
 //function that sets parameter values in flight mode
-void AC_Autorotation::set_param_values(float* targ_hs, float* hs_hov, float* accel, float* targ_s, float* td_alt, float* ent_freq, float* glide_freq)
+void AC_Autorotation::set_param_values(float* targ_hs, float* hs_hov, float* accel, float* targ_s, float* td_alt, float* ent_freq, float* glide_freq, float* bail_time)
 {
 
     *targ_hs     = _param_target_head_speed;
@@ -181,6 +189,7 @@ void AC_Autorotation::set_param_values(float* targ_hs, float* hs_hov, float* acc
     *td_alt      = _param_td_alt;
     *ent_freq    = _param_col_entry_cutoff_freq;
     *glide_freq  = _param_col_glide_cutoff_freq;
+    *bail_time   = _param_bail_time;
 
 }
 
