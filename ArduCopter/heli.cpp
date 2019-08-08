@@ -201,6 +201,5 @@ void Copter::heli_update_autorotation()
 void Copter::heli_set_autorotation(bool autorotation)
 {
     motors->set_in_autorotation(autorotation);
-    input_manager.set_in_autorotation(autorotation);
 }
 #endif  // FRAME_CONFIG == HELI_FRAME
