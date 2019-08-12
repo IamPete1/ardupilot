@@ -144,6 +144,9 @@ void Rover::init_ardupilot()
     // initialise object avoidance
     g2.oa.init();
 
+    // init waypoint pathplanning
+    g2.pathplanner.init();
+
     startup_ground();
 
     Mode *initial_mode = mode_from_mode_num((enum Mode::Number)g.initial_mode.get());

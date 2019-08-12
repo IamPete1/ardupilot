@@ -388,6 +388,9 @@ public:
 
     // object avoidance path planning
     AP_OAPathPlanner oa;
+
+    // Waypoint path planner
+    AP_PathPlanner pathplanner;
 };
 
 extern const AP_Param::Info var_info[];

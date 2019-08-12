@@ -603,6 +603,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Path: ../libraries/AC_Avoidance/AP_OAPathPlanner.cpp
     AP_SUBGROUPINFO(oa, "OA_", 45, ParametersG2, AP_OAPathPlanner),
 
+    // @Group: PTHPLN_
+    // @Path: ../libraries/AP_PathPlanner/AP_PathPlanner.cpp
+    AP_SUBGROUPINFO(pathplanner, "PTHPLN_", 46, ParametersG2, AP_PathPlanner),
+
     AP_GROUPEND
 };
 
@@ -676,7 +680,8 @@ ParametersG2::ParametersG2(void)
     windvane(),
     airspeed(),
     wp_nav(attitude_control, rover.L1_controller),
-    sailboat()
+    sailboat(),
+    pathplanner()
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
