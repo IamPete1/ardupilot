@@ -3,7 +3,7 @@
 #include <AP_Common/AP_Common.h>
 #include <AP_Param/AP_Param.h>
 #include <AP_Math/AP_Math.h>
-#include <DataFlash/DataFlash.h>
+#include <AP_Logger/AP_Logger.h>
 #include <AP_RPM/AP_RPM.h>
 #include <AP_Motors/AP_Motors.h>          // motors library
 #include <AC_AttitudeControl/AC_AttitudeControl.h> // Attitude control library

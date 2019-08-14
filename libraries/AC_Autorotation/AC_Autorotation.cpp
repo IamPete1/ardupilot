@@ -115,7 +115,7 @@ void AC_Autorotation::init_hs_controller()
 void AC_Autorotation::update_hs_glide_controller(float dt)
 {
     // Get singleton for RPM library
-    const AP_RPM *rpm = AP_RPM::get_instance();
+    const AP_RPM *rpm = AP_RPM::get_singleton();
 
     //Get current rpm, checking to ensure no nullptr
     if (rpm != nullptr) {
@@ -154,14 +154,16 @@ void AC_Autorotation::update_hs_glide_controller(float dt)
 
     //Write to data flash log
     if (_log_counter++ % 20 == 0) {
-        DataFlash_Class::instance()->Log_Write("ARO2", "TimeUS,P,D,hserr,hstarg,ColOut,FFCol", "Qffffff",
-                                                AP_HAL::micros64(),
-                                               (double)P_hs,
-                                               (double)D_hs,
-                                               (double)_head_speed_error,
-                                               (double)_target_head_speed,
-                                               (double)_collective_out,
-                                               (double)FF_hs);
+        AP::logger().Write("ARO2",
+                           "TimeUS,P,D,hserr,hstarg,ColOut,FFCol",
+                           "Qffffff",
+                           AP_HAL::micros64(),
+                           (double)P_hs,
+                           (double)D_hs,
+                           (double)_head_speed_error,
+                           (double)_target_head_speed,
+                           (double)_collective_out,
+                           (double)FF_hs);
     }
 
 

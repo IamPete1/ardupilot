@@ -88,7 +88,6 @@ void AP_SpdHgtControl_Heli::update_speed_controller(void)
     //Specify forward velocity component and determine delta velocity with respect to time
     _speed_forward = calc_speed_forward(); //(m/s)
 
-
     delta_speed_fwd = _speed_forward - _speed_forward_last; //(m/s)
     _speed_forward_last = _speed_forward; //(m/s)
 
@@ -109,24 +108,19 @@ void AP_SpdHgtControl_Heli::update_speed_controller(void)
     _vel_error = _cmd_vel - (_speed_forward * 100.0f); //(cm/s)
 
     // call pid controller
-    _pid_vel.set_input_filter_all(_vel_error);
+    _pid_vel.update_all(_cmd_vel, _speed_forward, false);
 
     // get p
-    vel_p = _pid_vel.get_p();
+    vel_p = _pid_vel.get_p()/10.0f;
 
-    // update i term if we have not hit the accel or throttle limits OR the i term will reduce
-    // TODO: move limit handling into the PI and PID controller
-//    if (!_limit.accel_xy && !_motors.limit.throttle_upper) {
-        vel_i = _pid_vel.get_i();
-//    } else {
-//        vel_i = _pid_vel.get_i_shrink();
-//    }
+    // get i
+    vel_i = _pid_vel.get_i()/10.0f;
 
     // get d
-    vel_d = _pid_vel.get_d();
+    vel_d = _pid_vel.get_d()/10.0f;
 
     // get ff
-    vel_ff = _pid_vel.get_ff(_cmd_vel);
+    vel_ff = _pid_vel.get_ff(_cmd_vel)/10.0f;
 
     accel_target = vel_ff + vel_p + vel_i + vel_d;
 
@@ -162,19 +156,24 @@ void AP_SpdHgtControl_Heli::update_speed_controller(void)
 
     //Write to data flash log
     if (log_counter++ % 20 == 0) {
-        DataFlash_Class::instance()->Log_Write("SPHT", "TimeUS,SpdF,CmdV,GndS,Verr,p,i,ff", "Qfffffff",
-                                                AP_HAL::micros64(),
-                                               (double)_speed_forward,
-                                               (double)_cmd_vel,
-                                               (double)_vel_error,
-                                               (double)vel_p,
-                                               (double)vel_i,
-                                               (double)vel_ff);
+        AP::logger().Write("SPHT",
+                           "TimeUS,SpdF,CmdV,GndS,Verr,p,i,ff,AccO,AccT,PitT",
+                           "Qffffffffff",
+                           AP_HAL::micros64(),
+                           (double)_speed_forward,
+                           (double)_cmd_vel,
+                           (double)_vel_error,
+                           (double)vel_p,
+                           (double)vel_i,
+                           (double)vel_ff,
+                           (double)accel_out,
+                           (double)accel_target,
+                           (double)_pitch_target);
     }
 
 }
 
-
+// Determine the forward ground speed component from measured components
 float AP_SpdHgtControl_Heli::calc_speed_forward(void)
 {
     Vector2f groundspeed_vector = _ahrs.groundspeed_vector();

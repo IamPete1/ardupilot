@@ -1298,7 +1298,7 @@ class ModeAutorotate : public Mode {
 public:
 
     // inherit constructor
-    using Copter::Mode::Mode;
+    using Mode::Mode;
 
     bool init(bool ignore_checks) override;
     void run() override;
@@ -1359,11 +1359,10 @@ private:
         BAIL_OUT } phase_switch;
         
     enum navigation_position_decision {
+        USER_CONTROL_STABILISED,
         STRAIGHT_AHEAD,
         INTO_WIND,
-        NEAREST_RALLY,
-        BREAK,
-        LEVEL } nav_pos_switch;
+        NEAREST_RALLY} nav_pos_switch;
 
     //internal flags
     struct controller_flags {
@@ -1380,11 +1379,10 @@ private:
     //-------- Internal functions --------
     float get_ned_glide_angle(void);
 
-    //organises and outputs error messages to the gcs.
-    void errormessage(int message_number);
-
     uint16_t message_counter = 0;
     uint16_t log_counter = 0;
+
+    AP_Motors::SpoolState spooltest;
 
 };
 #endif

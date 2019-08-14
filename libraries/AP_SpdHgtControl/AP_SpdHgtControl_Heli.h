@@ -9,7 +9,7 @@
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_Param/AP_Param.h>
 #include <AP_Vehicle/AP_Vehicle.h>
-#include <DataFlash/DataFlash.h>
+#include <AP_Logger/AP_Logger.h>
 #include <AC_PID/AC_PID.h>             // PID library
 #include <AP_InertialNav/AP_InertialNav.h>     // Inertial Navigation library
 
@@ -27,7 +27,8 @@ public:
                           AP_InertialNav& inav):
         _ahrs(ahrs),
         _inav(inav),
-        _pid_vel(AP_SPDHGTCTRL_VEL_P, AP_SPDHGTCTRL_VEL_I, AP_SPDHGTCTRL_VEL_D, AP_SPDHGTCTRL_VEL_IMAX, AP_SPDHGTCTRL_VEL_FILT_HZ, AP_SPDHGTCTRL_VEL_DT, AP_SPDHGTCTRL_VEL_FF)
+        _pid_vel(AP_SPDHGTCTRL_VEL_P, AP_SPDHGTCTRL_VEL_I, AP_SPDHGTCTRL_VEL_D, AP_SPDHGTCTRL_VEL_FF, AP_SPDHGTCTRL_VEL_IMAX, AP_SPDHGTCTRL_VEL_FILT_HZ, AP_SPDHGTCTRL_VEL_FILT_HZ, AP_SPDHGTCTRL_VEL_FILT_HZ, AP_SPDHGTCTRL_VEL_DT)
+
     {
         AP_Param::setup_object_defaults(this, var_info);
     }

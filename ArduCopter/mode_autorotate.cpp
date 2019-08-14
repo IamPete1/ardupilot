@@ -11,7 +11,7 @@
  */
 
 
-bool Copter::ModeAutorotate::init(bool ignore_checks)
+bool ModeAutorotate::init(bool ignore_checks)
 {
 
 #if FRAME_CONFIG != HELI_FRAME
@@ -21,19 +21,19 @@ bool Copter::ModeAutorotate::init(bool ignore_checks)
 
 //Check that interlock is disengaged
 if (motors->get_interlock()) {
-    gcs().send_text(MAV_SEVERITY_INFO, "Autorotation Mode change fail: Interlock Engaged");
+    gcs().send_text(MAV_SEVERITY_INFO, "Autorotation Mode Change Fail: Interlock Engaged");
     return false;
 }
 
     // Get singleton for RPM library
-    const AP_RPM *rpm = AP_RPM::get_instance();
+    const AP_RPM *rpm = AP_RPM::get_singleton();
 
     //Get current rpm, checking to ensure no nullptr
     if (rpm != nullptr) {
         _initial_rpm = rpm->get_rpm(0);
     } else {
         //Prevent access to mode.  RPM sensor must be fitted to use autorotation mode
-        gcs().send_text(MAV_SEVERITY_INFO, "Autorotation Mode change fail: No RPM sensor");
+        gcs().send_text(MAV_SEVERITY_INFO, "Autorotation Mode Change Fail: No RPM sensor");
         return false;
     }
 
@@ -88,8 +88,10 @@ if (motors->get_interlock()) {
 
 
 
-void Copter::ModeAutorotate::run()
+void ModeAutorotate::run()
 {
+
+    spooltest = motors->get_spool_state();//////////////////////////////////////////////////////////////////////////
 
     //check if interlock becomes engaged
     if (motors->get_interlock()) {
@@ -111,7 +113,7 @@ void Copter::ModeAutorotate::run()
     //----------------------------------------------------------------
 
      //Setting default phase switch positions
-     nav_pos_switch = STRAIGHT_AHEAD;
+     nav_pos_switch = USER_CONTROL_STABILISED;
 
     //altitude check to jump to correct flight phase if at low height
     if (curr_alt <= _param_td_alt) {
@@ -184,22 +186,13 @@ void Copter::ModeAutorotate::run()
             //retrieve pitch target from helispdhgtctrl 
             _pitch_target = helispdhgtctrl-> get_pitch();
 
-            float pilot_roll, pilot_pitch;
-            get_pilot_desired_lean_angles(pilot_roll, pilot_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
-
-            //get pilot's desired yaw rate
-            float pilot_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
-
             //update controllers
             arot->update_hs_glide_controller(G_Dt); //run head speed/ collective controller
-            attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(pilot_roll, _pitch_target, pilot_yaw_rate);
-            //attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(pilot_roll, pilot_pitch, pilot_yaw_rate);
 
             break;
-
         }
-        case SS_GLIDE:
 
+        case SS_GLIDE:
         {
             //steady state glide functions to be run only once
             if (_flags.ss_glide_initial == 1) {
@@ -233,29 +226,20 @@ void Copter::ModeAutorotate::run()
             //retrieve pitch target from helispdhgtctrl 
             _pitch_target = helispdhgtctrl-> get_pitch();
 
-            //temp
-            float pilot_roll, pilot_pitch;
-            get_pilot_desired_lean_angles(pilot_roll, pilot_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
-
-            //get pilot's desired yaw rate
-            float pilot_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
-
             //update controllers
             arot->update_hs_glide_controller(G_Dt); //run head speed/ collective controller
-            attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(pilot_roll, _pitch_target, pilot_yaw_rate);
-            //attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(pilot_roll, pilot_pitch, pilot_yaw_rate);
-            
+            //attitude controller is updated in navigation switch-case statements
+
             break;
         }
 
         case FLARE:
-
-
+        {
             break;
-
+        }
 
         case TOUCH_DOWN:
-
+        {
             if (_flags.touch_down_initial == 1) {
                 //functions and settings to be done once are done here.
 
@@ -264,8 +248,8 @@ void Copter::ModeAutorotate::run()
                 #endif
 
                 //set limits of z velocity and z acceleration
-                pos_control->set_speed_z(-800, 500);
-                pos_control->set_accel_z(200000);
+                pos_control->set_max_speed_z(-800, 500);
+                pos_control->set_max_accel_z(200000);
 
                 //Get height that touchdown phase starts is initiated at
                 _z_touch_down_start = curr_alt;
@@ -288,10 +272,10 @@ void Copter::ModeAutorotate::run()
             pos_control->update_z_controller();
 
             break;
-
+        }
 
         case BAIL_OUT:
-        
+        {
         if (_flags.bail_out_initial == 1) {
                 //functions and settings to be done once are done here.
 
@@ -318,6 +302,9 @@ void Copter::ModeAutorotate::run()
                 float pilot_spd_dn = -get_pilot_speed_dn();
                 float pilot_spd_up = g.pilot_speed_up;
 
+                //set speed limit
+                pos_control->set_max_speed_z(curr_vel_z, pilot_spd_up);
+
                 float pilot_des_v_z = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
                 pilot_des_v_z = constrain_float(pilot_des_v_z, pilot_spd_dn, pilot_spd_up);
 
@@ -327,10 +314,10 @@ void Copter::ModeAutorotate::run()
                 //calculate pitch target adjustment rate to return to level
                 _target_pitch_adjust = _pitch_target/(_param_bail_time - BAILOUT_RAMP_TIME); //accounting for 0.5s motor spool time_param_bail_time;
 
-                //set neccessay acceleration limit
-                pos_control->set_accel_z(abs(_target_climb_rate_adjust));
+                //set acceleration limit
+                pos_control->set_max_accel_z(abs(_target_climb_rate_adjust));
 
-                motors->set_desired_spool_state(AP_Motors::DESIRED_THROTTLE_UNLIMITED);
+                motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
 
                 _flags.bail_out_initial = 0;
 
@@ -344,16 +331,8 @@ void Copter::ModeAutorotate::run()
         //set position controller
         pos_control->set_alt_target_from_climb_rate(_desired_v_z, G_Dt, false);
 
-        //get desired control inputs
-        float pilot_roll, pilot_pitch;
-        get_pilot_desired_lean_angles(pilot_roll, pilot_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
-
-        //get pilot's desired yaw rate
-        float pilot_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
-
         //update controllers
         pos_control->update_z_controller();
-        attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(pilot_roll, _pitch_target, pilot_yaw_rate);
 
         //update bail out timer
         bail_time_remain -= G_Dt;
@@ -364,58 +343,43 @@ void Copter::ModeAutorotate::run()
         }
 
         break;
-
+        }
     }
 
 
 
     switch (nav_pos_switch) {
 
-        case STRAIGHT_AHEAD:
+        case USER_CONTROL_STABILISED:
+        {
+            //Operator is in control of roll and yaw.  Controls act as if in stabilise flight mode.  Pitch is controlled 
+            //by speed-height controller.
+            float pilot_roll, pilot_pitch;
+            get_pilot_desired_lean_angles(pilot_roll, pilot_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
 
-        //    if (_flags.straight_ahead_initial == 1) {
-                //functions and settings to be done once are done here.
+            //get pilot's desired yaw rate
+            float pilot_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
 
-        //        #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-        //            gcs().send_text(MAV_SEVERITY_INFO, "Straight ahead");
-         //       #endif
-
-        //        _flags.straight_ahead_initial = 0;
-        //    }
-
-        //    // convert pilot input to lean angles
-        //    float target_roll, target_pitch;
-        //    get_pilot_desired_lean_angles(target_roll, target_pitch, copter.aparm.angle_max, copter.aparm.angle_max);
-
-        //    // get pilot's desired yaw rate
-        //    float target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->get_control_in());
-
-        //    // call attitude controller
-         //   attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(target_roll, target_pitch, target_yaw_rate);
-
-
+            //pitch target is calculated in autorotation phase switch above
+            attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(pilot_roll, _pitch_target, pilot_yaw_rate);
+            //attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(pilot_roll, pilot_pitch, pilot_yaw_rate);
             break;
+        }
 
+        case STRAIGHT_AHEAD:
+        {
+            break;
+        }
 
         case INTO_WIND:
-
+        {
             break;
-
+        }
 
         case NEAREST_RALLY:
-
+        {
             break;
-
-        case BREAK:
-
-
-            break;
-
-
-        case LEVEL:
-
-            break;
-
+        }
     }
 
 
@@ -433,24 +397,27 @@ message_counter++;
 
     //Write to data flash log
     if (log_counter++ % 20 == 0) {
-        DataFlash_Class::instance()->Log_Write("AROT", "TimeUS,InVz,Alt,DPz,CRPM,AcL,ASTg,Pit", "Qfffffff",
-                                                AP_HAL::micros64(),
-                                               (double)curr_vel_z,
-                                               (double)curr_alt,
-                                               (double)_des_z,
-                                               (double)arot->get_rpm(),
-                                               (double)_att_accel_max,
-                                               (double)_aspeed,
-                                               (double)_pitch_target);
+        AP::logger().Write("AROT",
+                           "TimeUS,InVz,Alt,DPz,CRPM,AcL,ASTg,Pit,test",
+                           "Qffffffff",
+                           AP_HAL::micros64(),
+                           (double)curr_vel_z,
+                           (double)curr_alt,
+                           (double)_des_z,
+                           (double)arot->get_rpm(),
+                           (double)_att_accel_max,
+                           (double)_aspeed,
+                           (double)_pitch_target,
+                           (double)spooltest);
     }
 
 }
 
 
-
 // Determine the glide path angle based on NED frame velocities.  This method determines the instaintanious glide angle,
-// not accounting for the wind.  Wind direction approximation/learning is done in another function, using this function.
-float Copter::ModeAutorotate::get_ned_glide_angle(void)
+// not accounting for the wind.  This function is not yet used.  It will be adopted in the future for selection of most efficient
+// forward flight speed.
+float ModeAutorotate::get_ned_glide_angle(void)
 {
     float sink_velocity = inertial_nav.get_velocity().z; //(cm/s)
 
@@ -476,22 +443,5 @@ float Copter::ModeAutorotate::get_ned_glide_angle(void)
 
     return windless_glide_slope;
 }
-
-
-
-//TODO: winding direction approximation learning via circuling descent
-
-
-void Copter::ModeAutorotate::errormessage(int message_number)
-{
-    
-    
-    
-
-}
-
-
-
-
 
 #endif
