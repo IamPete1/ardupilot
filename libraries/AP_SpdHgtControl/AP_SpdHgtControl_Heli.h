@@ -18,7 +18,9 @@
 #define AP_SPDHGTCTRL_VEL_D                       0.0f
 #define AP_SPDHGTCTRL_VEL_IMAX                    1000.0f
 #define AP_SPDHGTCTRL_VEL_FF                      0.15f
-#define AP_SPDHGTCTRL_VEL_FILT_HZ                 10.0f
+#define AP_SPDHGTCTRL_VEL_FILT_T_HZ               10.0f
+#define AP_SPDHGTCTRL_VEL_FILT_E_HZ               10.0f
+#define AP_SPDHGTCTRL_VEL_FILT_D_HZ               1.0f
 #define AP_SPDHGTCTRL_VEL_DT                      0.0025f
 
 class AP_SpdHgtControl_Heli {
@@ -27,8 +29,7 @@ public:
                           AP_InertialNav& inav):
         _ahrs(ahrs),
         _inav(inav),
-        _pid_vel(AP_SPDHGTCTRL_VEL_P, AP_SPDHGTCTRL_VEL_I, AP_SPDHGTCTRL_VEL_D, AP_SPDHGTCTRL_VEL_FF, AP_SPDHGTCTRL_VEL_IMAX, AP_SPDHGTCTRL_VEL_FILT_HZ, AP_SPDHGTCTRL_VEL_FILT_HZ, AP_SPDHGTCTRL_VEL_FILT_HZ, AP_SPDHGTCTRL_VEL_DT)
-
+        _pid_vel(AP_SPDHGTCTRL_VEL_P, AP_SPDHGTCTRL_VEL_I, AP_SPDHGTCTRL_VEL_D, AP_SPDHGTCTRL_VEL_FF, AP_SPDHGTCTRL_VEL_IMAX, AP_SPDHGTCTRL_VEL_FILT_T_HZ, AP_SPDHGTCTRL_VEL_FILT_E_HZ, AP_SPDHGTCTRL_VEL_FILT_D_HZ, AP_SPDHGTCTRL_VEL_DT)
     {
         AP_Param::setup_object_defaults(this, var_info);
     }
@@ -68,9 +69,6 @@ public:
 
     //calculates an estimate of forward airspeed
     float calc_speed_forward(void);
-
-    //return speed forward
-    float get_norm_speed_error(void);
 
     // set_dt - sets time delta in seconds for all controllers (i.e. 100hz = 0.01, 400hz = 0.0025)
     void set_dt(float delta_sec);
