@@ -4,6 +4,7 @@
 #define SAILBOAT_TACKING_ACCURACY_DEG 10        // tack is considered complete when vehicle is within this many degrees of target tack angle
 #define SAILBOAT_NOGO_PAD 10                    // deg, the no go zone is padded by this much when deciding if we should use the Sailboat heading controller
 #define SAILBOAT_TACK_DZ 5                      // deg, dead zone used to calculate which tack we are on
+#define SAILBOAT_AVOID_TACK_RETRY_TIME_MS 10000 // only try another avodance tack request after this time 
 /*
 To Do List
  - Improve tacking in light winds and bearing away in strong wings
@@ -251,14 +252,21 @@ float Sailboat::get_tack_heading_rad()
 }
 
 // handle user initiated tack while in autonomous modes (Auto, Guided, RTL, SmartRTL, etc)
-void Sailboat::handle_tack_request_auto()
+void Sailboat::handle_tack_request_auto(bool avoid_tack)
 {
     if (!nav_enabled() || currently_tacking) {
         return;
     }
 
+    const uint32_t now = AP_HAL::millis();
+
+    // if its a tack from avodance we should wait some time before tacking again
+    if (avoid_tack && (now - tack_request_ms)<SAILBOAT_AVOID_TACK_RETRY_TIME_MS) {
+        return;
+    }
+
     // record time of request for tack.  This will be processed asynchronously by sailboat_calc_heading
-    tack_request_ms = AP_HAL::millis();
+    tack_request_ms = now;
 }
 
 // clear tacking state variables

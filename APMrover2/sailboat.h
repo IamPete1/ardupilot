@@ -57,7 +57,7 @@ public:
     float get_tack_heading_rad();
 
     // handle user initiated tack while in autonomous modes (Auto, Guided, RTL, SmartRTL, etc)
-    void  handle_tack_request_auto();
+    void  handle_tack_request_auto(bool avoid_tack = false);
 
     // clear tacking state variables
     void  clear_tack();
