@@ -133,7 +133,7 @@ public:
     void set_reversed(bool value);
 
     // handle tacking request (from auxiliary switch) in sailboats
-    virtual void handle_tack_request();
+    virtual void handle_tack_request(bool avoid_tack = false);
 
     // get throttle output required for given speed
     float get_throttle_out(float target_speed);
@@ -235,7 +235,7 @@ public:
     bool requires_velocity() const override;
 
     // sailboats in acro mode support user manually initiating tacking from transmitter
-    void handle_tack_request() override;
+    void handle_tack_request(bool avoid_tack = false) override;
 };
 
 

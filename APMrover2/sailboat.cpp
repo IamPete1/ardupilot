@@ -261,8 +261,10 @@ void Sailboat::handle_tack_request_auto(bool avoid_tack)
     const uint32_t now = AP_HAL::millis();
 
     // if its a tack from avodance we should wait some time before tacking again
-    if (avoid_tack && (now - tack_request_ms)<SAILBOAT_AVOID_TACK_RETRY_TIME_MS) {
+    if (avoid_tack && (now - _last_avoid_tack_request_ms)<SAILBOAT_AVOID_TACK_RETRY_TIME_MS) {
         return;
+    } else {
+        _last_avoid_tack_request_ms = now;
     }
 
     // record time of request for tack.  This will be processed asynchronously by sailboat_calc_heading

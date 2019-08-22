@@ -253,11 +253,11 @@ void Mode::set_reversed(bool value)
 }
 
 // handle tacking request (from auxiliary switch) in sailboats
-void Mode::handle_tack_request()
+void Mode::handle_tack_request(bool avoid_tack)
 {
     // autopilot modes handle tacking
     if (is_autopilot_mode()) {
-        rover.g2.sailboat.handle_tack_request_auto();
+        rover.g2.sailboat.handle_tack_request_auto(avoid_tack);
     }
 }
 
@@ -269,9 +269,9 @@ void Mode::calc_throttle(float target_speed, bool avoidance_enabled)
     // apply object avoidance to desired speed using half vehicle's maximum deceleration
     if (avoidance_enabled) {
         g2.avoid.adjust_speed(0.0f, 0.5f * attitude_control.get_decel_max(), ahrs.yaw, target_speed, rover.G_Dt);
-        if (g2.sailboat.enabled() && g2.avoid.limits_active()) {
+        if (g2.sailboat.nav_enabled() && g2.avoid.limits_active()) {
             // we are a sailboat trying to avoid fence, try a tack
-            rover.control_mode->handle_tack_request();
+            rover.control_mode->handle_tack_request(true);
         }
     }
 

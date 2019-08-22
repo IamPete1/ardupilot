@@ -53,7 +53,7 @@ bool ModeAcro::requires_velocity() const
 }
 
 // sailboats in acro mode support user manually initiating tacking from transmitter
-void ModeAcro::handle_tack_request()
+void ModeAcro::handle_tack_request(bool avoid_tack)
 {
     rover.g2.sailboat.handle_tack_request_acro();
 }

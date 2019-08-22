@@ -108,12 +108,13 @@ private:
         AUX_THROTTLE_LIMIT = (1 << 1)
     };
 
-    RC_Channel *channel_mainsail;   // rc input channel for controlling mainsail
-    bool currently_tacking;         // true when sailboat is in the process of tacking to a new heading
-    float tack_heading_rad;         // target heading in radians while tacking in either acro or autonomous modes
-    uint32_t tack_request_ms;       // system time user requested tack
-    uint32_t auto_tack_start_ms;    // system time when tack was started in autonomous mode
-    bool tack_assist;               // true if we should use some throttle to assist tack
+    RC_Channel *channel_mainsail;           // rc input channel for controlling mainsail
+    bool currently_tacking;                 // true when sailboat is in the process of tacking to a new heading
+    float tack_heading_rad;                 // target heading in radians while tacking in either acro or autonomous modes
+    uint32_t tack_request_ms;               // system time user requested tack
+    uint32_t auto_tack_start_ms;            // system time when tack was started in autonomous mode
+    uint32_t _last_avoid_tack_request_ms;   // last avodance tack request time
+    bool tack_assist;                       // true if we should use some throttle to assist tack
 
     // Check if we should assist with throttle
     bool throttle_assist();
