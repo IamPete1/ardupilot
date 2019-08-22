@@ -69,6 +69,21 @@ void AP_Mission::start()
 
     reset(); // reset mission to the first command, resets jump tracking
     
+    // give the pathplanner the start index of the path planning
+    if (has_pathplan()) {
+        // load a new instance if first call
+        AP_PathPlanner* pathplanner = AP_PathPlanner::get_singleton();
+        if (pathplanner != nullptr) {
+            pathplanner->load(_pathplan.start);
+        } else {
+            #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+                AP_HAL::panic("Path Planner is nullptr");
+            #else
+                gcs().send_text(MAV_SEVERITY_INFO, "Path Planner is nullptr");
+            #endif
+        }            
+    }
+
     // advance to the first command
     if (!advance_current_nav_cmd()) {
         // on failure set mission complete
@@ -182,10 +197,14 @@ void AP_Mission::reset()
     _prev_nav_cmd_wp_index = AP_MISSION_CMD_INDEX_NONE;
     _prev_nav_cmd_id       = AP_MISSION_CMD_ID_NONE;
     init_jump_tracking();
+
+    // reset pathplanning
+    _pathplan.active = false;
+    _pathplan.num = 0;
 }
 
 /// clear - clears out mission
-///     returns true if mission was running so it could not be cleared
+///     returns false if mission was running so it could not be cleared
 bool AP_Mission::clear()
 {
     // do not allow clearing the mission while it is running
@@ -201,6 +220,10 @@ bool AP_Mission::clear()
     _do_cmd.index = AP_MISSION_CMD_INDEX_NONE;
     _flags.nav_cmd_loaded = false;
     _flags.do_cmd_loaded = false;
+
+    // reset pathplanning
+    _pathplan.active = false;
+    _pathplan.num = 0;
 
     // return success
     return true;
@@ -274,6 +297,7 @@ bool AP_Mission::verify_command(const Mission_Command& cmd)
     case MAV_CMD_DO_DIGICAM_CONTROL:
     case MAV_CMD_DO_SET_CAM_TRIGG_DIST:
     case MAV_CMD_DO_PARACHUTE:
+    case MAV_DO_PATHPLAN_STARTSTOP:
         return true;
     default:
         return _cmd_verify_fn(cmd);
@@ -298,6 +322,8 @@ bool AP_Mission::start_command(const Mission_Command& cmd)
         return start_command_camera(cmd);
     case MAV_CMD_DO_PARACHUTE:
         return start_command_parachute(cmd);
+    case MAV_DO_PATHPLAN_STARTSTOP:
+        return pathplanning_command(cmd);
     default:
         return _cmd_start_fn(cmd);
     }
@@ -965,6 +991,9 @@ MAV_MISSION_RESULT AP_Mission::mavlink_int_to_mission_cmd(const mavlink_mission_
         cmd.content.winch.release_rate = packet.param4; // release rate in meters/second
         break;
 
+    case MAV_DO_PATHPLAN_STARTSTOP:
+        break;
+
     default:
         // unrecognised command
         return MAV_MISSION_UNSUPPORTED;
@@ -1397,6 +1426,9 @@ bool AP_Mission::mission_cmd_to_mavlink_int(const AP_Mission::Mission_Command& c
         packet.param4 = cmd.content.winch.release_rate;     // release rate in meters/second
         break;
 
+    case MAV_DO_PATHPLAN_STARTSTOP:
+        break;
+
     default:
         // unrecognised command
         return false;
@@ -1452,6 +1484,10 @@ void AP_Mission::complete()
 
     // callback to main program's mission complete function
     _mission_complete_fn();
+
+    // stop pathplanning
+    _pathplan.active = false;
+    _pathplan.num = 0;
 }
 
 /// advance_current_nav_cmd - moves current nav command forward
@@ -1498,6 +1534,33 @@ bool AP_Mission::advance_current_nav_cmd(uint16_t starting_index)
 
         // check if navigation or "do" command
         if (is_nav_cmd(cmd)) {
+            
+            // if we are path planning path planner tells us where to go next
+            AP_PathPlanner* pathplanner = AP_PathPlanner::get_singleton();
+            if (pathplanner != nullptr) {
+                if (_pathplan.active) {
+                    if (pathplanner->is_point(cmd_index)) {
+                        cmd_index = pathplanner->get_next_point();
+                        // get the next path planning command
+                        if (!get_next_cmd(cmd_index, cmd, true)) {
+                            return false;
+                        }
+                    } else {
+                        // end path planning and look for next section
+                        _pathplan.active = false;
+                        if (has_pathplan(cmd_index, false)) {
+                            pathplanner->load(_pathplan.start);
+                        }
+                    }
+                }
+            } else {
+                #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+                    AP_HAL::panic("Path Planner is nullptr");
+                #else
+                    gcs().send_text(MAV_SEVERITY_INFO, "Path Planner is nullptr");
+                #endif
+            }
+
             // save previous nav command index
             _prev_nav_cmd_id = _nav_cmd.id;
             _prev_nav_cmd_index = _nav_cmd.index;
@@ -1937,6 +2000,8 @@ const char *AP_Mission::Mission_Command::type() const {
         return "PayloadPlace";
     case MAV_CMD_DO_PARACHUTE:
         return "Parachute";
+    case MAV_DO_PATHPLAN_STARTSTOP:
+        return "PathPlan StartStop";
 
     default:
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
@@ -1958,6 +2023,110 @@ bool AP_Mission::contains_item(MAV_CMD command) const
         }
     }
     return false;
+}
+
+// parse whole mission for pathplanning start stop waypoints
+// can't have NAV commaneds except waypoints in pathplanning
+// note, can have a start but no end
+bool AP_Mission::has_pathplan(uint16_t start_index, bool disp)
+{
+    const AP_PathPlanner* pathplanner = AP_PathPlanner::get_singleton();
+    if (pathplanner == nullptr) {
+        return false;
+    }
+    if (!pathplanner->enabled()) {
+        return false;
+    }
+
+    uint16_t num_pathplan = 0;
+    bool pathplan_active = false;
+
+    // number fo nav waypoints in path planning section
+    // no point in path planning a single waypoint
+    uint16_t pathplan_nav_wp = 0;
+
+    // initially assume path planning stops at mission end
+    uint16_t pathplan_start =  start_index;
+    uint16_t next_pathplan_start =  start_index;
+
+    // step through whole mission
+    for (uint16_t i = start_index; i < num_commands(); i++) {
+        Mission_Command tmp;
+        if (!read_cmd_from_storage(i, tmp)) {
+            continue;
+        }
+
+        // this is start stop waypoint
+        if (tmp.id == MAV_DO_PATHPLAN_STARTSTOP) {
+            if (!pathplan_active) {
+                // start a new pathplan
+                num_pathplan++;
+                pathplan_active = true;
+                pathplan_start = i;
+                if (num_pathplan == 1) {
+                    // record start of first path planning section
+                    next_pathplan_start = i;
+                }
+            } else {
+                pathplan_active = false;
+
+                if (pathplan_nav_wp < 2) {
+                    // no point in path panning a single waypoint
+                    num_pathplan--;
+                    if (disp) {
+                        gcs().send_text(MAV_SEVERITY_INFO, "pathplanning between %u and %u diabled", pathplan_start, i);
+                    }
+                } else if (disp) {
+                    gcs().send_text(MAV_SEVERITY_INFO, "pathplanning between %u and %u, %u points", pathplan_start, i, pathplan_nav_wp);
+                }
+                pathplan_nav_wp = 0;
+            }
+            continue;
+        }
+
+        // while pathplanning we can only accept basic nav waypoints
+        // no jumps either
+        if (pathplan_active && ((is_nav_cmd(tmp) && tmp.id != MAV_CMD_NAV_WAYPOINT) || tmp.id == MAV_CMD_DO_JUMP)) {
+            if (disp) {
+                // only display on mission start
+                gcs().send_text(MAV_SEVERITY_INFO, "Mission: %u %s is not valid for pathplanning", tmp.index, tmp.type());
+                gcs().send_text(MAV_SEVERITY_INFO, "pathplanning disabled");
+            }
+            pathplan_active = false;
+            num_pathplan--;
+        }
+
+        // count the number of nav waypoints
+        if (pathplan_active && is_nav_cmd(tmp)) {
+            pathplan_nav_wp++;        
+        }
+
+    }
+
+    // check for valid section at mission end
+    if (pathplan_active) {
+        if (pathplan_nav_wp < 2) {
+            // no point in path panning a single waypoint
+            num_pathplan--;
+            if (disp) {
+                gcs().send_text(MAV_SEVERITY_INFO, "pathplanning between %u and end diabled", pathplan_start);
+            }
+        } else if (disp) {
+            gcs().send_text(MAV_SEVERITY_INFO, "pathplanning between %u and end, %u points", pathplan_start, pathplan_nav_wp);
+        }
+    }
+
+    // save number of path planning sections in mission
+    _pathplan.num = num_pathplan;
+
+    if (num_pathplan == 0) {
+        return false;
+    }
+
+    // save the start index of the next path planning sections
+    _pathplan.start = next_pathplan_start;
+
+    return true;
 }
 
 // singleton instance

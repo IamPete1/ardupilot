@@ -136,3 +136,25 @@ bool AP_Mission::start_command_parachute(const AP_Mission::Mission_Command& cmd)
 
     return true;
 }
+
+ bool AP_Mission::pathplanning_command(const AP_Mission::Mission_Command& cmd)
+ {
+    // start path planning if section has been verified
+    AP_PathPlanner* pathplanner = AP_PathPlanner::get_singleton();
+    if (pathplanner != nullptr) {
+        if(pathplanner->enabled()) {
+            if (!_pathplan.active && cmd.index == _pathplan.start && _pathplan.num > 0) {
+                _pathplan.active = true;
+            }
+        } else {
+            gcs().send_text(MAV_SEVERITY_INFO, "Path Planner is disabled");
+        }
+    } else {
+        #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+            AP_HAL::panic("Path Planner is nullptr");
+        #else
+            gcs().send_text(MAV_SEVERITY_INFO, "Path Planner is nullptr");
+        #endif
+    }
+    return true;
+}

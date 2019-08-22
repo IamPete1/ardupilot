@@ -20,6 +20,7 @@
 #include <AP_Common/Location.h>
 #include <AP_Param/AP_Param.h>
 #include <StorageManager/StorageManager.h>
+#include <AP_PathPlanner/AP_PathPlanner.h>
 
 // definitions
 #define AP_MISSION_EEPROM_VERSION           0x65AE  // version number stored in first four bytes of eeprom.  increment this by one when eeprom format is changed
@@ -552,6 +553,16 @@ private:
     /// sanity checks that the masked fields are not NaN's or infinite
     static MAV_MISSION_RESULT sanity_check_params(const mavlink_mission_item_int_t& packet);
 
+    // parse whole mission for pathplanning start stop waypoints
+    // can't have NAV commaneds except waypoints in pathplanning
+    bool has_pathplan(uint16_t start_index = 1, bool disp = true);
+
+   struct PathPlan {
+        bool     active; // true if currently pathplanning
+        uint16_t num;    // number of pathplanning sections remaining in the mission
+        uint16_t start;  // start index of next pathplanning section 
+    } _pathplan;
+
     // parameters
     AP_Int16                _cmd_total;  // total number of commands in the mission
     AP_Int8                 _restart;   // controls mission starting point when entering Auto mode (either restart from beginning of mission or resume from last command run)
@@ -587,6 +598,7 @@ private:
     bool start_command_do_servorelayevents(const AP_Mission::Mission_Command& cmd);
     bool start_command_camera(const AP_Mission::Mission_Command& cmd);
     bool start_command_parachute(const AP_Mission::Mission_Command& cmd);
+    bool pathplanning_command(const AP_Mission::Mission_Command& cmd);
 };
 
 namespace AP {
