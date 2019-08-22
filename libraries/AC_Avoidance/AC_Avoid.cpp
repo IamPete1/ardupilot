@@ -199,6 +199,7 @@ void AC_Avoid::adjust_velocity_z(float kP, float accel_cmss, float& climb_rate_c
         // limit climb rate
         const float max_speed = get_max_speed(kP, accel_cmss_limited, alt_diff*100.0f, dt);
         climb_rate_cms = MIN(max_speed, climb_rate_cms);
+        _last_limit_time = AP_HAL::millis();
     }
 }
 
@@ -257,7 +258,7 @@ void AC_Avoid::adjust_roll_pitch(float &roll, float &pitch, float veh_angle_max)
  * Uses velocity adjustment idea from Randy's second email on this thread:
  * https://groups.google.com/forum/#!searchin/drones-discuss/obstacle/drones-discuss/QwUXz__WuqY/qo3G8iTLSJAJ
  */
-void AC_Avoid::limit_velocity(float kP, float accel_cmss, Vector2f &desired_vel_cms, const Vector2f& limit_direction, float limit_distance_cm, float dt) const
+void AC_Avoid::limit_velocity(float kP, float accel_cmss, Vector2f &desired_vel_cms, const Vector2f& limit_direction, float limit_distance_cm, float dt)
 {
     const float max_speed = get_max_speed(kP, accel_cmss, limit_distance_cm, dt);
     // project onto limit direction
@@ -265,6 +266,7 @@ void AC_Avoid::limit_velocity(float kP, float accel_cmss, Vector2f &desired_vel_
     if (speed > max_speed) {
         // subtract difference between desired speed and maximum acceptable speed
         desired_vel_cms += limit_direction*(max_speed - speed);
+        _last_limit_time = AP_HAL::millis();
     }
 }
 
@@ -333,6 +335,7 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
     }
 
     // vehicle is inside the circular fence
+    float max_speed = desired_speed + 1;
     if ((AC_Avoid::BehaviourType)_behavior.get() == BEHAVIOR_SLIDE) {
         // implement sliding behaviour
         const Vector2f stopping_point = position_xy + desired_vel_cms*(get_stopping_distance(kP, accel_cmss, desired_speed)/desired_speed);
@@ -347,8 +350,9 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
         const Vector2f target_offset = stopping_point * ((fence_radius - margin_cm) / stopping_point_dist_from_home);
         const Vector2f target_direction = target_offset - position_xy;
         const float distance_to_target = target_direction.length();
-        const float max_speed = get_max_speed(kP, accel_cmss, distance_to_target, dt);
+        max_speed = get_max_speed(kP, accel_cmss, distance_to_target, dt);
         desired_vel_cms = target_direction * (MIN(desired_speed,max_speed) / distance_to_target);
+        _last_limit_time = AP_HAL::millis();
     } else {
         // implement stopping behaviour
         // calculate stopping point plus a margin so we look forward far enough to intersect with circular fence
@@ -360,15 +364,17 @@ void AC_Avoid::adjust_velocity_circle_fence(float kP, float accel_cmss, Vector2f
             // otherwise user is backing away from fence so do not apply limits
             if (stopping_point_plus_margin_dist_from_home >= dist_from_home) {
                 desired_vel_cms.zero();
+                _last_limit_time = AP_HAL::millis();
             }
         } else {
             // shorten vector without adjusting its direction
             Vector2f intersection;
             if (Vector2f::circle_segment_intersection(position_xy, stopping_point_plus_margin, Vector2f(0.0f,0.0f), fence_radius - margin_cm, intersection)) {
                 const float distance_to_target = MAX((intersection - position_xy).length() - margin_cm, 0.0f);
-                const float max_speed = get_max_speed(kP, accel_cmss, distance_to_target, dt);
+                max_speed = get_max_speed(kP, accel_cmss, distance_to_target, dt);
                 if (max_speed < desired_speed) {
                     desired_vel_cms *= MAX(max_speed, 0.0f) / desired_speed;
+                    _last_limit_time = AP_HAL::millis();
                 }
             }
         }
