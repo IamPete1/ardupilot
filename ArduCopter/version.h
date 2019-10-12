@@ -6,7 +6,7 @@
 
 #include "ap_version.h"
 
-#define THISFIRMWARE "ArduCopter V4.3.3"
+#define THISFIRMWARE "ArduCopter V4.3.3-HQ1"
 
 // the following line is parsed by the autotest scripts
 #define FIRMWARE_VERSION 4,3,3,FIRMWARE_VERSION_TYPE_OFFICIAL
