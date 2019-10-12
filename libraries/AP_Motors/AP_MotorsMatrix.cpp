@@ -239,6 +239,10 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     float wing_scale = constrain_float(get_throttle() / _throttle_hover, 1.0f, 4.0f);
     _wing_yaw = _yaw_in_ff / safe_sqrt(wing_scale) + _yaw_in / wing_scale;
 
+    if(_yaw_headroom == 0){
+        yaw_thrust = 0.0f;
+    }
+
     // sanity check throttle is above zero and below current limited throttle
     if (throttle_thrust <= 0.0f) {
         throttle_thrust = 0.0f;
