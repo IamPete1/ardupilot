@@ -986,6 +986,12 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(follow, "FOLL", 27, ParametersG2, AP_Follow),
 #endif
 
+#if ENABLE_DATALOGGER == ENABLED
+    // @Group: DATALG_
+    // @Path: ../libraries/AP_DataLogger/AP_DataLogger.cpp
+    AP_SUBGROUPINFO(datalogger, "DATALG_", 36, ParametersG2, AP_DataLogger),
+#endif
+
     AP_GROUPEND
 };
 

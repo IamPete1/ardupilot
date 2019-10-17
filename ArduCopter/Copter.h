@@ -168,6 +168,9 @@
 #if RPM_ENABLED == ENABLED
  #include <AP_RPM/AP_RPM.h>
 #endif
+#if ENABLE_DATALOGGER == ENABLED
+#include <AP_DataLogger/AP_DataLogger.h>
+#endif
 
 // Local modules
 #include "Parameters.h"

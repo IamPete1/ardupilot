@@ -190,6 +190,9 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] = {
 #if STATS_ENABLED == ENABLED
     SCHED_TASK_CLASS(AP_Stats,             &copter.g2.stats,            update,           1, 100),
 #endif
+#if ENABLE_DATALOGGER == ENABLED
+    SCHED_TASK_CLASS(AP_DataLogger,        &copter.g2.datalogger,       update,          10,  75),
+#endif
 };
 
 constexpr int8_t Copter::_failsafe_priorities[7];
