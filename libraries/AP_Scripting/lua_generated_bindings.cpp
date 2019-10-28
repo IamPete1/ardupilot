@@ -392,6 +392,30 @@ static int Vector3f___sub(lua_State *L) {
     return 1;
 }
 
+static int Location_get_distance_NE(lua_State *L) {
+    binding_argcheck(L, 2);
+    Location * ud = check_Location(L, 1);
+    Location & data_2 = *check_Location(L, 2);
+    const Vector2f &data = ud->get_distance_NE(
+            data_2);
+
+    new_Vector2f(L);
+    *check_Vector2f(L, -1) = data;
+    return 1;
+}
+
+static int Location_get_distance_NED(lua_State *L) {
+    binding_argcheck(L, 2);
+    Location * ud = check_Location(L, 1);
+    Location & data_2 = *check_Location(L, 2);
+    const Vector3f &data = ud->get_distance_NED(
+            data_2);
+
+    new_Vector3f(L);
+    *check_Vector3f(L, -1) = data;
+    return 1;
+}
+
 static int Location_get_bearing(lua_State *L) {
     binding_argcheck(L, 2);
     Location * ud = check_Location(L, 1);
@@ -480,6 +504,8 @@ const luaL_Reg Location_meta[] = {
     {"relative_alt", Location_relative_alt},
     {"lng", Location_lng},
     {"lat", Location_lat},
+    {"get_distance_NE", Location_get_distance_NE},
+    {"get_distance_NED", Location_get_distance_NED},
     {"get_bearing", Location_get_bearing},
     {"get_vector_from_origin_NEU", Location_get_vector_from_origin_NEU},
     {"offset", Location_offset},
