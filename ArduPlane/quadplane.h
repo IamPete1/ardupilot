@@ -114,7 +114,6 @@ public:
     
     // create outputs for tailsitters
     void tailsitter_output(void);
-    void scale_control_surfaces(float& fw_aileron, float& fw_elevator, float& fw_rudder, float& aileron, float& elevator, float& rudder);
 
     // handle different tailsitter input types
     void tailsitter_check_input(void);
@@ -126,7 +125,7 @@ public:
     bool tailsitter_transition_vtol_complete(void) const;
 
     // calculate speed scaler of control surfaces in VTOL modes
-    float get_thr_att_gain_scaling(void);
+    void get_thr_att_gain_scaling(float& spd_scaler, const float hover_throttle, const float throttle);
 
     // user initiated takeoff for guided mode
     bool do_user_takeoff(float takeoff_altitude);
@@ -458,9 +457,9 @@ private:
     };
 
     enum tailsitter_gscl_mask {
-        TAILSITTER_GSCL_BOOST  = 1,
-        TAILSITTER_GSCL_ATT_THR = 2,
-        TAILSITTER_GSCL_INTERP = 4,
+        TAILSITTER_GSCL_BOOST   = (1 << 0),
+        TAILSITTER_GSCL_ATT_THR = (1 << 1),
+        TAILSITTER_GSCL_INTERP  = (1 << 2),
     };
 
     // tailsitter control variables

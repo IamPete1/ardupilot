@@ -103,51 +103,6 @@ bool QuadPlane::tailsitter_active(void)
     return false;
 }
 
-void QuadPlane::scale_control_surfaces(float& fw_aileron, float& fw_elevator, float& fw_rudder, float& aileron, float& elevator, float& rudder){
-    float VTOL_ratio = 1.0f;
-    if (tailsitter.gain_scaling_mask & TAILSITTER_GSCL_INTERP) {
-        float aspeed;
-        bool have_airspeed = ahrs.airspeed_estimate(&aspeed);
-        const float scaling_range = tailsitter.scaling_speed_max - tailsitter.scaling_speed_min;
-        if (aspeed > tailsitter.scaling_speed_min && have_airspeed && !is_zero(scaling_range)) {
-            // apply surface scaling to interpolate between fixed wing and VTOL outputs based on airspeed
-            // kd0aij note: that the airspeed estimate based only on GPS and (estimated) wind is
-            // not sufficiently accurate for tailsitters. (based on tests in RealFlight 8 with 10kph wind)
-
-            if (!assisted_flight) {
-                // match the Q rates with plane controller
-                // no fixed wing yaw controller so cannot stabilize VTOL roll
-                const float pitch_rate = attitude_control->get_rate_pitch_pid().get_pid_info().target * 100;
-                const float yaw_rate = attitude_control->get_rate_yaw_pid().get_pid_info().target * 100;
-                const float speed_scaler = plane.get_speed_scaler();
-
-                // due to reference frame change roll and yaw are swapped, use roll as rudder input and output direct as with plane
-                fw_aileron = plane.rollController.get_rate_out(-yaw_rate, speed_scaler);
-                fw_elevator = plane.pitchController.get_rate_out(pitch_rate, speed_scaler);
-                fw_rudder = plane.channel_roll->get_control_in();
-            }
-
-            // calculate ratio of gains
-            float fw_ratio = (aspeed - tailsitter.scaling_speed_min) / scaling_range;
-            fw_ratio = constrain_float(fw_ratio, 0.0f, 1.0f);
-            VTOL_ratio = 1.0f - fw_ratio;
-
-            // calculate interpolated outputs
-            aileron = aileron * VTOL_ratio + fw_aileron * fw_ratio;
-            elevator = elevator * VTOL_ratio + fw_elevator * fw_ratio;
-            rudder = rudder * VTOL_ratio + fw_rudder * fw_ratio;
-        }
-    }
-
-    // scale surface throws using throttle and attitude
-    float scaling = get_thr_att_gain_scaling();
-    rudder = constrain_float(rudder * scaling, -SERVO_MAX, SERVO_MAX);
-    aileron = constrain_float(aileron * scaling, -SERVO_MAX, SERVO_MAX);
-    elevator = constrain_float(elevator * scaling, -SERVO_MAX, SERVO_MAX);
-
-    log_CTHP(scaling, VTOL_ratio, ahrs_view->get_gyro_latest());
-}
-
 /*
   run output for tailsitters
  */
@@ -218,6 +173,25 @@ void QuadPlane::tailsitter_output(void)
     float tilt_left = SRV_Channels::get_output_scaled(SRV_Channel::k_tiltMotorLeft);
     float tilt_right = SRV_Channels::get_output_scaled(SRV_Channel::k_tiltMotorRight);
 
+    // boost gains at low throttle
+    const float hover_throttle = motors->get_throttle_hover();
+    float spd_scaler;
+    if (is_zero(throttle)) {
+        spd_scaler = tailsitter.throttle_scale_max;
+    } else {
+        spd_scaler = constrain_float(hover_throttle / (throttle*0.01), tailsitter.gain_scaling_min, tailsitter.throttle_scale_max);
+    }
+
+    // always scale tilts with throttle method
+    tilt_left = constrain_float(tilt_left * spd_scaler, -SERVO_MAX, SERVO_MAX);
+    tilt_right = constrain_float(tilt_right * spd_scaler, -SERVO_MAX, SERVO_MAX);
+
+    // scale surface throws using throttle and attitude
+    get_thr_att_gain_scaling(spd_scaler, hover_throttle, throttle);
+    rudder = constrain_float(rudder * spd_scaler, -SERVO_MAX, SERVO_MAX);
+    aileron = constrain_float(aileron * spd_scaler, -SERVO_MAX, SERVO_MAX);
+    elevator = constrain_float(elevator * spd_scaler, -SERVO_MAX, SERVO_MAX);
+
     if (tailsitter.vectored_hover_gain > 0) {
         /*
           apply extra elevator when at high pitch errors, using a
@@ -242,7 +216,43 @@ void QuadPlane::tailsitter_output(void)
         }
     }
 
-    scale_control_surfaces(fw_aileron, fw_elevator, fw_rudder, aileron, elevator, rudder);
+    // interpolate gains if enabled
+    float VTOL_ratio = 1.0f;
+    if ((tailsitter.gain_scaling_mask & TAILSITTER_GSCL_INTERP) != 0) {
+        float aspeed;
+        bool have_airspeed = ahrs.airspeed_estimate(&aspeed);
+        const float scaling_range = tailsitter.scaling_speed_max - tailsitter.scaling_speed_min;
+        if (aspeed > tailsitter.scaling_speed_min && have_airspeed && !is_zero(scaling_range)) {
+            // apply surface scaling to interpolate between fixed wing and VTOL outputs based on airspeed
+            // kd0aij note: that the airspeed estimate based only on GPS and (estimated) wind is
+            // not sufficiently accurate for tailsitters. (based on tests in RealFlight 8 with 10kph wind)
+
+            if (!assisted_flight) {
+                // match the Q rates with plane controller
+                // no fixed wing yaw controller so cannot stabilize VTOL roll
+                const float pitch_rate = attitude_control->get_rate_pitch_pid().get_pid_info().target * 100;
+                const float yaw_rate = attitude_control->get_rate_yaw_pid().get_pid_info().target * 100;
+                const float speed_scaler = plane.get_speed_scaler();
+
+                // due to reference frame change roll and yaw are swapped, use roll as rudder input and output direct as with plane
+                fw_aileron = plane.rollController.get_rate_out(-yaw_rate, speed_scaler);
+                fw_elevator = plane.pitchController.get_rate_out(pitch_rate, speed_scaler);
+                fw_rudder = plane.channel_roll->get_control_in();
+            }
+
+            // calculate ratio of gains
+            float fw_ratio = (aspeed - tailsitter.scaling_speed_min) / scaling_range;
+            fw_ratio = constrain_float(fw_ratio, 0.0f, 1.0f);
+            VTOL_ratio = 1.0f - fw_ratio;
+
+            // calculate interpolated outputs
+            aileron = aileron * VTOL_ratio + fw_aileron * fw_ratio;
+            elevator = elevator * VTOL_ratio + fw_elevator * fw_ratio;
+            rudder = rudder * VTOL_ratio + fw_rudder * fw_ratio;
+        }
+    }
+
+    log_CTHP(spd_scaler, VTOL_ratio, ahrs_view->get_gyro_latest());
 
     if (tailsitter.input_mask_chan > 0 &&
         tailsitter.input_mask > 0 &&
@@ -343,67 +353,62 @@ bool QuadPlane::in_tailsitter_vtol_transition(void) const
 }
 
 /*
-  calculate speed scaler of control surfaces in VTOL modes
+    reduce gains when flying at high speed in Q modes:
 */
-float QuadPlane::get_thr_att_gain_scaling(void)
+void QuadPlane::get_thr_att_gain_scaling(float& spd_scaler, const float hover_throttle, const float throttle)
 {
-    const float hover_throttle = motors->get_throttle_hover();
-    const float throttle = motors->get_throttle();
-    float spd_scaler = 1.0f;
-
-    if (tailsitter.gain_scaling_mask & TAILSITTER_GSCL_ATT_THR) {
-        // reduce gains when flying at high speed in Q modes:
-
-        // critical parameter: violent oscillations if too high
-        // sudden loss of attitude control if too low
-        const float min_scale = tailsitter.gain_scaling_min;
-        float tthr = 1.25f * hover_throttle;
-
-        // reduce control surface throws at large tilt
-        // angles (assuming high airspeed)
-        // ramp down from 1 to max_atten at tilt angles over trans_angle
-        // (angles here are represented by their cosines)
-
-        // Note that the cosf call will be necessary if trans_angle becomes a parameter
-        // but the C language spec does not guarantee that trig functions can be used
-        // in constant expressions, even though gcc currently allows it.
-        constexpr float c_trans_angle = 0.9238795; // cosf(.125f * M_PI)
-
-        // alpha = (1 - max_atten) / (c_trans_angle - cosf(radians(90)));
-        const float alpha = (1 - min_scale) / c_trans_angle;
-        const float beta = 1 - alpha * c_trans_angle;
-
-        const float c_tilt = ahrs_view->get_rotation_body_to_ned().c.z;
-        if (c_tilt < c_trans_angle) {
-            spd_scaler = constrain_float(beta + alpha * c_tilt, min_scale, 1.0f);
-            // reduce throttle attenuation threshold too
-            tthr = 0.5f * hover_throttle;
-        }
-        // if throttle is above hover thrust, apply additional attenuation
-        if (throttle > tthr) {
-            const float throttle_atten = 1 - (throttle - tthr) / (1 - tthr);
-            spd_scaler *= throttle_atten;
-            spd_scaler = constrain_float(spd_scaler, min_scale, 1.0f);
-        }
-
-        // limit positive and negative slew rates of applied speed scaling
-        constexpr float posTC = 2.0f;   // seconds
-        constexpr float negTC = 1.0f;   // seconds
-        const float posdelta = plane.G_Dt / posTC;
-        const float negdelta = plane.G_Dt / negTC;
-        spd_scaler = constrain_float(spd_scaler, last_spd_scaler - negdelta, last_spd_scaler + posdelta);
-        last_spd_scaler = spd_scaler;
+    if ((tailsitter.gain_scaling_mask & TAILSITTER_GSCL_ATT_THR) == 0) {
+        // not enabled
+        return;
     }
+
+    float temp_spd_scaler = 1.0f;
+
+    // critical parameter: violent oscillations if too high
+    // sudden loss of attitude control if too low
+    const float min_scale = tailsitter.gain_scaling_min;
+    float tthr = 1.25f * hover_throttle;
+
+    // reduce control surface throws at large tilt
+    // angles (assuming high airspeed)
+    // ramp down from 1 to max_atten at tilt angles over trans_angle
+    // (angles here are represented by their cosines)
+
+    // Note that the cosf call will be necessary if trans_angle becomes a parameter
+    // but the C language spec does not guarantee that trig functions can be used
+    // in constant expressions, even though gcc currently allows it.
+    constexpr float c_trans_angle = 0.9238795; // cosf(.125f * M_PI)
+
+    // alpha = (1 - max_atten) / (c_trans_angle - cosf(radians(90)));
+    const float alpha = (1 - min_scale) / c_trans_angle;
+    const float beta = 1 - alpha * c_trans_angle;
+
+    const float c_tilt = ahrs_view->get_rotation_body_to_ned().c.z;
+    if (c_tilt < c_trans_angle) {
+        temp_spd_scaler = constrain_float(beta + alpha * c_tilt, min_scale, 1.0f);
+        // reduce throttle attenuation threshold too
+        tthr = 0.5f * hover_throttle;
+    }
+    // if throttle is above hover thrust, apply additional attenuation
+    if (throttle > tthr) {
+        const float throttle_atten = 1 - (throttle - tthr) / (1 - tthr);
+        temp_spd_scaler *= throttle_atten;
+        temp_spd_scaler = constrain_float(temp_spd_scaler, min_scale, 1.0f);
+    }
+
+    // limit positive and negative slew rates of applied speed scaling
+    constexpr float posTC = 2.0f;   // seconds
+    constexpr float negTC = 1.0f;   // seconds
+    const float posdelta = plane.G_Dt / posTC;
+    const float negdelta = plane.G_Dt / negTC;
+    temp_spd_scaler = constrain_float(temp_spd_scaler, last_spd_scaler - negdelta, last_spd_scaler + posdelta);
 
     // if gain attenuation isn't active and boost is enabled
-    if ((spd_scaler >= 1.0f) && (tailsitter.gain_scaling_mask & TAILSITTER_GSCL_BOOST)) {
-        // boost gains at low throttle
-        if (is_zero(throttle)) {
-            spd_scaler = tailsitter.throttle_scale_max;
-        } else {
-            spd_scaler = constrain_float(hover_throttle / throttle, 1.0f, tailsitter.throttle_scale_max);
-        }
+    if ((temp_spd_scaler >= 1.0f) && (tailsitter.gain_scaling_mask & TAILSITTER_GSCL_BOOST) != 0) {
+        spd_scaler = MAX(1.0f, spd_scaler);
+    } else {
+        spd_scaler = temp_spd_scaler;
     }
 
-    return spd_scaler;
+    last_spd_scaler = spd_scaler;
 }
