@@ -154,3 +154,14 @@ singleton SRV_Channels method find_channel boolean SRV_Channel::Aux_servo_functi
 include AP_Button/AP_Button.h
 singleton AP_Button alias Button
 singleton AP_Button method get_button_state boolean uint8_t 1 4
+
+include AP_Mission/AP_Mission.h
+singleton AP_Mission alias mission
+singleton AP_Mission enum MISSION_STOPPED MISSION_RUNNING MISSION_COMPLETE
+singleton AP_Mission method state uint8_t
+singleton AP_Mission method get_current_nav_index uint16_t
+singleton AP_Mission method set_current_cmd boolean uint16_t 0 UINT16_MAX
+singleton AP_Mission method get_prev_nav_cmd_id uint16_t
+singleton AP_Mission method get_current_nav_id uint16_t
+singleton AP_Mission method get_current_do_cmd_id uint16_t
+singleton AP_Mission method num_commands uint16_t
