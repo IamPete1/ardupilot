@@ -165,3 +165,9 @@ singleton AP_Mission method get_prev_nav_cmd_id uint16_t
 singleton AP_Mission method get_current_nav_id uint16_t
 singleton AP_Mission method get_current_do_cmd_id uint16_t
 singleton AP_Mission method num_commands uint16_t
+
+include AP_Param/AP_Param.h
+singleton AP_Param alias param
+singleton AP_Param method get_by_name boolean string float'Null
+singleton AP_Param method set_by_name boolean string float -FLT_MAX FLT_MAX
+singleton AP_Param method set_and_save_by_name boolean string float -FLT_MAX FLT_MAX
