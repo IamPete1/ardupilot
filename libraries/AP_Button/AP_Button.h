@@ -32,7 +32,10 @@ public:
 
     // update button state and send messages, called periodically by main loop
     void update(void);
-    
+
+    // get current mask
+    uint8_t get_mask(void) {return last_mask;};
+
 private:
     AP_Int8 enable;
     AP_Int8 pin[AP_BUTTON_NUM_PINS];
@@ -55,8 +58,8 @@ private:
     // called by timer thread
     void timer_update(void);
 
-    // get current mask
-    uint8_t get_mask(void);
+    // read current mask
+    uint8_t read_mask(void);
 
     // send a BUTTON_CHANGE report
     void send_report(void);

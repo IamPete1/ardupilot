@@ -89,8 +89,8 @@ void AP_Button::update(void)
     if (!initialised) {
         initialised = true;
 
-        // get initial mask
-        last_mask = get_mask();
+        // read initial mask
+        last_mask = read_mask();
 
         // register 1kHz timer callback
         hal.scheduler->register_timer_process(FUNCTOR_BIND_MEMBER(&AP_Button::timer_update, void));        
@@ -108,9 +108,9 @@ void AP_Button::update(void)
 }
 
 /*
-  get current mask
+  read current mask
  */
-uint8_t AP_Button::get_mask(void)
+uint8_t AP_Button::read_mask(void)
 {
     uint8_t mask = 0;
     for (uint8_t i=0; i<AP_BUTTON_NUM_PINS; i++) {
@@ -130,7 +130,7 @@ void AP_Button::timer_update(void)
     if (!enable) {
         return;
     }
-    uint8_t mask = get_mask();
+    uint8_t mask = read_mask();
     if (mask != last_mask) {
         last_mask = mask;
         last_change_time_ms = AP_HAL::millis64();
