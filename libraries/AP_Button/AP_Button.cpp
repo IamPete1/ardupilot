@@ -20,6 +20,8 @@
 
 extern const AP_HAL::HAL& hal;
 
+AP_Button *AP_Button::_singleton;
+
 const AP_Param::GroupInfo AP_Button::var_info[] = {
 
     // @Param: ENABLE
@@ -72,6 +74,11 @@ const AP_Param::GroupInfo AP_Button::var_info[] = {
 AP_Button::AP_Button(void)
 {
     AP_Param::setup_object_defaults(this, var_info);
+
+    if (_singleton != nullptr) {
+        AP_HAL::panic("AP_Button must be singleton");
+    }
+    _singleton = this;
 }
 
 /*
@@ -82,6 +89,8 @@ void AP_Button::update(void)
     if (!enable) {
         return;
     }
+
+    gcs().send_text(MAV_SEVERITY_INFO, "Button tic");
 
     // call setup pins at update rate (5Hz) to allow for runtime parameter change of pins
     setup_pins();
@@ -165,4 +174,13 @@ void AP_Button::setup_pins(void)
         // setup pullup
         hal.gpio->write(pin[i], 1);
     }
+}
+
+namespace AP {
+
+AP_Button &button()
+{
+    return *AP_Button::get_singleton();
+}
+
 }
