@@ -352,6 +352,16 @@ void AP_Notify::handle_led_control(const mavlink_message_t &msg)
     }
 }
 
+// handle RGB override
+void AP_Notify::handle_rgb_override(uint8_t r, uint8_t g, uint8_t b, uint8_t rate_hz, uint16_t duration_ms)
+{
+    for (uint8_t i = 0; i < _num_devices; i++) {
+        if (_devices[i] != nullptr) {
+            _devices[i]->rgb_override(r, g, b, rate_hz, duration_ms);
+        }
+    }
+}
+
 // handle a PLAY_TUNE message
 void AP_Notify::handle_play_tune(const mavlink_message_t &msg)
 {
