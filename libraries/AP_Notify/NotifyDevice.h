@@ -23,6 +23,11 @@ public:
     // play a MML tune
     virtual void play_tune(const char *tune) {}
 
+    // RGB override
+    // override other all methods for given duration in ms (0 = for ever)
+    // used with scripting
+    virtual void rgb_override(uint8_t r, uint8_t g, uint8_t b, uint8_t rate_hz, uint16_t duration_ms) {}
+
     // this pointer is used to read the parameters relative to devices
     const AP_Notify *pNotify;
 };

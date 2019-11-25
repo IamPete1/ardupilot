@@ -38,7 +38,12 @@ public:
 
     // handle LED control, only used when LED_OVERRIDE=1
     virtual void handle_led_control(const mavlink_message_t &msg) override;
-    
+
+    // RGB override
+    // override other all methods for given duration in ms (0 = for ever)
+    // used with scripting
+    virtual void rgb_override(uint8_t r, uint8_t g, uint8_t b, uint8_t rate_hz, uint16_t duration_ms) override;
+
 protected:
     // methods implemented in hardware specific classes
     virtual bool hw_init(void) = 0;
@@ -47,8 +52,6 @@ protected:
     // set_rgb - set color as a combination of red, green and blue levels from 0 ~ 15
     virtual void _set_rgb(uint8_t red, uint8_t green, uint8_t blue);
 
-    void update_override();
-    
     // meta-data common to all hw devices
     uint8_t _red_des, _green_des, _blue_des;     // color requested by timed update
     uint8_t _red_curr, _green_curr, _blue_curr;  // current colours displayed by the led
@@ -57,12 +60,21 @@ protected:
     uint8_t _led_medium;
     uint8_t _led_dim;
 
-    struct {
+    struct override {
         uint8_t r, g, b;
         uint8_t rate_hz;
         uint32_t start_ms;
-    } _led_override;
-    
+    };
+    override _led_override;
+
+    struct {
+        override led_override;
+        uint16_t duration_ms;
+        bool active;
+    } _led_override_duration;
+
+    void update_override(override override_val);
+
 private:
     void update_colours();
     uint32_t get_colour_sequence() const;
@@ -110,6 +122,7 @@ private:
         mavlink = 1,
         obc = 2,
         traffic_light = 3,
+        duration_override = 4,
     };
     rgb_source_t rgb_source() const;
 

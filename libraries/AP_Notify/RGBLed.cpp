@@ -54,13 +54,18 @@ void RGBLed::_set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 
 RGBLed::rgb_source_t RGBLed::rgb_source() const
 {
+    if (_led_override_duration.active) {
+        return rgb_source_t::duration_override;
+    }
+
     return rgb_source_t(pNotify->_rgb_led_override.get());
 }
 
 // set_rgb - set color as a combination of red, green and blue values
 void RGBLed::set_rgb(uint8_t red, uint8_t green, uint8_t blue)
 {
-    if (rgb_source() == mavlink) {
+    const rgb_source_t source = rgb_source();
+    if (source == mavlink || source == duration_override) {
         // don't set if in override mode
         return;
     }
@@ -191,12 +196,21 @@ uint32_t RGBLed::get_colour_sequence_traffic_light(void) const
 // at 50Hz
 void RGBLed::update()
 {
+    // check if duration override has timed out
+    const uint32_t now = AP_HAL::millis();
+    if ((now - _led_override_duration.led_override.start_ms) > _led_override_duration.duration_ms && _led_override_duration.duration_ms != 0) {
+        _led_override_duration.active = false;
+    }
+
     uint32_t current_colour_sequence = 0;
 
     switch (rgb_source()) {
     case mavlink:
-        update_override();
+        update_override(_led_override);
         return; // note this is a return not a break!
+    case duration_override:
+        update_override(_led_override_duration.led_override);
+        return; // this too!
     case standard:
         current_colour_sequence = get_colour_sequence();
         break;
@@ -210,7 +224,7 @@ void RGBLed::update()
 
     const uint8_t brightness = get_brightness();
 
-    uint8_t step = (AP_HAL::millis()/100) % 10;
+    uint8_t step = (now/100) % 10;
 
     // ensure we can't skip a step even with awful timing
     if (step != last_step) {
@@ -265,20 +279,36 @@ void RGBLed::handle_led_control(const mavlink_message_t &msg)
 /*
   update LED when in override mode
  */
-void RGBLed::update_override(void)
+void RGBLed::update_override(override override_val)
 {
-    if (_led_override.rate_hz == 0) {
+    if (override_val.rate_hz == 0) {
         // solid colour
-        _set_rgb(_led_override.r, _led_override.g, _led_override.b);
+        _set_rgb(override_val.r, override_val.g, override_val.b);
         return;
     }
     // blinking
-    uint32_t ms_per_cycle = 1000 / _led_override.rate_hz;
-    uint32_t cycle = (AP_HAL::millis() - _led_override.start_ms) % ms_per_cycle;
+    uint32_t ms_per_cycle = 1000 / override_val.rate_hz;
+    uint32_t cycle = (AP_HAL::millis() - override_val.start_ms) % ms_per_cycle;
     if (cycle > ms_per_cycle / 2) {
         // on
-        _set_rgb(_led_override.r, _led_override.g, _led_override.b);
+        _set_rgb(override_val.r, override_val.g, override_val.b);
     } else {
         _set_rgb(0, 0, 0);
     }
+}
+
+/*
+  RGB override
+  override other all methods for given duration in ms (0 = for ever)
+  used with scripting
+*/
+void RGBLed::rgb_override(uint8_t r, uint8_t g, uint8_t b, uint8_t rate_hz, uint16_t duration_ms)
+{
+    _led_override_duration.led_override.r = r;
+    _led_override_duration.led_override.g = g;
+    _led_override_duration.led_override.b = b;
+    _led_override_duration.led_override.rate_hz = rate_hz;
+    _led_override_duration.led_override.start_ms = AP_HAL::millis();
+    _led_override_duration.duration_ms = duration_ms;
+    _led_override_duration.active = true;
 }
