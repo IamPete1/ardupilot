@@ -1,6 +1,7 @@
 // auto generated bindings, don't manually edit
 #include "lua_generated_bindings.h"
 #include "lua_boxed_numerics.h"
+#include <AP_Button/AP_Button.h>
 #include <SRV_Channel/SRV_Channel.h>
 #include <AP_SerialLED/AP_SerialLED.h>
 #include <AP_Vehicle/AP_Vehicle.h>
@@ -512,6 +513,19 @@ const luaL_Reg Location_meta[] = {
     {"get_distance", Location_get_distance},
     {NULL, NULL}
 };
+
+static int AP_Button_get_mask(lua_State *L) {
+    AP_Button * ud = AP_Button::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "button not supported on this firmware");
+    }
+
+    binding_argcheck(L, 1);
+    const uint8_t data = ud->get_mask();
+
+    lua_pushinteger(L, data);
+    return 1;
+}
 
 static int SRV_Channels_find_channel(lua_State *L) {
     SRV_Channels * ud = SRV_Channels::get_singleton();
@@ -1689,6 +1703,11 @@ static int AP_AHRS_get_roll(lua_State *L) {
     return 1;
 }
 
+const luaL_Reg AP_Button_meta[] = {
+    {"get_mask", AP_Button_get_mask},
+    {NULL, NULL}
+};
+
 const luaL_Reg SRV_Channels_meta[] = {
     {"find_channel", SRV_Channels_find_channel},
     {NULL, NULL}
@@ -1837,6 +1856,7 @@ const struct userdata_meta userdata_fun[] = {
 };
 
 const struct userdata_meta singleton_fun[] = {
+    {"button", AP_Button_meta, NULL},
     {"SRV_Channels", SRV_Channels_meta, NULL},
     {"serialLED", AP_SerialLED_meta, NULL},
     {"vehicle", AP_Vehicle_meta, NULL},
@@ -1890,6 +1910,7 @@ void load_generated_bindings(lua_State *L) {
 }
 
 const char *singletons[] = {
+    "button",
     "SRV_Channels",
     "serialLED",
     "vehicle",
