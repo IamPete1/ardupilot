@@ -145,9 +145,6 @@
 #if CAMERA == ENABLED
  # include <AP_Camera/AP_Camera.h>
 #endif
-#if BUTTON_ENABLED == ENABLED
- # include <AP_Button/AP_Button.h>
-#endif
 
 #if OSD_ENABLED == ENABLED
  #include <AP_OSD/AP_OSD.h>
@@ -522,11 +519,6 @@ private:
     // Parachute release
 #if PARACHUTE == ENABLED
     AP_Parachute parachute{relay};
-#endif
-
-    // Button 
-#if BUTTON_ENABLED == ENABLED
-    AP_Button button;
 #endif
 
     // Landing Gear Controller
