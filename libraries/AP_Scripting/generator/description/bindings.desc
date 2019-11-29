@@ -31,6 +31,7 @@ singleton AP_AHRS method get_velocity_NED boolean Vector3f'Null
 singleton AP_AHRS method get_relative_position_NED_home boolean Vector3f'Null
 singleton AP_AHRS method home_is_set boolean
 singleton AP_AHRS method prearm_healthy boolean
+singleton AP_AHRS method get_likely_flying boolean
 
 include AP_Arming/AP_Arming.h
 
