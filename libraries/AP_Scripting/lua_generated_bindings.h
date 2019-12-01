@@ -1,5 +1,8 @@
 #pragma once
 // auto generated bindings, don't manually edit
+#include <AP_Param/AP_Param.h>
+#include <AP_Mission/AP_Mission.h>
+#include <AP_Button/AP_Button.h>
 #include <GCS_MAVLink/GCS.h>
 #include <AP_Relay/AP_Relay.h>
 #include <AP_Terrain/AP_Terrain.h>
