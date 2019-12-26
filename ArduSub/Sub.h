@@ -84,10 +84,6 @@
 #include <AP_OpticalFlow/AP_OpticalFlow.h>     // Optical Flow library
 #endif
 
-#if RCMAP_ENABLED == ENABLED
-#include <AP_RCMapper/AP_RCMapper.h>        // RC input mapping library
-#endif
-
 #if RPM_ENABLED == ENABLED
 #include <AP_RPM/AP_RPM.h>
 #endif
@@ -225,10 +221,6 @@ private:
 
     control_mode_t prev_control_mode;
     ModeReason prev_control_mode_reason = ModeReason::UNKNOWN;
-
-#if RCMAP_ENABLED == ENABLED
-    RCMapper rcmap;
-#endif
 
     // Failsafe
     struct {

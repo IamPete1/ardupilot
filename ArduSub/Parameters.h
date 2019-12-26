@@ -204,7 +204,7 @@ public:
         k_param_rpm_sensor = 232, // Disabled
 
         // RC_Mapper Library
-        k_param_rcmap, // Disabled
+        k_param_rcmap_unused, // Disabled
 
         k_param_cam_slew_limit = 237, // deprecated
         k_param_lights_steps,
