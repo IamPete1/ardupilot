@@ -44,9 +44,6 @@ void Plane::init_ardupilot()
 
     ins.set_log_raw_bit(MASK_LOG_IMU_RAW);
 
-    // initialise rc channels including setting mode
-    g2.rc_channels.init();
-
     mavlink_system.sysid = g.sysid_this_mav;
 
     // initialise serial ports
@@ -54,6 +51,9 @@ void Plane::init_ardupilot()
     gcs().setup_console();
 
     register_scheduler_delay_callback();
+
+    // initialise rc channels including setting mode
+    g2.rc_channels.init();
 
     // setup any board specific drivers
     BoardConfig.init();
