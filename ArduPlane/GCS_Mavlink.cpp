@@ -303,6 +303,9 @@ void GCS_MAVLINK_Plane::send_simstate() const
 void Plane::send_wind(mavlink_channel_t chan)
 {
     Vector3f wind = ahrs.wind_estimate();
+
+    gcs().send_text(MAV_SEVERITY_INFO, "Wind: x %.2f, y %.2f, z %.2f",wind.x,wind.y,wind.z);
+
     mavlink_msg_wind_send(
         chan,
         degrees(atan2f(-wind.y, -wind.x)), // use negative, to give
