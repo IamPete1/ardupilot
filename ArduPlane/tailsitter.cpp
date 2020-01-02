@@ -63,7 +63,7 @@ void QuadPlane::tailsitter_output(void)
     uint16_t mask = tailsitter.motor_mask;
 
     // handle forward flight modes and transition to VTOL modes
-    if (!tailsitter_active() || in_tailsitter_vtol_transition()) {
+    if ((!tailsitter_active() || in_tailsitter_vtol_transition()) && !assisted_flight) {
         // in forward flight: set motor tilt servos and throttles using FW controller
         if (tailsitter.vectored_forward_gain > 0) {
             // thrust vectoring in fixed wing flight
@@ -105,8 +105,14 @@ void QuadPlane::tailsitter_output(void)
 
     // handle VTOL modes
     // the MultiCopter rate controller has already been run in an earlier call
-    // to motors_output() from quadplane.update()
-    motors_output(false);
+    // to motors_output() from quadplane.update(), unless we are in assisted flight
+    if (assisted_flight && tailsitter_transition_fw_complete()) {
+        hold_stabilize(SRV_Channels::get_output_scaled(SRV_Channel::k_throttle) * 0.01f);
+        motors_output(true);
+    } else {
+        motors_output(false);
+    }
+
     plane.pitchController.reset_I();
     plane.rollController.reset_I();
 
