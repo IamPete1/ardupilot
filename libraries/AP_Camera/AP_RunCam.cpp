@@ -249,10 +249,10 @@ void AP_RunCam::update_osd()
 }
 
 // return radio values as LOW, MIDDLE, HIGH
-RC_Channel::aux_switch_pos_t AP_RunCam::get_channel_pos(uint8_t rcmapchan) const
+RC_Channel::aux_switch_pos_t AP_RunCam::get_channel_pos(const RC_Channel::AUX_FUNC function) const
 {
     RC_Channel::aux_switch_pos_t position = RC_Channel::LOW;
-    const RC_Channel* chan = rc().channel(rcmapchan-1);
+    const RC_Channel* chan = rc().find_channel_for_option(function);
     if (chan == nullptr || !chan->read_3pos_switch(position)) {
         return RC_Channel::LOW;
     }
@@ -417,10 +417,10 @@ void AP_RunCam::handle_in_menu(Event ev)
 // map rc input to an event
 AP_RunCam::Event AP_RunCam::map_rc_input_to_event() const
 {
-    const RC_Channel::aux_switch_pos_t throttle = get_channel_pos(AP::rcmap()->throttle());
-    const RC_Channel::aux_switch_pos_t yaw = get_channel_pos(AP::rcmap()->yaw());
-    const RC_Channel::aux_switch_pos_t roll = get_channel_pos(AP::rcmap()->roll());
-    const RC_Channel::aux_switch_pos_t pitch = get_channel_pos(AP::rcmap()->pitch());
+    const RC_Channel::aux_switch_pos_t throttle = get_channel_pos(RC_Channel::AUX_FUNC::THROTTLE);
+    const RC_Channel::aux_switch_pos_t yaw = get_channel_pos(RC_Channel::AUX_FUNC::YAW);
+    const RC_Channel::aux_switch_pos_t roll = get_channel_pos(RC_Channel::AUX_FUNC::ROLL);
+    const RC_Channel::aux_switch_pos_t pitch = get_channel_pos(RC_Channel::AUX_FUNC::PITCH);
 
     Event result = Event::NONE;
 

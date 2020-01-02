@@ -32,7 +32,6 @@
 
 #include <AP_Param/AP_Param.h>
 #include <RC_Channel/RC_Channel.h>
-#include <AP_RCMapper/AP_RCMapper.h>
 #include <AP_Arming/AP_Arming.h>
 #include <AP_OSD/AP_OSD.h>
 
@@ -336,7 +335,7 @@ private:
     // OSD update loop
     void update_osd();
     // return radio values as LOW, MIDDLE, HIGH
-    RC_Channel::aux_switch_pos_t get_channel_pos(uint8_t rcmapchan) const;
+    RC_Channel::aux_switch_pos_t get_channel_pos(const RC_Channel::AUX_FUNC function) const;
     // update the state machine when armed or flying
     void update_state_machine_armed();
     // update the state machine when disarmed
