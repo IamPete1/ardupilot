@@ -1421,7 +1421,7 @@ float QuadPlane::desired_auto_yaw_rate_cds(void) const
 /*
   return true if the quadplane should provide stability assistance
  */
-bool QuadPlane::assistance_needed(float aspeed)
+bool QuadPlane::assistance_needed(float aspeed, bool have_airspeed)
 {
     if (assist_speed <= 0) {
         // assistance disabled
@@ -1430,7 +1430,7 @@ bool QuadPlane::assistance_needed(float aspeed)
         return false;
     }
 
-    if (aspeed < assist_speed) {
+    if (have_airspeed && aspeed < assist_speed) {
         // assistance due to Q_ASSIST_SPEED
         in_angle_assist = false;
         angle_error_start_ms = 0;
@@ -1544,26 +1544,28 @@ void QuadPlane::update_transition(void)
     if (is_tailsitter() && transition_state == TRANSITION_AIRSPEED_WAIT) {
         transition_state = TRANSITION_ANGLE_WAIT_FW;
     }
-    
+
     /*
       see if we should provide some assistance
      */
-    if (have_airspeed &&
-        assistance_needed(aspeed) &&
-        !is_tailsitter() &&
-        hal.util->get_soft_armed() &&
-        ((plane.auto_throttle_mode && !plane.throttle_suppressed) ||
-         plane.get_throttle_input()>0 ||
-         plane.is_flying())) {
+    bool q_assist_safe = hal.util->get_soft_armed() && ((plane.auto_throttle_mode && !plane.throttle_suppressed) ||
+                                                         plane.get_throttle_input()>0 ||
+                                                         plane.is_flying());
+    if (q_assist_safe &&
+        (q_assist_state == Q_ASSIST_STATE_ENUM::Q_ASSIST_FORCE ||
+        (q_assist_state == Q_ASSIST_STATE_ENUM::Q_ASSIST_ENABLED && assistance_needed(aspeed, have_airspeed)))) {
         // the quad should provide some assistance to the plane
-        if (transition_state != TRANSITION_AIRSPEED_WAIT) {
-            gcs().send_text(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
-        }
-        transition_state = TRANSITION_AIRSPEED_WAIT;
-        if (transition_start_ms == 0) {
-            transition_start_ms = now;
-        }
         assisted_flight = true;
+        if (!is_tailsitter()) {
+            // update tansition state for vehicles using airspeed wait
+            if (transition_state != TRANSITION_AIRSPEED_WAIT) {
+                gcs().send_text(MAV_SEVERITY_INFO, "Transition started airspeed %.1f", (double)aspeed);
+            }
+            transition_state = TRANSITION_AIRSPEED_WAIT;
+            if (transition_start_ms == 0) {
+                transition_start_ms = now;
+            }
+        }
     } else {
         assisted_flight = false;
     }
@@ -3223,4 +3225,32 @@ bool QuadPlane::in_vtol_land_final(void) const
 bool QuadPlane::in_vtol_land_sequence(void) const
 {
     return in_vtol_land_approach() || in_vtol_land_descent() || in_vtol_land_final();
+}
+
+// set the Qassist state, used by RC Channel
+void QuadPlane::set_q_assist_state(Q_ASSIST_STATE_ENUM state)
+{
+    if (state == q_assist_state)
+    {   // no change
+        return;
+    }
+
+    switch(state) {
+        case Q_ASSIST_STATE_ENUM::Q_ASSIST_DISABLED:
+            gcs().send_text(MAV_SEVERITY_INFO, "QAssist: Disabled");
+        break;
+
+        case Q_ASSIST_STATE_ENUM::Q_ASSIST_ENABLED:
+            gcs().send_text(MAV_SEVERITY_INFO, "QAssist: Enabled");
+        break;
+
+        case Q_ASSIST_STATE_ENUM::Q_ASSIST_FORCE:
+            gcs().send_text(MAV_SEVERITY_INFO, "QAssist: Force enabled");
+        break;
+
+        default:
+            return;
+    }
+
+    q_assist_state = state;
 }
