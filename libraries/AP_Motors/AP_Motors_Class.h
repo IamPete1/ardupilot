@@ -62,6 +62,7 @@ public:
         MOTOR_FRAME_TYPE_NYT_PLUS = 16, // plus frame, no differential torque for yaw
         MOTOR_FRAME_TYPE_NYT_X = 17, // X frame, no differential torque for yaw
         MOTOR_FRAME_TYPE_BF_X_REV = 18, // X frame, betaflight ordering, reversed motors
+        MOTOR_FRAME_TYPE_X_X = 19, // like I but with inner motors nearer edge
     };
 
     // Constructor
