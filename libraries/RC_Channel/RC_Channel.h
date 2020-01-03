@@ -203,10 +203,10 @@ public:
 
     bool read_3pos_switch(aux_switch_pos_t &ret) const WARN_IF_UNUSED;
 
-protected:
-
     // channel number, starts at 1, 3 typically being throttle channel.
     uint8_t ch() const { return ch_in; };
+
+protected:
 
     virtual void init_aux_function(aux_func_t ch_option, aux_switch_pos_t);
     virtual void do_aux_function(aux_func_t ch_option, aux_switch_pos_t);
