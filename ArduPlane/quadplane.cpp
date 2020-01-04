@@ -903,7 +903,9 @@ void QuadPlane::hold_stabilize(float throttle_in)
         }
     } else {
         motors->set_desired_spool_state(AP_Motors::DesiredSpoolState::THROTTLE_UNLIMITED);
-        attitude_control->set_throttle_out(throttle_in, true, 0);
+        // tailsitters in forward flight Qassist should not use angle boost
+        bool should_boost = !(is_tailsitter() && !in_vtol_mode() && assisted_flight);
+        attitude_control->set_throttle_out(throttle_in, should_boost, 0);
     }
 }
 
