@@ -109,10 +109,18 @@ void QuadPlane::tailsitter_output(void)
     if (assisted_flight && tailsitter_transition_fw_complete()) {
         hold_stabilize(SRV_Channels::get_output_scaled(SRV_Channel::k_throttle) * 0.01f);
         motors_output(true);
+
+        if (tailsitter.options & TAILSITTER_Q_ASSIST_MOTORS_ONLY) {
+            // only use motors for Q assist, control surfaces remain under plane control
+            // zero copter I terms and use plane
+            attitude_control->reset_rate_controller_I_terms();
+            return;
+        }
     } else {
         motors_output(false);
     }
 
+    // In full Q assist it is better to use cotper I and zero plane
     plane.pitchController.reset_I();
     plane.rollController.reset_I();
 

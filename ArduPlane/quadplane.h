@@ -469,6 +469,10 @@ private:
         TAILSITTER_GSCL_INTERP  = (1U<<2),
     };
 
+    enum tailsitter_options_mask {
+        TAILSITTER_Q_ASSIST_MOTORS_ONLY = (1U<<0),
+    };
+
     // tailsitter control variables
     struct {
         AP_Int8 transition_angle;
@@ -485,6 +489,7 @@ private:
         AP_Float scaling_speed_min;
         AP_Float scaling_speed_max;
         AP_Int16 gain_scaling_mask;
+        AP_Int16 options;
     } tailsitter;
 
     // tailsitter speed scaler
@@ -538,6 +543,7 @@ private:
         OPTION_MISSION_LAND_FW_APPROACH=(1<<4),
         OPTION_FS_QRTL=(1<<5),
         OPTION_IDLE_GOV_MANUAL=(1<<6),
+        OPTION_Q_ASSIST_FORCE_ENABLE=(1<<7),
     };
 
     AP_Float takeoff_failure_scalar;
