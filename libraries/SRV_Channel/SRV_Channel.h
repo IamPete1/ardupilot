@@ -236,7 +236,7 @@ private:
     AP_Int16 servo_trim;
     // reversal, following convention that 1 means reversed, 0 means normal
     AP_Int8 reversed;
-    AP_Int8 function;
+    AP_Int16 function;
 
     // a pending output value as PWM
     uint16_t output_pwm;

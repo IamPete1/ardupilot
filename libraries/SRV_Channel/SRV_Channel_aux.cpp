@@ -155,9 +155,9 @@ void SRV_Channels::update_aux_servo_function(void)
 
     // set auxiliary ranges
     for (uint8_t i = 0; i < NUM_SERVO_CHANNELS; i++) {
-        if ((uint8_t)channels[i].function.get() < SRV_Channel::k_nr_aux_servo_functions) {
+        if ((uint16_t)channels[i].function.get() < SRV_Channel::k_nr_aux_servo_functions) {
             channels[i].aux_servo_function_setup();
-            function_mask.set((uint8_t)channels[i].function.get());
+            function_mask.set((uint16_t)channels[i].function.get());
             functions[channels[i].function.get()].channel_mask |= 1U<<i;
         }
     }
@@ -177,7 +177,7 @@ void SRV_Channels::enable_aux_servos()
     for (uint8_t i = 0; i < NUM_SERVO_CHANNELS; i++) {
         SRV_Channel &c = channels[i];
         // see if it is a valid function
-        if ((uint8_t)c.function.get() < SRV_Channel::k_nr_aux_servo_functions) {
+        if ((uint16_t)c.function.get() < SRV_Channel::k_nr_aux_servo_functions) {
             hal.rcout->enable_ch(c.ch_num);
         }
 
@@ -817,7 +817,7 @@ bool SRV_Channels::upgrade_parameters(const uint8_t rc_keys[14], uint16_t aux_ch
 
     if (rcmap != nullptr) {
         // we need to make the output functions from the rcmapped inputs
-        const int8_t func_map[4] = { channels[0].function.get(),
+        const int16_t func_map[4] = { channels[0].function.get(),
                                      channels[1].function.get(),
                                      channels[2].function.get(),
                                      channels[3].function.get() };
