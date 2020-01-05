@@ -170,7 +170,9 @@ void Plane::channel_function_mixer(SRV_Channel::Aux_servo_function_t func1_in, S
 void Plane::flaperon_update(int8_t flap_percent)
 {
     if (!SRV_Channels::function_assigned(SRV_Channel::k_flaperon_left) &&
-        !SRV_Channels::function_assigned(SRV_Channel::k_flaperon_right)) {
+        !SRV_Channels::function_assigned(SRV_Channel::k_flaperon_right) && 
+        !SRV_Channels::function_assigned(SRV_Channel::K_para_left) && 
+        !SRV_Channels::function_assigned(SRV_Channel::k_para_right) ) {
         return;
     }
     /*
@@ -183,6 +185,13 @@ void Plane::flaperon_update(int8_t flap_percent)
     float flaperon_right = constrain_float(aileron - flap_percent * 45, -4500, 4500);
     SRV_Channels::set_output_scaled(SRV_Channel::k_flaperon_left, flaperon_left);
     SRV_Channels::set_output_scaled(SRV_Channel::k_flaperon_right, flaperon_right);
+
+    // paramotor mix
+    // left and right paramotor only act one way
+    float para_left  = constrain_float(fmaxf(aileron,0.0f) + flap_percent * 45, -4500, 4500);
+    float para_right = constrain_float(fminf(aileron,0.0f) - flap_percent * 45, -4500, 4500);
+    SRV_Channels::set_output_scaled(SRV_Channel::K_para_left, para_left);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_para_right, para_right);
 }
 
 
@@ -908,6 +917,9 @@ void Plane::servos_auto_trim(void)
 
     g2.servo_channels.adjust_trim(SRV_Channel::k_flaperon_left,  roll_I);
     g2.servo_channels.adjust_trim(SRV_Channel::k_flaperon_right, -roll_I);
+
+    g2.servo_channels.adjust_trim(SRV_Channel::K_para_left,  roll_I);
+    g2.servo_channels.adjust_trim(SRV_Channel::k_para_right, -roll_I);
 
     // cope with various dspoiler options
     const int8_t bitmask = g2.crow_flap_options.get();
