@@ -126,6 +126,8 @@ void SRV_Channel::aux_servo_function_setup(void)
     case k_vtail_left:
     case k_vtail_right:
     case k_roll_out:
+    case K_para_left:
+    case k_para_right:
     case k_pitch_out:
     case k_yaw_out:
         set_angle(4500);
