@@ -240,6 +240,19 @@ void Plane::startup_ground(void)
     // ready to fly
     serial_manager.set_blocking_writes_all(false);
 
+    // if we don't have a pitch controll output tell the tecs
+    if (!g2.servo_channels.function_assigned(SRV_Channel::k_elevator) &&
+        !g2.servo_channels.function_assigned(SRV_Channel::k_elevator_with_input) &&
+        !g2.servo_channels.function_assigned(SRV_Channel::k_elevon_left) &&
+        !g2.servo_channels.function_assigned(SRV_Channel::k_elevon_right) && 
+        !g2.servo_channels.function_assigned(SRV_Channel::k_dspoilerLeft1) &&
+        !g2.servo_channels.function_assigned(SRV_Channel::k_dspoilerLeft2) &&
+        !g2.servo_channels.function_assigned(SRV_Channel::k_dspoilerRight1) &&
+        !g2.servo_channels.function_assigned(SRV_Channel::k_dspoilerRight2))
+    {
+        TECS_controller.set_no_pitch_control(true);
+    }
+
     gcs().send_text(MAV_SEVERITY_INFO,"Ground start complete");
 }
 
