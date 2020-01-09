@@ -751,6 +751,36 @@ void AP_TECS::_update_throttle_without_airspeed(int16_t throttle_nudge)
     _throttle_dem = _throttle_dem + STEdot_dem / (_STEdot_max - _STEdot_min) * (_THRmaxf - _THRminf);
 }
 
+// update throttle for climb rate only
+void AP_TECS::_update_climb_rate_throttle()
+{
+    // we only care about the potential energy error
+    float PR_error = _SPE_dem - _SPE_est;
+
+    // save the kinetic and potential energy error for logging
+    logging.SKE_error = _SKE_dem - _SKE_est;
+    logging.SPE_error = PR_error;
+
+    // potential energy error
+    float integSEB_delta = logging.SPE_error * _DT * _get_i_gain();
+    logging.SEB_delta = integSEB_delta;
+
+    // constrain the integrator to 20% of total throttle range
+    integSEB_delta = constrain_float(integSEB_delta, -20.0f, 20.0f);
+
+    // intergrate to get I term
+    _integSEB_state += integSEB_delta;
+
+    // D term
+    float D_gain = (_SPEdot_dem - _SPEdot) * _DT * _ptchDamp;
+
+    // use cruse throttle param as mid point
+    float throttle_out = aparm.throttle_cruise + _integSEB_state + D_gain;
+
+    // constrain
+    _throttle_dem = constrain_float(throttle_out,_THRminf,_THRmaxf);
+}
+
 void AP_TECS::_detect_bad_descent(void)
 {
     // Detect a demanded airspeed too high for the aircraft to achieve. This will be
@@ -969,6 +999,10 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     _DT = (now - _update_pitch_throttle_last_usec) * 1.0e-6f;
     _update_pitch_throttle_last_usec = now;
 
+    // update quantity's to be logged
+    logging.load_factor = load_factor;
+    logging.time_stamp = now;
+
     _flags.is_doing_auto_land = (flight_stage == AP_Vehicle::FixedWing::FLIGHT_LAND);
     _distance_beyond_land_wp = distance_beyond_land_wp;
     _flight_stage = flight_stage;
@@ -990,6 +1024,27 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
 
     // min of 1% throttle range to prevent a numerical error
     _THRmaxf = MAX(_THRmaxf, _THRminf+0.01);
+
+    // elevator less altitude control
+    if (_no_pitch_control) {
+        _flags.underspeed = false;
+        _flags.badDescent = false;
+
+        // initialise selected states and variables if DT > 1 second or in climbout
+        _initialise_states(ptchMinCO_cd, hgt_afe);
+
+        // Calculate the height demand
+        _update_height_demand();
+
+        // Calculate specific energy quantitiues
+        _update_energies();
+        
+        // control climb rate with throttle only
+        _update_climb_rate_throttle();
+
+        _write_log();
+        return;
+    }
 
     // work out the maximum and minimum pitch
     // if TECS_PITCH_{MAX,MIN} isn't set then use
@@ -1130,6 +1185,12 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
     // Calculate pitch demand
     _update_pitch();
 
+    _write_log();
+}
+
+// write TECS log 
+void AP_TECS::_write_log() const
+{
     // log to AP_Logger
     AP::logger().Write(
         "TECS",
@@ -1137,7 +1198,7 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
         "smnmnnnn----o--",
         "F0000000----0--",
         "QfffffffffffffB",
-        now,
+        logging.time_stamp,
         (double)_height,
         (double)_climb_rate,
         (double)_hgt_dem_adj,
@@ -1156,11 +1217,11 @@ void AP_TECS::update_pitch_throttle(int32_t hgt_dem_cm,
                        "s------",
                        "F------",
                        "Qffffff",
-                       now,
+                       logging.time_stamp,
                        (double)degrees(_PITCHmaxf),
                        (double)degrees(_PITCHminf),
                        (double)logging.SKE_error,
                        (double)logging.SPE_error,
                        (double)logging.SEB_delta,
-                       (double)load_factor);
+                       (double)logging.load_factor);
 }

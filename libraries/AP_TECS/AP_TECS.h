@@ -116,7 +116,15 @@ public:
     void use_synthetic_airspeed(void) {
         _use_synthetic_airspeed_once = true;
     }
-    
+
+    // set true if we have no pitch control
+    // use climb rate to throttle control
+    // paramotors and similar
+    void set_no_pitch_control(bool b)
+    {
+        _no_pitch_control = b;
+    }
+
     // this supports the TECS_* user settable parameters
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -326,13 +334,19 @@ private:
         float SPE_error;
         float SKE_error;
         float SEB_delta;
+        float load_factor;
+        uint64_t time_stamp;
     } logging;
 
     AP_Int8 _use_synthetic_airspeed;
     
     // use synthetic airspeed for next loop
     bool _use_synthetic_airspeed_once;
-    
+
+    // true if we have no pitch control, mix throttle to climb rate
+    // (Paramotors and similar)
+    bool _no_pitch_control = false;
+
     // Update the airspeed internal state using a second order complementary filter
     void _update_speed(float load_factor);
 
@@ -354,6 +368,9 @@ private:
     // Update Demanded Throttle Non-Airspeed
     void _update_throttle_without_airspeed(int16_t throttle_nudge);
 
+    // update throttle for climb rate only
+    void _update_climb_rate_throttle();
+
     // get integral gain which is flight_stage dependent
     float _get_i_gain(void);
 
@@ -374,4 +391,7 @@ private:
 
     // current time constant
     float timeConstant(void) const;
+
+    // write TECS log 
+    void _write_log() const;
 };
