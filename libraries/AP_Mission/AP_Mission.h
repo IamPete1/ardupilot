@@ -471,6 +471,15 @@ public:
     // jumps the mission to the closest landing abort that is planned, returns false if unable to find a valid abort
     bool jump_to_abort_landing_sequence(void);
 
+    // check if sensible for failsafe to interrupt mission, incase aircraft is already on landing approach
+    bool should_failsafe_interrupt(void);
+
+    // Approximate the distance travelled to get to a landing.  DO_JUMP commands are observed in look forward.
+    float distance_to_landing(uint16_t starting_index, float dist_compare, bool& compare_is_smaller);
+
+    // Save lat and long from mission cmd
+    void save_location_from_cmd(struct Location &loc, Mission_Command& cmd) const;
+
     // get a reference to the AP_Mission semaphore, allowing an external caller to lock the
     // storage while working with multiple waypoints
     HAL_Semaphore_Recursive &get_semaphore(void) {
@@ -495,6 +504,7 @@ private:
         uint8_t nav_cmd_loaded  : 1; // true if a "navigation" command has been loaded into _nav_cmd
         uint8_t do_cmd_loaded   : 1; // true if a "do"/"conditional" command has been loaded into _do_cmd
         uint8_t do_cmd_all_done : 1; // true if all "do"/"conditional" commands have been completed (stops unnecessary searching through eeprom for do commands)
+        bool jumped_to_landing  : 1; // true when jump to landing function is used.  Set false when aborted or 
     } _flags;
 
     ///
