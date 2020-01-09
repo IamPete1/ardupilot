@@ -91,13 +91,18 @@ bool AP_Mission::start_command_camera(const AP_Mission::Mission_Command& cmd)
         return true;
 
     case MAV_CMD_DO_DIGICAM_CONTROL:                    // Mission command to control an on-board camera controller system. |Session control e.g. show/hide lens| Zoom's absolute position| Zooming step value to offset zoom from the current position| Focus Locking, Unlocking or Re-locking| Shooting Command| Command Identity| Empty|
-        camera->control(
-            cmd.content.digicam_control.session,
-            cmd.content.digicam_control.zoom_pos,
-            cmd.content.digicam_control.zoom_step,
-            cmd.content.digicam_control.focus_lock,
-            cmd.content.digicam_control.shooting_cmd,
-            cmd.content.digicam_control.cmd_id);
+        // Don't execute camera commands whilst resuming the mission if the options bit is set
+        if ((_options & AP_MISSION_MASK_IGNORE_CAM_RESUME) !=0 && _flags.resuming_mission){
+            gcs().send_text(MAV_SEVERITY_INFO, "Mission: DO_DIGICAM_CTRL #%u skipped",cmd.index);
+        } else {
+            camera->control(
+                cmd.content.digicam_control.session,
+                cmd.content.digicam_control.zoom_pos,
+                cmd.content.digicam_control.zoom_step,
+                cmd.content.digicam_control.focus_lock,
+                cmd.content.digicam_control.shooting_cmd,
+                cmd.content.digicam_control.cmd_id);
+        }
         return true;
 
     case MAV_CMD_DO_SET_CAM_TRIGG_DIST:

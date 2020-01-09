@@ -38,6 +38,9 @@
 
 #define AP_MISSION_OPTIONS_DEFAULT          0       // Do not clear the mission when rebooting
 #define AP_MISSION_MASK_MISSION_CLEAR       (1<<0)  // If set then Clear the mission on boot
+#define AP_MISSION_MASK_IGNORE_CAM_RESUME   (1<<1)  // If set then ignore DO camera commands whilst resuming the mission
+
+#define AP_MISSION_MAX_WP_HISTORY           6       // The maximum number of previous wp commands that will be stored from the active missions history
 
 /// @class    AP_Mission
 /// @brief    Object managing Mission
@@ -303,6 +306,7 @@ public:
         _flags.state = MISSION_STOPPED;
         _flags.nav_cmd_loaded = false;
         _flags.do_cmd_loaded = false;
+        _flags.resuming_mission = false;
     }
 
     // get singleton instance
@@ -495,7 +499,11 @@ private:
         uint8_t nav_cmd_loaded  : 1; // true if a "navigation" command has been loaded into _nav_cmd
         uint8_t do_cmd_loaded   : 1; // true if a "do"/"conditional" command has been loaded into _do_cmd
         uint8_t do_cmd_all_done : 1; // true if all "do"/"conditional" commands have been completed (stops unnecessary searching through eeprom for do commands)
+        bool resuming_mission   : 1; // true if the mission is resuming and set false once the aircraft attains the interupted WP
     } _flags;
+
+    // mission WP resume history
+    uint16_t _wp_index_history[AP_MISSION_MAX_WP_HISTORY]; // storing the nav_cmd index for the last 6 WPs
 
     ///
     /// private methods
@@ -530,6 +538,9 @@ private:
     ///     stops and returns false if it hits another navigation command before it finds the first do or conditional command
     ///     accounts for do_jump commands but never increments the jump's num_times_run (get_next_nav_cmd is responsible for this)
     bool get_next_do_cmd(uint16_t start_index, Mission_Command& cmd);
+
+    // reset the mission history to prevent recalling previous mission histories when restarting missions.
+    void reset_wp_history();
 
     ///
     /// jump handling methods

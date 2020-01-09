@@ -19,15 +19,16 @@ const AP_Param::GroupInfo AP_Mission::var_info[] = {
 
     // @Param: RESTART
     // @DisplayName: Mission Restart when entering Auto mode
-    // @Description: Controls mission starting point when entering Auto mode (either restart from beginning of mission or resume from last command run)
-    // @Values: 0:Resume Mission, 1:Restart Mission
+    // @Description: Controls mission starting point when entering Auto mode.  Set 0 to resume mission from the last command before it was interuppted.  Set 1 to always restart from the beginning of the mission.  Set a negative value to rewind the mission by that number of waypoints.
+    // @Range: -5 1
+    // @Values: -1: Rewind mission, 0:Resume mission at interupted waypoint, 1:Restart mission.
     // @User: Advanced
     AP_GROUPINFO("RESTART",  1, AP_Mission, _restart, AP_MISSION_RESTART_DEFAULT),
 
     // @Param: OPTIONS
     // @DisplayName: Mission options bitmask
-    // @Description: Bitmask of what options to use in missions.
-    // @Bitmask: 0:Clear Mission on reboot
+    // @Description: Bitmask of what options to use in missions.  Set the 2nd bit to Ignore DO_DIGICAM_CONTROL commands whilst resuming a mission.  This is only valid if MIS_RESTART is set to a negitive value.
+    // @Bitmask: 0:Clear Mission on reboot 1:Don't action DO_DIGICAM_CONTROL whilst resuming mission.
     // @User: Advanced
     AP_GROUPINFO("OPTIONS",  2, AP_Mission, _options, AP_MISSION_OPTIONS_DEFAULT),
 
@@ -68,7 +69,7 @@ void AP_Mission::start()
     _flags.state = MISSION_RUNNING;
 
     reset(); // reset mission to the first command, resets jump tracking
-    
+
     // advance to the first command
     if (!advance_current_nav_cmd()) {
         // on failure set mission complete
@@ -110,6 +111,26 @@ void AP_Mission::resume()
         // flying to a command that has been excluded from the current mission
         start();
         return;
+    }
+
+    // rewind the mission wp if the restart parameter is set negative
+    if (_restart < 0){
+        _flags.resuming_mission = true;
+
+        // ensure that restart parameter is not outside the limit of _wp_history_array
+        if (_restart < (AP_MISSION_MAX_WP_HISTORY-1)*-1){
+            gcs().send_text(MAV_SEVERITY_INFO, "Warning: MIS_RESTART must be greater than -%i",AP_MISSION_MAX_WP_HISTORY - 1);
+            _restart = (AP_MISSION_MAX_WP_HISTORY - 1)*-1;
+        }
+
+        for (int8_t restart_index = -1 * _restart; restart_index >= 0; restart_index--) {
+            // try and set the rewound mission index
+            if (set_current_cmd(_wp_index_history[restart_index])) {
+                return;
+            }
+        }
+        // mission resume failed
+        _flags.resuming_mission = false;
     }
 
     // restart active navigation command. We run these on resume()
@@ -163,7 +184,7 @@ bool AP_Mission::starts_with_takeoff_cmd()
 /// start_or_resume - if MIS_AUTORESTART=0 this will call resume(), otherwise it will call start()
 void AP_Mission::start_or_resume()
 {
-    if (_restart) {
+    if (_restart == 1) {
         start();
     } else {
         resume();
@@ -182,6 +203,7 @@ void AP_Mission::reset()
     _prev_nav_cmd_wp_index = AP_MISSION_CMD_INDEX_NONE;
     _prev_nav_cmd_id       = AP_MISSION_CMD_ID_NONE;
     init_jump_tracking();
+    reset_wp_history();
 }
 
 /// clear - clears out mission
@@ -210,9 +232,11 @@ bool AP_Mission::clear()
 /// trucate - truncate any mission items beyond index
 void AP_Mission::truncate(uint16_t index)
 {
-    if ((unsigned)_cmd_total > index) {        
+    if ((unsigned)_cmd_total > index) {
         _cmd_total.set_and_save(index);
     }
+
+    reset_wp_history();
 }
 
 /// update - ensures the command queues are loaded with the next command and calls main programs command_init and command_verify functions to progress the mission
@@ -282,7 +306,11 @@ bool AP_Mission::verify_command(const Mission_Command& cmd)
 
 bool AP_Mission::start_command(const Mission_Command& cmd)
 {
-    gcs().send_text(MAV_SEVERITY_INFO, "Mission: %u %s", cmd.index, cmd.type());
+    if (_flags.resuming_mission) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Mission Resuming: %u %s", cmd.index, cmd.type());
+    } else {
+        gcs().send_text(MAV_SEVERITY_INFO, "Mission: %u %s", cmd.index, cmd.type());
+    }
     switch (cmd.id) {
     case MAV_CMD_DO_GRIPPER:
         return start_command_do_gripper(cmd);
@@ -334,6 +362,8 @@ bool AP_Mission::replace_cmd(uint16_t index, const Mission_Command& cmd)
     if (index >= (unsigned)_cmd_total) {
         return false;
     }
+
+    reset_wp_history();
 
     // attempt to write the command to storage
     return write_cmd_to_storage(index, cmd);
@@ -411,6 +441,7 @@ bool AP_Mission::set_current_cmd(uint16_t index)
         _prev_nav_cmd_wp_index = AP_MISSION_CMD_INDEX_NONE;
         // reset the jump tracking to zero
         init_jump_tracking();
+        reset_wp_history();
         if (index == 0) {
             index = 1;
         }
@@ -607,6 +638,8 @@ bool AP_Mission::write_cmd_to_storage(uint16_t index, const Mission_Command& cmd
     if (index >= num_commands_max()) {
         return false;
     }
+
+    reset_wp_history();
 
     PackedContent packed {};
     if (stored_in_location(cmd.id)) {
@@ -1503,7 +1536,7 @@ bool AP_Mission::advance_current_nav_cmd(uint16_t starting_index)
     while (!_flags.nav_cmd_loaded) {
         // get next command
         Mission_Command cmd;
-        if (!get_next_cmd(cmd_index, cmd, true)) {
+        if (!get_next_cmd(cmd_index, cmd, !_flags.resuming_mission)) {
             return false;
         }
 
@@ -1515,6 +1548,21 @@ bool AP_Mission::advance_current_nav_cmd(uint16_t starting_index)
             // save separate previous nav command index if it contains lat,long,alt
             if (!(cmd.content.location.lat == 0 && cmd.content.location.lng == 0)) {
                 _prev_nav_cmd_wp_index = _nav_cmd.index;
+                // save a separate resume wp index for when MIS_RESTART parameter set to rewind on resume
+                // and prevent history being re-written until vehicle returns to interupted WP
+                if(!_flags.resuming_mission){
+                    // increment the buffer, not a efficient as a ring buffer but much easer to follow
+                    for (uint8_t i = AP_MISSION_MAX_WP_HISTORY-1; i > 0;i--) {
+                        _wp_index_history[i] =  _wp_index_history[i-1];
+                    }
+                    _wp_index_history[0] = cmd.index;
+                } else if (_flags.resuming_mission && cmd.index == _wp_index_history[0]){
+                    // check if the vehicle is resuming and has returned to where it was interupted
+                    // vehicle has resumed previous position, allow history to be recorded again
+                    // note in that case of jumps we might have got to the waypoint sooner than expected
+                    gcs().send_text(MAV_SEVERITY_INFO, "Mission: Returned to interupted %u %s", cmd.index, cmd.type());
+                    _flags.resuming_mission = false;
+                }
             }
             // set current navigation command and start it
             _nav_cmd = cmd;
@@ -1818,6 +1866,8 @@ bool AP_Mission::jump_to_landing_sequence(void)
         }
 
         gcs().send_text(MAV_SEVERITY_INFO, "Landing sequence start");
+
+        reset_wp_history();
         return true;
     }
 
@@ -1857,6 +1907,8 @@ bool AP_Mission::jump_to_abort_landing_sequence(void)
         }
 
         gcs().send_text(MAV_SEVERITY_INFO, "Landing abort sequence start");
+
+        reset_wp_history();
         return true;
     }
 
@@ -1971,6 +2023,15 @@ bool AP_Mission::contains_item(MAV_CMD command) const
         }
     }
     return false;
+}
+
+// reset the mission history to prevent recalling previous mission histories after a mission restart.
+void AP_Mission::reset_wp_history()
+{
+    for (uint8_t i = 0; i<AP_MISSION_MAX_WP_HISTORY; i++){
+        _wp_index_history[i] = AP_MISSION_CMD_INDEX_NONE;
+    }
+    _flags.resuming_mission = false;
 }
 
 // singleton instance
