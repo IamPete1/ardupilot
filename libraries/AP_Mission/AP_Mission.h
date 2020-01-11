@@ -412,7 +412,7 @@ public:
     /// get_next_nav_cmd - gets next "navigation" command found at or after start_index
     ///     returns true if found, false if not found (i.e. reached end of mission command list)
     ///     accounts for do_jump commands
-    bool get_next_nav_cmd(uint16_t start_index, Mission_Command& cmd);
+    bool get_next_nav_cmd(uint16_t start_index, Mission_Command& cmd, bool sim = false);
 
     /// get the ground course of the next navigation leg in centidegrees
     /// from 0 36000. Return default_angle if next navigation
@@ -475,10 +475,7 @@ public:
     bool should_failsafe_interrupt(void);
 
     // Approximate the distance travelled to get to a landing.  DO_JUMP commands are observed in look forward.
-    float distance_to_landing(uint16_t starting_index, float dist_compare, bool& compare_is_smaller);
-
-    // Save lat and long from mission cmd
-    void save_location_from_cmd(struct Location &loc, Mission_Command& cmd) const;
+    bool distance_to_landing(uint16_t index, float &tot_distance,Location current_loc, float dist_compare = 0.0f);
 
     // get a reference to the AP_Mission semaphore, allowing an external caller to lock the
     // storage while working with multiple waypoints
@@ -533,7 +530,7 @@ private:
     ///     returns true if found, false if not found (i.e. mission complete)
     ///     accounts for do_jump commands
     ///     increment_jump_num_times_if_found should be set to true if advancing the active navigation command
-    bool get_next_cmd(uint16_t start_index, Mission_Command& cmd, bool increment_jump_num_times_if_found);
+    bool get_next_cmd(uint16_t start_index, Mission_Command& cmd, bool increment_jump_num_times_if_found, bool sim_jumps = false);
 
     /// get_next_do_cmd - gets next "do" or "conditional" command after start_index
     ///     returns true if found, false if not found
@@ -550,9 +547,13 @@ private:
     /// get_jump_times_run - returns number of times the jump command has been run
     ///     return is signed to be consistent with do-jump cmd's repeat count which can be -1 (to signify to repeat forever)
     int16_t get_jump_times_run(const Mission_Command& cmd);
+    // number of times jump has been run in look ahead simulation
+    int16_t get_jump_times_run_sim(const Mission_Command& cmd);
 
     /// increment_jump_times_run - increments the recorded number of times the jump command has been run
     void increment_jump_times_run(Mission_Command& cmd);
+    /// increment_jump_times_run - increments the recorded number of times the jump command has been runfor in look ahead simulation
+    void increment_jump_times_run_sim(Mission_Command& cmd);
 
     /// check_eeprom_version - checks version of missions stored in eeprom matches this library
     /// command list will be cleared if they do not match
@@ -582,6 +583,7 @@ private:
     struct jump_tracking_struct {
         uint16_t index;                 // index of do-jump commands in mission
         int16_t num_times_run;          // number of times this jump command has been run
+        int16_t sim_num_times_run;      // number of times this jump command has been run in look-ahead simulation
     } _jump_tracking[AP_MISSION_MAX_NUM_DO_JUMP_COMMANDS];
 
     // last time that mission changed
