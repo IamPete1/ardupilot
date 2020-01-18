@@ -181,6 +181,7 @@ void AP_Mission::reset()
     _prev_nav_cmd_index    = AP_MISSION_CMD_INDEX_NONE;
     _prev_nav_cmd_wp_index = AP_MISSION_CMD_INDEX_NONE;
     _prev_nav_cmd_id       = AP_MISSION_CMD_ID_NONE;
+    _flags.do_land_started = false;
     init_jump_tracking();
 }
 
@@ -201,6 +202,7 @@ bool AP_Mission::clear()
     _do_cmd.index = AP_MISSION_CMD_INDEX_NONE;
     _flags.nav_cmd_loaded = false;
     _flags.do_cmd_loaded = false;
+    _flags.do_land_started = false;
 
     // return success
     return true;
@@ -1583,11 +1585,15 @@ void AP_Mission::advance_current_do_cmd()
 ///     returns true if found, false if not found (i.e. mission complete)
 ///     accounts for do_jump commands
 ///     increment_jump_num_times_if_found should be set to true if advancing the active navigation command
-bool AP_Mission::get_next_cmd(uint16_t start_index, Mission_Command& cmd, bool increment_jump_num_times_if_found)
+///     allows for simulating jumps for mission look ahead
+bool AP_Mission::get_next_cmd(uint16_t start_index, Mission_Command& cmd, bool increment_jump_num_times_if_found, bool sim_jumps)
 {
     uint16_t cmd_index = start_index;
     Mission_Command temp_cmd;
     uint16_t jump_index = AP_MISSION_CMD_INDEX_NONE;
+
+    // if were simulating jumps we always want to increment them
+    increment_jump_num_times_if_found |= sim_jumps;
 
     // search until the end of the mission command list
     uint8_t max_loops = 64;
@@ -1629,11 +1635,11 @@ bool AP_Mission::get_next_cmd(uint16_t start_index, Mission_Command& cmd, bool i
                 cmd_index = temp_cmd.content.jump.target;
             }else{
                 // get number of times jump command has already been run
-                int16_t jump_times_run = get_jump_times_run(temp_cmd);
+                int16_t jump_times_run = get_jump_times_run(temp_cmd, sim_jumps);
                 if (jump_times_run < temp_cmd.content.jump.num_times) {
                     // update the record of the number of times run
                     if (increment_jump_num_times_if_found) {
-                        increment_jump_times_run(temp_cmd);
+                        increment_jump_times_run(temp_cmd, sim_jumps);
                     }
                     // continue searching from jump target
                     cmd_index = temp_cmd.content.jump.target;
@@ -1694,7 +1700,7 @@ void AP_Mission::init_jump_tracking()
 }
 
 /// get_jump_times_run - returns number of times the jump command has been run
-int16_t AP_Mission::get_jump_times_run(const Mission_Command& cmd)
+int16_t AP_Mission::get_jump_times_run(const Mission_Command& cmd, bool sim_jumps)
 {
     // exit immediately if cmd is not a do-jump command or target is invalid
     if ((cmd.id != MAV_CMD_DO_JUMP) || (cmd.content.jump.target >= (unsigned)_cmd_total) || (cmd.content.jump.target == 0)) {
@@ -1705,11 +1711,16 @@ int16_t AP_Mission::get_jump_times_run(const Mission_Command& cmd)
     // search through jump_tracking array for this cmd
     for (uint8_t i=0; i<AP_MISSION_MAX_NUM_DO_JUMP_COMMANDS; i++) {
         if (_jump_tracking[i].index == cmd.index) {
-            return _jump_tracking[i].num_times_run;
+            if (sim_jumps) {
+                return _jump_tracking[i].sim_num_times_run;
+            } else {
+                return _jump_tracking[i].num_times_run;
+            }
         }else if(_jump_tracking[i].index == AP_MISSION_CMD_INDEX_NONE) {
             // we've searched through all known jump commands and haven't found it so allocate new space in _jump_tracking array
             _jump_tracking[i].index = cmd.index;
             _jump_tracking[i].num_times_run = 0;
+            _jump_tracking[i].sim_num_times_run = 0;
             return 0;
         }
     }
@@ -1720,7 +1731,7 @@ int16_t AP_Mission::get_jump_times_run(const Mission_Command& cmd)
 }
 
 /// increment_jump_times_run - increments the recorded number of times the jump command has been run
-void AP_Mission::increment_jump_times_run(Mission_Command& cmd)
+void AP_Mission::increment_jump_times_run(Mission_Command& cmd, bool sim_jumps)
 {
     // exit immediately if cmd is not a do-jump command
     if (cmd.id != MAV_CMD_DO_JUMP) {
@@ -1731,13 +1742,18 @@ void AP_Mission::increment_jump_times_run(Mission_Command& cmd)
     // search through jump_tracking array for this cmd
     for (uint8_t i=0; i<AP_MISSION_MAX_NUM_DO_JUMP_COMMANDS; i++) {
         if (_jump_tracking[i].index == cmd.index) {
-            _jump_tracking[i].num_times_run++;
-            gcs().send_text(MAV_SEVERITY_INFO, "Mission: %u Jump %i/%i", _jump_tracking[i].index, _jump_tracking[i].num_times_run, cmd.content.jump.num_times);
+            if (sim_jumps) {
+                _jump_tracking[i].sim_num_times_run++;
+            } else {
+                _jump_tracking[i].num_times_run++;
+                gcs().send_text(MAV_SEVERITY_INFO, "Mission: %u Jump %i/%i", _jump_tracking[i].index, _jump_tracking[i].num_times_run, cmd.content.jump.num_times);
+            }
             return;
         }else if(_jump_tracking[i].index == AP_MISSION_CMD_INDEX_NONE) {
             // we've searched through all known jump commands and haven't found it so allocate new space in _jump_tracking array
             _jump_tracking[i].index = cmd.index;
             _jump_tracking[i].num_times_run = 1;
+            _jump_tracking[i].sim_num_times_run = 1;
             return;
         }
     }
@@ -1812,6 +1828,8 @@ bool AP_Mission::jump_to_landing_sequence(void)
     uint16_t land_idx = get_landing_sequence_start();
     if (land_idx != 0 && set_current_cmd(land_idx)) {
 
+        _flags.do_land_started = true;
+
         //if the mission has ended it has to be restarted
         if (state() == AP_Mission::MISSION_STOPPED) {
             resume();
@@ -1851,6 +1869,8 @@ bool AP_Mission::jump_to_abort_landing_sequence(void)
 
     if (abort_index != 0 && set_current_cmd(abort_index)) {
 
+        _flags.do_land_started = false;
+
         //if the mission has ended it has to be restarted
         if (state() == AP_Mission::MISSION_STOPPED) {
             resume();
@@ -1862,6 +1882,135 @@ bool AP_Mission::jump_to_abort_landing_sequence(void)
 
     gcs().send_text(MAV_SEVERITY_WARNING, "Unable to start find a landing abort sequence");
     return false;
+}
+
+// check if a failsafe should interupt a mission incase the aircraft is already on the best landing approach
+bool AP_Mission::should_failsafe_interrupt(void)
+{
+    // Check if there is even a running mission to interupt
+    if (_flags.state != MISSION_RUNNING) {
+        return true;
+    }
+    //gcs().send_text(MAV_SEVERITY_WARNING, "Debug1");
+    // Check for a jumped to landing state trigger flag.
+    // If this has already been tripped then we are definitely on approach.
+    if (_flags.do_land_started) {
+        gcs().send_text(MAV_SEVERITY_NOTICE, "Rejecting RTL: already started landing");
+        return false;
+    }
+
+    // The decision to allow a failsafe to interupt a potential landing approach 
+    // is a distance travelled minimization problem.  Look forward in 
+    // mission to evaluate the shortest remaining distance to land.
+
+    // Go through the mission for the nearest DO_LAND_START first as this is the most probable route 
+    // to a landing with the minimum number of WP.
+    uint16_t do_land_start_index = get_landing_sequence_start();
+    //gcs().send_text(MAV_SEVERITY_WARNING, "Do_land_start index %i",do_land_start_index);
+    //gcs().send_text(MAV_SEVERITY_WARNING, "Debug2");
+    if (do_land_start_index == 0){
+        // Then no DO_LAND_START commands are in mission and normal failsafe behaviour should be maintained
+        return true;
+    }
+
+    //gcs().send_text(MAV_SEVERITY_WARNING, "Debug3");
+    // get our current location
+    Location current_loc;
+    if (!AP::ahrs().get_position(current_loc)) {
+        // we don't know where we are!!
+        return true;
+    }
+    //gcs().send_text(MAV_SEVERITY_INFO, "Curent locaiton lat: %i, lng: %i", current_loc.lat, current_loc.lng);
+
+    //gcs().send_text(MAV_SEVERITY_WARNING, "Debug4");
+    // Get distance to landing if travelled to nearest DO_LAND_START via RTL
+    float dist_via_do_land;
+    if (!distance_to_landing(do_land_start_index, dist_via_do_land, current_loc)){
+        // cant get a valid distance
+        return true;
+    }
+    //gcs().send_text(MAV_SEVERITY_INFO, "Debug: do_land_start dist = %f", dist_via_do_land);
+
+    // Get distance to landing if continue along current mission path
+    float dist_continue_to_land;
+    if (!distance_to_landing(_nav_cmd.index, dist_continue_to_land, current_loc)) {
+        // cant get a valid distance
+        return true;
+    }
+    //gcs().send_text(MAV_SEVERITY_INFO, "Debug: continue dist = %f", dist_continue_to_land);
+
+    // Compare distances
+    if (dist_via_do_land >= dist_continue_to_land){
+        // Then the mission should carry on uninterrupted as that is the shorter distance
+        gcs().send_text(MAV_SEVERITY_NOTICE, "Rejecting RTL: closer land if mis continued");
+        return false;
+    } else {
+        // allow failsafes to interrupt the current mission
+        return true;
+    }
+}
+
+// Approximate the distance travelled to get to a landing.  DO_JUMP commands are observed in look forward.
+bool AP_Mission::distance_to_landing(uint16_t index, float &tot_distance,Location prev_loc)
+{
+    Mission_Command temp_cmd;
+    tot_distance = 0.0f;
+
+    // reset simulated jump tracking
+    for(uint8_t i=0; i<AP_MISSION_MAX_NUM_DO_JUMP_COMMANDS; i++) {
+        _jump_tracking[i].sim_num_times_run = _jump_tracking[i].num_times_run;
+    }
+
+    // Run through remainder of mission to approximate a distance to landing
+    uint8_t max_loops = 64;
+    while (true) {
+
+        //gcs().send_text(MAV_SEVERITY_INFO, "Debug: %u %s", temp_cmd.index, temp_cmd.type());
+
+        // search until the end of the mission command list
+        for (uint16_t cmd_index = index; cmd_index < (unsigned)_cmd_total; cmd_index++) {
+            // get next command
+            if (!get_next_cmd(cmd_index, temp_cmd, false, true)) {
+                // we got to the end of the mission
+                gcs().send_text(MAV_SEVERITY_WARNING, "Debug: got to end of miss");
+                return false;
+            }
+            if (temp_cmd.id == MAV_CMD_DO_PARACHUTE) {
+                // parachute is a valid way to land
+                return true;
+            }
+            if (is_nav_cmd(temp_cmd)) {
+                break;
+            }
+        }
+        index = temp_cmd.index+1;
+        //gcs().send_text(MAV_SEVERITY_INFO, "Debug: %u %s", temp_cmd.index, temp_cmd.type());
+
+        //gcs().send_text(MAV_SEVERITY_INFO, "temp_cmd lat: %i, lng: %i", temp_cmd.content.location.lat, temp_cmd.content.location.lng);
+
+        // !temp_cmd.content.location.is_zero() not working??
+        if (temp_cmd.content.location.lat != 0 && temp_cmd.content.location.lng != 0) {
+            // Add distance to running total
+            float disttemp = prev_loc.get_distance(temp_cmd.content.location);
+            tot_distance = tot_distance + disttemp; // += not working?
+            //gcs().send_text(MAV_SEVERITY_INFO, "distance %f", disttemp);
+
+            // Store wp location as previous
+            prev_loc = temp_cmd.content.location;
+        }
+
+        if (temp_cmd.id == MAV_CMD_NAV_LAND || temp_cmd.id == MAV_CMD_NAV_VTOL_LAND) {
+            // Reached a landing!
+            //gcs().send_text(MAV_SEVERITY_WARNING, "Debug: land found index: %i",temp_cmd.index);
+            return true;
+        }
+
+        // make sure we don't get stuck forever!
+        if (max_loops-- == 0) {
+            //gcs().send_text(MAV_SEVERITY_WARNING, "Debug: Got stuck");
+            return false;
+        }
+    }
 }
 
 const char *AP_Mission::Mission_Command::type() const {
