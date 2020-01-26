@@ -52,6 +52,7 @@ void RC_Channel_Rover::init_aux_function(const aux_func_t ch_option, const aux_s
     // the following functions do not need initialising:
     case AUX_FUNC::ACRO:
     case AUX_FUNC::AUTO:
+    case AUX_FUNC::FLAP:
     case AUX_FUNC::FOLLOW:
     case AUX_FUNC::GUIDED:
     case AUX_FUNC::HOLD:
@@ -251,6 +252,10 @@ void RC_Channel_Rover::do_aux_function(const aux_func_t ch_option, const aux_swi
             SRV_Channels::set_trim_to_servo_out_for(SRV_Channel::k_steering);
             gcs().send_text(MAV_SEVERITY_CRITICAL, "Steering trim saved!");
         }
+        break;
+
+    // flap input label, nothing to do
+    case AUX_FUNC::FLAP:
         break;
 
     default:
