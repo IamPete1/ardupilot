@@ -179,6 +179,9 @@ protected:
     //  reversed should be true if the vehicle is intentionally backing up which allows the pilot to increase the backing up speed by pulling the throttle stick down
     float calc_speed_nudge(float target_speed, bool reversed);
 
+    // calculate target roll and pitch angles and output
+    void calc_roll_pitch();
+
 protected:
 
     // decode pilot steering and throttle inputs and return in steer_out and throttle_out arguments
