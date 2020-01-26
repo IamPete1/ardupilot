@@ -96,6 +96,13 @@ const AP_Param::GroupInfo AP_MotorsUGV::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("SPD_SCA_BASE", 11, AP_MotorsUGV, _speed_scale_base, 1.0f),
 
+    // @Param: OPTIONS
+    // @DisplayName: Options bitmask
+    // @Description: 0:do not allow reversing the speed scaler
+    // @Bitmask: 0:no reverse
+    // @User: Advanced
+    AP_GROUPINFO("OPTIONS", 12, AP_MotorsUGV, _options, 0),
+
     AP_GROUPEND
 };
 
@@ -573,6 +580,7 @@ void AP_MotorsUGV::clear_omni_motors(int8_t motor_num)
 // output to regular steering and throttle channels
 void AP_MotorsUGV::output_regular(bool armed, float ground_speed, float steering, float throttle)
 {
+    const bool no_reverse = (_options & MOT_OPTIONS_NO_REVERSE) != 0;
     _scaling = 1.0f;
 
     // output to throttle channels
@@ -596,13 +604,13 @@ void AP_MotorsUGV::output_regular(bool armed, float ground_speed, float steering
                     }
                 }
                 // reverse steering direction when backing up
-                if (is_negative(ground_speed)) {
+                if (is_negative(ground_speed) & !no_reverse) {
                     _scaling = -1.0f;
                 }
             }
         } else {
             // reverse steering direction when backing up
-            if (is_negative(throttle)) {
+            if (is_negative(throttle) & !no_reverse) {
                 _scaling = -1.0f;
             }
         }
