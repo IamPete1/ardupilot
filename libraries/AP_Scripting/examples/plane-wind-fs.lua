@@ -17,8 +17,9 @@ local batt_info = { {0, 0, 0, 0}, -- main battery
 local margin = 30 -- margin in seconds of flight time that should remain once we have reached 
 local time_SF = 1 -- the return time safety factor, 1.1 gives 10% extra time for return flight
 local filter = 0.9 -- filter gain
-local min_flying_time = 30 -- seconds, must have been flying for this long before script will start sampling current
+local min_flying_time = 30 -- seconds, must have been flying in a none Qmode above the min alt for this long before script will start sampling current
 local print_time = 15 -- seconds between update prints (set to zero to disable)
+local alt_min = 0 -- the minimum altitude above home the script will start working at, zero disables
 
 -- if true current draw is normalized with dynamic pressure
 -- this gives better prediction of current draws at other airspeeds
@@ -27,10 +28,9 @@ local airspeed_normalize = false
 
 -- hard code wind to match SITL (until param get need to set manually on line 72)
 -- should get exact return time estimates < +- 5 seconds
-local SITL_wind = true
+local SITL_wind = false
 
 -- set these variables to match your parameters
-
 local air_speed = 22 -- TRIM_ARSPD_CM / 100
 local min_air_speed = 10 -- ARSPD_FBW_MIN
 local min_ground_speed = 0 -- MIN_GNDSPD_CM / 100
@@ -40,7 +40,7 @@ local max_bank_angle = 65 -- LIM_ROLL_CD / 100
 -- the radius is equal to the circumference per 1 radian
 local turn_rad = (air_speed^2) / (9.81 * math.tan(math.rad(max_bank_angle)))
 
--- Read the radius we expect to to circle at when we get home
+-- Read the radius we expect to circle at when we get home
 local home_reached_rad = 200
 
 
@@ -50,6 +50,8 @@ local return_distance
 local return_amps
 local trigger_instance = batt_info[1][1]
 local last_print = 0
+local timer_start_time = 0
+local timer_active = true
 
 -- calculates the amount of time it will take for the vehicle to return home
 -- returns 0 if there is no position, wind or home available
@@ -120,9 +122,13 @@ local function time_to_home()
   return 0, air_speed -- nothing useful available
 end
 
--- idle function, to stop no scripts to run warning
+-- idle function
 function idle()
-  return idle, 10000
+  -- if disarmed and not flying reset for a potential second trigger
+  if not arming:is_armed() and not vehicle:get_likely_flying() then
+    return update, 100
+  end
+  return idle, 1000
 end
 
 -- time margin update function
@@ -201,21 +207,66 @@ end
 
 -- the main update function that is used to decide when we should do a failsafe
 function update()
-  local flying_time = vehicle:get_time_flying_ms()
-  if flying_time < (min_flying_time * 1000) then
-    -- we have not been flying for long enough, skip
+  local now = millis();
+
+  -- check armed
+  if not arming:is_armed() then
+    --gcs:send_text(0, "Failsafe: disabled: not armed")
+    timer_start_time = now
+    timer_active = true
     return update, 100
   end
+
+  -- check flying
+  if not vehicle:get_likely_flying() then
+    --gcs:send_text(0, "Failsafe: disabled: not flying")
+    timer_start_time = now
+    timer_active = true
+    return update, 100
+  end
+
+  -- check mode
+  local current_mode = vehicle:get_mode()
+  if current_mode >= 17 then
+    --gcs:send_text(0, "Failsafe: disabled: Q mode")
+    timer_start_time = now
+    timer_active = true
+    return update, 100
+  end
+
+  -- check altitude
+  if alt_min ~= 0 then
+    local dist = ahrs:get_relative_position_NED_home()
+    if not dist or -1*dist:z() < alt_min then
+      --gcs:send_text(0, "Failsafe: disabled: low alt")
+      timer_start_time = now
+      timer_active = true
+      return update, 100
+    end
+  end
+
+  -- check timer
+  if now - timer_start_time < (min_flying_time * 1000) then
+    --gcs:send_text(0, "Failsafe: disabled: timer")
+    return update, 100
+  end
+
+  -- notify that we have started
+  if timer_active then
+    gcs:send_text(0, "Smart Battery RTL started monitoring")
+    timer_active = false
+  end
+
+  -- check airspeed
   local air_speed_in = ahrs:airspeed_estimate()
   if not air_speed_in then
     error("Could not read airspeed")
   end
-  if air_speed_in  < min_air_speed * 0.75 then
-    -- we are not flying fast enough, skip
+  if air_speed_in < min_air_speed * 0.75 then
+    -- we are not flying fast enough, skip but don't reset the timer
     return update, 100
   end
 
-  local now = millis()
   local min_remaining_time = 86400 -- 24 hours
 
   -- find the return time and airspeed
@@ -228,7 +279,7 @@ function update()
   -- normalize current with dynamic pressure
   if airspeed_normalize then
 
-    -- we could probably just use air speed^2 
+    -- we could probably just use air speed^2
     local press = baro:get_pressure()
     local temp = baro:get_external_temperature() + 273.2 -- convert deg centigrade to kelvin
     local density =  press / (temp * 287.058) -- calculate the air density, ideal gas law, constant is (R) specific gas constant for air
@@ -255,7 +306,7 @@ function update()
 
       local remaining_capacity = (rated_capacity_mah - consumed_mah) * 3.6 -- amp seconds (60^2 / 1000)
       local remaining_time = remaining_capacity / return_amps
-      
+
       local buffer_time = remaining_time - ((return_time * time_SF) + margin)
       if  (return_time < 0) or buffer_time < 0 then
         if return_time < 0 then
