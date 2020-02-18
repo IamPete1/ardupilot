@@ -1442,7 +1442,7 @@ float QuadPlane::desired_auto_yaw_rate_cds(void) const
  */
 bool QuadPlane::assistance_needed(float aspeed, bool have_airspeed)
 {
-    if (assist_speed <= 0 || is_contol_surface_tailsitter()) {
+    if (assist_speed <= 0) {
         // assistance disabled
         in_angle_assist = false;
         angle_error_start_ms = 0;
