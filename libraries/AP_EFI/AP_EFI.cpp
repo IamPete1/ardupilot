@@ -18,6 +18,7 @@
 #if EFI_ENABLED
 
 #include "AP_EFI_Serial_MS.h"
+#include "AP_EFI_ECU_Lite.h"
 #include <AP_Logger/AP_Logger.h>
 
 extern const AP_HAL::HAL& hal;
@@ -27,7 +28,7 @@ const AP_Param::GroupInfo AP_EFI::var_info[] = {
     // @Param: _TYPE
     // @DisplayName: EFI communication type
     // @Description: What method of communication is used for EFI #1
-    // @Values: 0:None,1:Serial-MS
+    // @Values: 0:None,1:Serial-MS,2:ECU-Lite
     // @User: Advanced
     // @RebootRequired: True
     AP_GROUPINFO_FLAGS("_TYPE", 1, AP_EFI, type, 0, AP_PARAM_FLAG_ENABLE),
@@ -67,9 +68,16 @@ void AP_EFI::init(void)
         // Init called twice, perhaps
         return;
     }
-    // Check for MegaSquirt Serial EFI
-    if (type == EFI_COMMUNICATION_TYPE_SERIAL_MS) {
-        backend = new AP_EFI_Serial_MS(*this);
+
+    switch(type) {
+        case EFI_COMMUNICATION_TYPE_SERIAL_MS :
+            backend = new AP_EFI_Serial_MS(*this);
+            break;
+
+        case EFI_Communication_Type_ECU_LITE:
+            backend = new AP_EFI_ECU_Lite(*this);
+            break;
+
     }
 }
 
