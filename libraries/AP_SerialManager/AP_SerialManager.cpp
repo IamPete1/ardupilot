@@ -473,14 +473,6 @@ void AP_SerialManager::init()
                     AP::RC().add_uart(state[i].uart);
                     break;
 #endif
-                    
-                case SerialProtocol_EFI_MS:
-                    state[i].baud = AP_SERIALMANAGER_EFI_MS_BAUD;   // update baud param in case user looks at it
-                    state[i].uart->begin(map_baudrate(state[i].baud),
-                                         AP_SERIALMANAGER_EFI_MS_BUFSIZE_RX,
-                                         AP_SERIALMANAGER_EFI_MS_BUFSIZE_TX);
-                    state[i].uart->set_flow_control(AP_HAL::UARTDriver::FLOW_CONTROL_DISABLE);
-                    break;
 
                 default:
                     state[i].uart->begin(map_baudrate(state[i].baud));
