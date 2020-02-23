@@ -24,6 +24,7 @@ extern const AP_HAL::HAL &hal;
 AP_EFI_Backend::AP_EFI_Backend(AP_EFI &_frontend) :
     frontend(_frontend)
 {
+    internal_state.estimated_consumed_fuel_volume_cm3 = 0; // Just to be sure
 }
 
 void AP_EFI_Backend::copy_to_frontend() 
@@ -40,5 +41,10 @@ float AP_EFI_Backend::get_coef1(void) const
 float AP_EFI_Backend::get_coef2(void) const
 {
     return frontend.coef2;
+}
+
+bool AP_EFI_Backend::is_healthy()
+{
+    return (AP_HAL::millis() - internal_state.last_updated_ms) < HEALTHY_LAST_RECEIVED_MS;
 }
 #endif // EFI_ENABLED

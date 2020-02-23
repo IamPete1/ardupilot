@@ -145,7 +145,7 @@ struct EFI_State {
 
     // Engine load (percent)
     uint8_t engine_load_percent;
-    
+
     // Engine speed (revolutions per minute)
     uint32_t engine_speed_rpm;
 
@@ -182,6 +182,9 @@ struct EFI_State {
     // This variable is reset when the engine is stopped.
     float estimated_consumed_fuel_volume_cm3;
 
+    // estimated percentage fuel remaining
+    float fuel_remaining_pct;
+
     // Throttle position (percent)
     uint8_t throttle_position_percent;
 
@@ -198,5 +201,9 @@ struct EFI_State {
 
     // Status for each cylinder in the engine
     Cylinder_Status cylinder_status[ENGINE_MAX_CYLINDERS];
+
+    // run times (seconds)
+    int32_t run_time;
+    int32_t lifetime_run_time;
 
 };

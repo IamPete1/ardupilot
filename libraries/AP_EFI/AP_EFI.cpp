@@ -19,7 +19,6 @@
 
 #include "AP_EFI_Serial_MS.h"
 #include "AP_EFI_ECU_Lite.h"
-#include <AP_Logger/AP_Logger.h>
 
 extern const AP_HAL::HAL& hal;
 
@@ -86,75 +85,16 @@ void AP_EFI::update()
 {
     if (backend) {
         backend->update();
-        log_status();
     }
 }
 
 bool AP_EFI::is_healthy(void) const
 {
-    return (backend && (AP_HAL::millis() - state.last_updated_ms) < HEALTHY_LAST_RECEIVED_MS);
-}
-
-/*
-  write status to log
- */
-void AP_EFI::log_status(void)
-{
-    AP::logger().Write("EFI",
-                       "TimeUS,LP,Rpm,SDT,ATM,IMP,IMT,ECT,OilP,OilT,FP,FCR,CFV,TPS,IDX",
-                       "s%qsPPOOPOP--%-",
-                       "F00C--00-0-0000",
-                       "QBIffffffffffBB",
-                       AP_HAL::micros64(),
-                       uint8_t(state.engine_load_percent),
-                       uint32_t(state.engine_speed_rpm),
-                       float(state.spark_dwell_time_ms),
-                       float(state.atmospheric_pressure_kpa),
-                       float(state.intake_manifold_pressure_kpa),
-                       float(state.intake_manifold_temperature),
-                       float(state.coolant_temperature),
-                       float(state.oil_pressure),
-                       float(state.oil_temperature),
-                       float(state.fuel_pressure),
-                       float(state.fuel_consumption_rate_cm3pm),
-                       float(state.estimated_consumed_fuel_volume_cm3),
-                       uint8_t(state.throttle_position_percent),
-                       uint8_t(state.ecu_index));
-
-    AP::logger().Write("EFI2",
-                       "TimeUS,Healthy,ES,GE,CSE,TS,FPS,OPS,DS,MS,DS,SPU,IDX",
-                       "s------------",
-                       "F------------",
-                       "QBBBBBBBBBBBB",
-                       AP_HAL::micros64(),
-                       uint8_t(is_healthy()),
-                       uint8_t(state.engine_state),
-                       uint8_t(state.general_error),
-                       uint8_t(state.crankshaft_sensor_status),
-                       uint8_t(state.temperature_status),
-                       uint8_t(state.fuel_pressure_status),
-                       uint8_t(state.oil_pressure_status),
-                       uint8_t(state.detonation_status),
-                       uint8_t(state.misfire_status),
-                       uint8_t(state.debris_status),
-                       uint8_t(state.spark_plug_usage),
-                       uint8_t(state.ecu_index));
-
-    for (uint8_t i = 0; i < ENGINE_MAX_CYLINDERS; i++) {
-        AP::logger().Write("ECYL",
-                           "TimeUS,Inst,IgnT,InjT,CHT,EGT,Lambda,IDX",
-                           "s#dsOO--",
-                           "F-0C0000",
-                           "QBfffffB",
-                           AP_HAL::micros64(),
-                           i,
-                           state.cylinder_status[i].ignition_timing_deg,
-                           state.cylinder_status[i].injection_time_ms,
-                           state.cylinder_status[i].cylinder_head_temperature,
-                           state.cylinder_status[i].exhaust_gas_temperature,
-                           state.cylinder_status[i].lambda_coefficient,
-                           state.ecu_index);
+    if (backend) {
+        return backend->is_healthy();
     }
+
+    return false;
 }
 
 /*
@@ -182,6 +122,16 @@ void AP_EFI::send_mavlink_status(mavlink_channel_t chan)
         state.cylinder_status[0].ignition_timing_deg,
         state.cylinder_status[0].injection_time_ms,
         0, 0, 0);
+}
+
+// get battery info from backend if available
+bool AP_EFI::get_battery(float &voltage, float &current) const
+{
+    if (backend) {
+        return backend->get_battery(voltage, current);
+    }
+
+    return false;
 }
 
 namespace AP {

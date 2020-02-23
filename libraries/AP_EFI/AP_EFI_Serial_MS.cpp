@@ -24,8 +24,7 @@ extern const AP_HAL::HAL &hal;
 AP_EFI_Serial_MS::AP_EFI_Serial_MS(AP_EFI &_frontend):
     AP_EFI_Backend(_frontend)
 {
-    internal_state.estimated_consumed_fuel_volume_cm3 = 0; // Just to be sure
-    port = AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_EFI_MS, 0);
+    port = AP::serialmanager().find_serial(AP_SerialManager::SerialProtocol_EFI, 0);
 }
 
 
@@ -52,6 +51,63 @@ void AP_EFI_Serial_MS::update()
         // Request an update from the realtime table (7).
         // The data we need start at offset 6 and ends at 129
         send_request(7, RT_FIRST_OFFSET, RT_LAST_OFFSET);
+    }
+
+    // Write to logs
+    AP::logger().Write("EFI",
+                       "TimeUS,LP,Rpm,SDT,ATM,IMP,IMT,ECT,OilP,OilT,FP,FCR,CFV,TPS,IDX",
+                       "s%qsPPOOPOP--%-",
+                       "F00C--00-0-0000",
+                       "QBIffffffffffBB",
+                       AP_HAL::micros64(),
+                       uint8_t(internal_state.engine_load_percent),
+                       uint32_t(internal_state.engine_speed_rpm),
+                       float(internal_state.spark_dwell_time_ms),
+                       float(internal_state.atmospheric_pressure_kpa),
+                       float(internal_state.intake_manifold_pressure_kpa),
+                       float(internal_state.intake_manifold_temperature),
+                       float(internal_state.coolant_temperature),
+                       float(internal_state.oil_pressure),
+                       float(internal_state.oil_temperature),
+                       float(internal_state.fuel_pressure),
+                       float(internal_state.fuel_consumption_rate_cm3pm),
+                       float(internal_state.estimated_consumed_fuel_volume_cm3),
+                       uint8_t(internal_state.throttle_position_percent),
+                       uint8_t(internal_state.ecu_index));
+
+    AP::logger().Write("EFI2",
+                       "TimeUS,Healthy,ES,GE,CSE,TS,FPS,OPS,DS,MS,DS,SPU,IDX",
+                       "s------------",
+                       "F------------",
+                       "QBBBBBBBBBBBB",
+                       AP_HAL::micros64(),
+                       uint8_t(is_healthy()),
+                       uint8_t(internal_state.engine_state),
+                       uint8_t(internal_state.general_error),
+                       uint8_t(internal_state.crankshaft_sensor_status),
+                       uint8_t(internal_state.temperature_status),
+                       uint8_t(internal_state.fuel_pressure_status),
+                       uint8_t(internal_state.oil_pressure_status),
+                       uint8_t(internal_state.detonation_status),
+                       uint8_t(internal_state.misfire_status),
+                       uint8_t(internal_state.debris_status),
+                       uint8_t(internal_state.spark_plug_usage),
+                       uint8_t(internal_state.ecu_index));
+
+    for (uint8_t i = 0; i < ENGINE_MAX_CYLINDERS; i++) {
+        AP::logger().Write("ECYL",
+                           "TimeUS,Inst,IgnT,InjT,CHT,EGT,Lambda,IDX",
+                           "s#dsOO--",
+                           "F-0C0000",
+                           "QBfffffB",
+                           AP_HAL::micros64(),
+                           i,
+                           internal_state.cylinder_status[i].ignition_timing_deg,
+                           internal_state.cylinder_status[i].injection_time_ms,
+                           internal_state.cylinder_status[i].cylinder_head_temperature,
+                           internal_state.cylinder_status[i].exhaust_gas_temperature,
+                           internal_state.cylinder_status[i].lambda_coefficient,
+                           internal_state.ecu_index);
     }
 }
 

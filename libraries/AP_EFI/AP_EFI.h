@@ -81,6 +81,12 @@ public:
     // send EFI_STATUS
     void send_mavlink_status(mavlink_channel_t chan);
 
+    // get fuel thank percentage
+    float get_tank_pct() const { return state.fuel_remaining_pct; }
+
+    // get battery info from backend if available
+    bool get_battery(float &voltage, float &current) const;
+
 protected:
 
     // Back end Parameters
@@ -97,8 +103,6 @@ private:
     AP_EFI_Backend *backend;
     static AP_EFI *singleton;
 
-    // write to log
-    void log_status();
 };
 
 namespace AP {
