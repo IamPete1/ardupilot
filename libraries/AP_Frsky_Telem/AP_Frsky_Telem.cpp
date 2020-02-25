@@ -523,6 +523,7 @@ void AP_Frsky_Telem::send_byte(uint8_t byte)
         }
     } else { // FrSky SPort protocol (X-receivers)
         if (byte == START_STOP_SPORT) {
+            _port->write(0xff);
             _port->write(0x7D);
             _port->write(0x5E);
         } else if (byte == BYTESTUFF_SPORT) {
@@ -547,6 +548,7 @@ void  AP_Frsky_Telem::send_uint32(uint8_t frame, uint16_t id, uint32_t data)
         external_data.pending = true;
         return;
     }
+    _port->write(0xff);
     send_byte(frame); // frame type
     uint8_t *bytes = (uint8_t*)&id;
     send_byte(bytes[0]); // LSB
