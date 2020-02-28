@@ -1,6 +1,9 @@
 // auto generated bindings, don't manually edit
 #include "lua_generated_bindings.h"
 #include "lua_boxed_numerics.h"
+#include <AP_Param/AP_Param.h>
+#include <AP_Mission/AP_Mission.h>
+#include <AP_Button/AP_Button.h>
 #include <SRV_Channel/SRV_Channel.h>
 #include <AP_SerialLED/AP_SerialLED.h>
 #include <AP_Vehicle/AP_Vehicle.h>
@@ -513,6 +516,177 @@ const luaL_Reg Location_meta[] = {
     {NULL, NULL}
 };
 
+static int AP_Param_set_and_save_by_name(lua_State *L) {
+    AP_Param * ud = AP_Param::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "param not supported on this firmware");
+    }
+
+    binding_argcheck(L, 3);
+    const char * data_2 = luaL_checkstring(L, 2);
+    const float raw_data_3 = luaL_checknumber(L, 3);
+    luaL_argcheck(L, ((raw_data_3 >= MAX(-FLT_MAX, -INFINITY)) && (raw_data_3 <= MIN(FLT_MAX, INFINITY))), 3, "argument out of range");
+    const float data_3 = raw_data_3;
+    const bool data = ud->set_and_save_by_name(
+            data_2,
+            data_3);
+
+    lua_pushboolean(L, data);
+    return 1;
+}
+
+static int AP_Param_set_by_name(lua_State *L) {
+    AP_Param * ud = AP_Param::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "param not supported on this firmware");
+    }
+
+    binding_argcheck(L, 3);
+    const char * data_2 = luaL_checkstring(L, 2);
+    const float raw_data_3 = luaL_checknumber(L, 3);
+    luaL_argcheck(L, ((raw_data_3 >= MAX(-FLT_MAX, -INFINITY)) && (raw_data_3 <= MIN(FLT_MAX, INFINITY))), 3, "argument out of range");
+    const float data_3 = raw_data_3;
+    const bool data = ud->set_by_name(
+            data_2,
+            data_3);
+
+    lua_pushboolean(L, data);
+    return 1;
+}
+
+static int AP_Param_get_by_name(lua_State *L) {
+    AP_Param * ud = AP_Param::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "param not supported on this firmware");
+    }
+
+    binding_argcheck(L, 2);
+    const char * data_2 = luaL_checkstring(L, 2);
+    float data_5003 = {};
+    const bool data = ud->get_by_name(
+            data_2,
+            data_5003);
+
+    if (data) {
+        lua_pushnumber(L, data_5003);
+    } else {
+        lua_pushnil(L);
+    }
+    return 1;
+}
+
+static int AP_Mission_num_commands(lua_State *L) {
+    AP_Mission * ud = AP_Mission::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "mission not supported on this firmware");
+    }
+
+    binding_argcheck(L, 1);
+    const uint16_t data = ud->num_commands();
+
+    lua_pushinteger(L, data);
+    return 1;
+}
+
+static int AP_Mission_get_current_do_cmd_id(lua_State *L) {
+    AP_Mission * ud = AP_Mission::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "mission not supported on this firmware");
+    }
+
+    binding_argcheck(L, 1);
+    const uint16_t data = ud->get_current_do_cmd_id();
+
+    lua_pushinteger(L, data);
+    return 1;
+}
+
+static int AP_Mission_get_current_nav_id(lua_State *L) {
+    AP_Mission * ud = AP_Mission::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "mission not supported on this firmware");
+    }
+
+    binding_argcheck(L, 1);
+    const uint16_t data = ud->get_current_nav_id();
+
+    lua_pushinteger(L, data);
+    return 1;
+}
+
+static int AP_Mission_get_prev_nav_cmd_id(lua_State *L) {
+    AP_Mission * ud = AP_Mission::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "mission not supported on this firmware");
+    }
+
+    binding_argcheck(L, 1);
+    const uint16_t data = ud->get_prev_nav_cmd_id();
+
+    lua_pushinteger(L, data);
+    return 1;
+}
+
+static int AP_Mission_set_current_cmd(lua_State *L) {
+    AP_Mission * ud = AP_Mission::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "mission not supported on this firmware");
+    }
+
+    binding_argcheck(L, 2);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(0, 0)) && (raw_data_2 <= MIN(UINT16_MAX, UINT16_MAX))), 2, "argument out of range");
+    const uint16_t data_2 = static_cast<uint16_t>(raw_data_2);
+    const bool data = ud->set_current_cmd(
+            data_2);
+
+    lua_pushboolean(L, data);
+    return 1;
+}
+
+static int AP_Mission_get_current_nav_index(lua_State *L) {
+    AP_Mission * ud = AP_Mission::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "mission not supported on this firmware");
+    }
+
+    binding_argcheck(L, 1);
+    const uint16_t data = ud->get_current_nav_index();
+
+    lua_pushinteger(L, data);
+    return 1;
+}
+
+static int AP_Mission_state(lua_State *L) {
+    AP_Mission * ud = AP_Mission::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "mission not supported on this firmware");
+    }
+
+    binding_argcheck(L, 1);
+    const uint8_t data = ud->state();
+
+    lua_pushinteger(L, data);
+    return 1;
+}
+
+static int AP_Button_get_button_state(lua_State *L) {
+    AP_Button * ud = AP_Button::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "Button not supported on this firmware");
+    }
+
+    binding_argcheck(L, 2);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(1, 0)) && (raw_data_2 <= MIN(4, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    const bool data = ud->get_button_state(
+            data_2);
+
+    lua_pushboolean(L, data);
+    return 1;
+}
+
 static int SRV_Channels_find_channel(lua_State *L) {
     SRV_Channels * ud = SRV_Channels::get_singleton();
     if (ud == nullptr) {
@@ -830,6 +1004,38 @@ static int RangeFinder_num_sensors(lua_State *L) {
 
     lua_pushinteger(L, data);
     return 1;
+}
+
+static int AP_Notify_handle_rgb_override(lua_State *L) {
+    AP_Notify * ud = AP_Notify::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "notify not supported on this firmware");
+    }
+
+    binding_argcheck(L, 6);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(0, 0)) && (raw_data_2 <= MIN(UINT8_MAX, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    const lua_Integer raw_data_3 = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, ((raw_data_3 >= MAX(0, 0)) && (raw_data_3 <= MIN(UINT8_MAX, UINT8_MAX))), 3, "argument out of range");
+    const uint8_t data_3 = static_cast<uint8_t>(raw_data_3);
+    const lua_Integer raw_data_4 = luaL_checkinteger(L, 4);
+    luaL_argcheck(L, ((raw_data_4 >= MAX(0, 0)) && (raw_data_4 <= MIN(UINT8_MAX, UINT8_MAX))), 4, "argument out of range");
+    const uint8_t data_4 = static_cast<uint8_t>(raw_data_4);
+    const lua_Integer raw_data_5 = luaL_checkinteger(L, 5);
+    luaL_argcheck(L, ((raw_data_5 >= MAX(0, 0)) && (raw_data_5 <= MIN(UINT8_MAX, UINT8_MAX))), 5, "argument out of range");
+    const uint8_t data_5 = static_cast<uint8_t>(raw_data_5);
+    const lua_Integer raw_data_6 = luaL_checkinteger(L, 6);
+    luaL_argcheck(L, ((raw_data_6 >= MAX(0, 0)) && (raw_data_6 <= MIN(UINT16_MAX, UINT16_MAX))), 6, "argument out of range");
+    const uint16_t data_6 = static_cast<uint16_t>(raw_data_6);
+    ud->handle_rgb_override(
+            data_2,
+            data_3,
+            data_4,
+            data_5,
+            data_6);
+
+    return 0;
 }
 
 static int AP_Notify_play_tune(lua_State *L) {
@@ -1463,6 +1669,21 @@ static int AP_Arming_disarm(lua_State *L) {
     return 1;
 }
 
+static int AP_AHRS_get_likely_flying(lua_State *L) {
+    AP_AHRS * ud = AP_AHRS::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "ahrs not supported on this firmware");
+    }
+
+    binding_argcheck(L, 1);
+    ud->get_semaphore().take_blocking();
+    const bool data = ud->get_likely_flying();
+
+    ud->get_semaphore().give();
+    lua_pushboolean(L, data);
+    return 1;
+}
+
 static int AP_AHRS_prearm_healthy(lua_State *L) {
     AP_AHRS * ud = AP_AHRS::get_singleton();
     if (ud == nullptr) {
@@ -1689,6 +1910,29 @@ static int AP_AHRS_get_roll(lua_State *L) {
     return 1;
 }
 
+const luaL_Reg AP_Param_meta[] = {
+    {"set_and_save_by_name", AP_Param_set_and_save_by_name},
+    {"set_by_name", AP_Param_set_by_name},
+    {"get_by_name", AP_Param_get_by_name},
+    {NULL, NULL}
+};
+
+const luaL_Reg AP_Mission_meta[] = {
+    {"num_commands", AP_Mission_num_commands},
+    {"get_current_do_cmd_id", AP_Mission_get_current_do_cmd_id},
+    {"get_current_nav_id", AP_Mission_get_current_nav_id},
+    {"get_prev_nav_cmd_id", AP_Mission_get_prev_nav_cmd_id},
+    {"set_current_cmd", AP_Mission_set_current_cmd},
+    {"get_current_nav_index", AP_Mission_get_current_nav_index},
+    {"state", AP_Mission_state},
+    {NULL, NULL}
+};
+
+const luaL_Reg AP_Button_meta[] = {
+    {"get_button_state", AP_Button_get_button_state},
+    {NULL, NULL}
+};
+
 const luaL_Reg SRV_Channels_meta[] = {
     {"find_channel", SRV_Channels_find_channel},
     {NULL, NULL}
@@ -1735,6 +1979,7 @@ const luaL_Reg RangeFinder_meta[] = {
 };
 
 const luaL_Reg AP_Notify_meta[] = {
+    {"handle_rgb_override", AP_Notify_handle_rgb_override},
     {"play_tune", AP_Notify_play_tune},
     {NULL, NULL}
 };
@@ -1787,6 +2032,7 @@ const luaL_Reg AP_Arming_meta[] = {
 };
 
 const luaL_Reg AP_AHRS_meta[] = {
+    {"get_likely_flying", AP_AHRS_get_likely_flying},
     {"prearm_healthy", AP_AHRS_prearm_healthy},
     {"home_is_set", AP_AHRS_home_is_set},
     {"get_relative_position_NED_home", AP_AHRS_get_relative_position_NED_home},
@@ -1807,6 +2053,12 @@ struct userdata_enum {
     const char *name;
     int value;
 };
+
+struct userdata_enum AP_Mission_enums[] = {
+    {"MISSION_COMPLETE", AP_Mission::MISSION_COMPLETE},
+    {"MISSION_RUNNING", AP_Mission::MISSION_RUNNING},
+    {"MISSION_STOPPED", AP_Mission::MISSION_STOPPED},
+    {NULL, 0}};
 
 struct userdata_enum AP_Terrain_enums[] = {
     {"TerrainStatusOK", AP_Terrain::TerrainStatusOK},
@@ -1837,6 +2089,9 @@ const struct userdata_meta userdata_fun[] = {
 };
 
 const struct userdata_meta singleton_fun[] = {
+    {"param", AP_Param_meta, NULL},
+    {"mission", AP_Mission_meta, AP_Mission_enums},
+    {"Button", AP_Button_meta, NULL},
     {"SRV_Channels", SRV_Channels_meta, NULL},
     {"serialLED", AP_SerialLED_meta, NULL},
     {"vehicle", AP_Vehicle_meta, NULL},
@@ -1890,6 +2145,9 @@ void load_generated_bindings(lua_State *L) {
 }
 
 const char *singletons[] = {
+    "param",
+    "mission",
+    "Button",
     "SRV_Channels",
     "serialLED",
     "vehicle",
