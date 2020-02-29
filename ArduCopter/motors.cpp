@@ -116,7 +116,7 @@ void Copter::auto_disarm_check()
             thr_low = channel_throttle->get_control_in() <= deadband_top;
         }
 
-        if (!thr_low || !ap.land_complete) {
+        if (!thr_low || !ap.land_complete || (control_mode == Mode::Number::AUTO && mode_auto.mission.state() == AP_Mission::MISSION_RUNNING)) {
             // reset timer
             auto_disarm_begin = tnow_ms;
         }
