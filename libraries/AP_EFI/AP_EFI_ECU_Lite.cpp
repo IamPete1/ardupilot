@@ -59,6 +59,8 @@ void AP_EFI_ECU_Lite::update()
 
             // write the latest data to a log
             write_log();
+
+            copy_to_frontend();
         }
     }
 }
