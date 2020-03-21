@@ -1242,6 +1242,23 @@ struct PACKED log_Arm_Disarm {
     uint8_t method;
 };
 
+struct PACKED Log_EFI_ECU_Lite {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float running_time;
+    float rpm;
+    float voltage;
+    float amperage;
+    float fuel;
+    int16_t pwm;
+    int16_t charging;
+    int16_t charge_trim;
+    int16_t esc_position;
+    int16_t overvoltage;
+    int32_t hobbs;
+    int16_t hobbs_message;
+};
+
 // FMT messages define all message formats other than FMT
 // UNIT messages define units which can be referenced by FMTU messages
 // FMTU messages associate types (e.g. centimeters/second/second) to FMT message fields
@@ -1773,7 +1790,9 @@ struct PACKED log_Arm_Disarm {
     { LOG_ARM_DISARM_MSG, sizeof(log_Arm_Disarm), \
       "ARM", "QBIBB", "TimeUS,ArmState,ArmChecks,Forced,Method", "s----", "F----" }, \
     { LOG_ERROR_MSG, sizeof(log_Error), \
-      "ERR",   "QBB",         "TimeUS,Subsys,ECode", "s--", "F--" }
+      "ERR",   "QBB",         "TimeUS,Subsys,ECode", "s--", "F--" }, \
+    { LOG_EFI_ECU_LITE_MSG, sizeof(Log_EFI_ECU_Lite), \
+      "EFI", "Qfffffhhhhhih", "TimeUS,RunTime,RPM,V,A,Fuel,PWM,CH,ChTrim,ESC,OV,Hobbs,HobbsMsg", "ssqvA%Y----s-", "F????????????" }
 
 
 #define LOG_SBP_STRUCTURES \
@@ -1925,6 +1944,7 @@ enum LogMessages : uint8_t {
     LOG_ARM_DISARM_MSG,
     LOG_OA_BENDYRULER_MSG,
     LOG_OA_DIJKSTRA_MSG,
+    LOG_EFI_ECU_LITE_MSG,
 
     _LOG_LAST_MSG_
 };
