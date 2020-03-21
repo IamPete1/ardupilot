@@ -139,24 +139,23 @@ void AP_EFI_ECU_Lite::check_status()
 
 void AP_EFI_ECU_Lite::write_log()
 {
-    AP::logger().Write("EFI",
-                       "TimeUS,RT,RPM,V,A,F,PWM,CH,ESC,CT,OV,H",
-                       "ssqvA%Y----s-",
-                       "F????????????",
-                       "Qfffffhhhhhih",
-                       AP_HAL::micros64(),
-                       float(_latest.running_time),
-                       float(_latest.rpm),
-                       float(_latest.voltage),
-                       float(_latest.amperage),
-                       float(_latest.fuel),
-                       int16_t(_latest.pwm),
-                       int16_t(_latest.charging),
-                       int16_t(_latest.charge_trim),
-                       int16_t(_latest.esc_position),
-                       int16_t(_latest.overvoltage),
-                       int32_t(_latest.hobbs),
-                       int16_t(_latest.hobbs_message));
+    const struct Log_EFI_ECU_Lite pkt{
+        LOG_PACKET_HEADER_INIT(LOG_EFI_ECU_LITE_MSG),
+        time_us       : AP_HAL::micros64(),
+        running_time  : _latest.running_time,
+        rpm           : _latest.rpm,
+        voltage       : _latest.voltage,
+        amperage      : _latest.amperage,
+        fuel          : _latest.fuel,
+        pwm           : _latest.pwm,
+        charging      : _latest.charging,
+        charge_trim   : _latest.charge_trim,
+        esc_position  : _latest.esc_position,
+        overvoltage   : _latest.overvoltage,
+        hobbs         : _latest.hobbs,
+        hobbs_message : _latest.hobbs_message
+    };
+    AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }
 
 // add a single character to the buffer and attempt to decode
