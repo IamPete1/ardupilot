@@ -59,7 +59,8 @@ const AP_ToneAlarm::Tone AP_ToneAlarm::_tones[] {
 #define AP_NOTIFY_TONE_LOUD_LAND_WARNING_CTS 11
     { "MBT200L2A-G-A-G-A-G-", true },
 #define AP_NOTIFY_TONE_LOUD_VEHICLE_LOST_CTS 12
-    { "MBT200>A#1", true },
+    //{ "MBT200>A#1", true },
+    { "MB L16 4", true },
 #define AP_NOTIFY_TONE_LOUD_BATTERY_ALERT_CTS 13
     { "MBNT255>A#8A#8A#8A#8A#8A#8A#8A#8A#8A#8A#8A#8A#8A#8A#8A#8", true },
 #define AP_NOTIFY_TONE_QUIET_COMPASS_CALIBRATING_CTS 14
