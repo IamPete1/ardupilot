@@ -29,7 +29,7 @@ public:
     void update() override;
 
     // get battery voltage and current
-    bool get_battery(float &voltage, float &current) const override;
+    bool get_battery(float &voltage, float &current, float &mah) const override;
 
 private:
     AP_HAL::UARTDriver *_uart;
@@ -47,18 +47,18 @@ private:
 
     // Serial Protocol Variables
     struct ECU_Data {
-        float running_time;
+        int32_t running_time;
         float rpm;
         float voltage;
         float amperage;
+        float mah;
         float fuel;
         int16_t pwm;
         int16_t charging;
         int16_t charge_trim;
         int16_t esc_position;
-        int16_t overvoltage;
-        int32_t hobbs;
-        int16_t hobbs_message;
+        int16_t error_state;
+        int32_t engine_time;
     };
     ECU_Data _temp;
     ECU_Data _latest;
@@ -73,8 +73,9 @@ private:
 
     // status test varables
     uint32_t _last_message;
-    bool _send_hobbs_message = true;
+    bool _send_engine_time_message = true;
     bool _send_charge_message = true;
     bool _send_charge_complete_message;
+    bool _send_error_state_message = true;
     uint32_t _charge_start_millis;
 };

@@ -19,7 +19,7 @@
 #if EFI_ENABLED
 #include <AP_SerialManager/AP_SerialManager.h>
 
-#define MESSAGE_TIME_MS 1000
+#define MESSAGE_TIME_MS 5000
 
 extern const AP_HAL::HAL &hal;
 
@@ -47,12 +47,7 @@ void AP_EFI_ECU_Lite::update()
             internal_state.run_time = _latest.running_time;
             internal_state.engine_speed_rpm = _latest.rpm;
             internal_state.fuel_remaining_pct = _latest.fuel;
-            internal_state.lifetime_run_time = _latest.hobbs;
-
-            //Overvoltage Throttle Hold
-            //if (_latest.overvoltage == 1) {
-                //ecu_lite_throttle_min = plane.g2.supervolo_ov_thr;
-            //}
+            internal_state.lifetime_run_time = _latest.engine_time;
 
             // check if we should notify on any change of status
             check_status();
@@ -65,10 +60,11 @@ void AP_EFI_ECU_Lite::update()
     }
 }
 
-bool AP_EFI_ECU_Lite::get_battery(float &voltage, float &current) const
+bool AP_EFI_ECU_Lite::get_battery(float &voltage, float &current, float &mah) const
 {
     voltage = _latest.voltage;
     current = _latest.amperage;
+    mah = _latest.mah;
     return true;
 }
 
@@ -79,23 +75,28 @@ void AP_EFI_ECU_Lite::check_status()
     if ((now - _last_message) > MESSAGE_TIME_MS) {
         _last_message = now;
 
-        if (_latest.overvoltage == 1){
-              gcs().send_text(MAV_SEVERITY_INFO, "BATTERIES DISCONNECTED");
+        if (_latest.error_state == 1) {
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "POWER BUS ANOMALY");
         }
 
-        // Hobbs Time (send once per engine cycle)
-        if (_latest.rpm < 1 && _send_hobbs_message) {
-            _send_hobbs_message = false;
-
-            // Hobbs Time 
-            int16_t hours = _latest.hobbs / 3600;
-            int16_t tenths = (_latest.hobbs % 3600) / 360;
-            gcs().send_text(MAV_SEVERITY_INFO, "Hobbs Time: %d.%d", hours, tenths);
+        if (_latest.error_state == 2 && _send_error_state_message) {
+            _send_engine_time_message = false;
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "BUS STABILIZED");
         }
 
-        // Reset Hobbs Message
+        // Engine Time (send once per engine cycle)
+        if (_latest.rpm < 1 && _send_engine_time_message) {
+            _send_engine_time_message = false;
+
+            // Engine Time 
+            int16_t hours = _latest.engine_time / 3600;
+            int16_t tenths = (_latest.engine_time % 3600) / 360;
+            gcs().send_text(MAV_SEVERITY_INFO, "Engine Time: %d.%d", hours, tenths);
+        }
+
+        // Reset Engine Message
         if (_latest.rpm > 3000) {
-            _send_hobbs_message = true;
+            _send_engine_time_message = true;
         }
 
         // if charging
@@ -146,14 +147,14 @@ void AP_EFI_ECU_Lite::write_log()
         rpm           : _latest.rpm,
         voltage       : _latest.voltage,
         amperage      : _latest.amperage,
+        mah           : _latest.mah,
         fuel          : _latest.fuel,
         pwm           : _latest.pwm,
         charging      : _latest.charging,
         charge_trim   : _latest.charge_trim,
         esc_position  : _latest.esc_position,
-        overvoltage   : _latest.overvoltage,
-        hobbs         : _latest.hobbs,
-        hobbs_message : _latest.hobbs_message
+        error_state   : _latest.error_state,
+        engine_time   : _latest.engine_time,
     };
     AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }
@@ -217,7 +218,7 @@ void AP_EFI_ECU_Lite::decode_latest_term()
             break;
 
         case 2:
-            _temp.running_time = strtof(_term, NULL);
+            _temp.running_time = strtol(_term, NULL, 10);
             // out of range values
             if (_temp.running_time < 0.0f) {
                 _sentence_valid = false;
@@ -232,9 +233,6 @@ void AP_EFI_ECU_Lite::decode_latest_term()
 
         case 4:
             _temp.rpm = strtof(_term, NULL);
-            if (_temp.rpm < 0.0f) {
-                _sentence_valid = false;
-            }
             break;
 
         case 5:
@@ -258,82 +256,92 @@ void AP_EFI_ECU_Lite::decode_latest_term()
 
         case 8:
             _temp.amperage = strtof(_term, NULL);
-            if (_temp.amperage < 0.0f) {
+            break;
+
+        case 9:
+            if (strcmp(_term, "MAH") != 0) {
+                _sentence_valid = false;
+            }
+            break;  
+
+        case 10:
+            _temp.mah = strtof(_term, NULL);
+            if (_temp.mah < 0.0f) {
                 _sentence_valid = false;
             }
             break;
 
-        case 9:
+        case 11:
             if (strcmp(_term, "F") != 0) {
                 _sentence_valid = false;
             }
             break;
 
-        case 10:
+        case 12:
             _temp.fuel = strtof(_term, NULL);
             if (_temp.fuel < 0.0f || _temp.fuel > 100) {
                 _sentence_valid = false;
             }
             break;
 
-        case 11:
+        case 13:
             if (strcmp(_term, "PWM") != 0) {
                 _sentence_valid = false;
             }
             break;
 
-        case 12:
+        case 14:
             _temp.pwm = strtol(_term, NULL, 10);
             break;
 
-        case 13:
+        case 15:
             if (strcmp(_term, "CH") != 0) {
                 _sentence_valid = false;
             }
             break;
 
-        case 14:
+        case 16:
             _temp.charging = strtol(_term, NULL, 10);
             break;
 
-        case 15:
+        case 17:
             if (strcmp(_term, "ESC") != 0) {
                 _sentence_valid = false;
             }
             break;
 
-        case 16:
+        case 18:
             _temp.esc_position = strtol(_term, NULL, 10);
             break;
 
-        case 17:
+        case 19:
             if (strcmp(_term, "CT") != 0) {
                 _sentence_valid = false;
             }
             break;
 
-        case 18:
+        case 20:
             _temp.charge_trim = strtol(_term, NULL, 10);
             break;
 
-        case 19:
-            if (strcmp(_term, "OV") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 20:
-            _temp.overvoltage = strtol(_term, NULL, 10);
-            break;
-
         case 21:
-            if (strcmp(_term, "H") != 0) {
+            if (strcmp(_term, "ES") != 0) {
                 _sentence_valid = false;
             }
             break;
 
         case 22:
-            _temp.hobbs = strtol(_term, NULL, 10);
+            _temp.error_state = strtol(_term, NULL, 10);
+            break;
+
+        case 23:
+            if (strcmp(_term, "ET") != 0) {
+                _sentence_valid = false;
+            }
+            break;
+
+        case 24:
+            _temp.engine_time = strtol(_term, NULL, 10);
             break;
     }
 
