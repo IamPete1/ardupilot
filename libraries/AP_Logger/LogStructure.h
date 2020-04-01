@@ -1245,18 +1245,18 @@ struct PACKED log_Arm_Disarm {
 struct PACKED Log_EFI_ECU_Lite {
     LOG_PACKET_HEADER;
     uint64_t time_us;
-    float running_time;
+    int32_t running_time;
     float rpm;
     float voltage;
     float amperage;
+    float mah;
     float fuel;
     int16_t pwm;
     int16_t charging;
     int16_t charge_trim;
     int16_t esc_position;
-    int16_t overvoltage;
-    int32_t hobbs;
-    int16_t hobbs_message;
+    int16_t error_state;
+    int32_t engine_time;
 };
 
 // FMT messages define all message formats other than FMT
@@ -1792,7 +1792,7 @@ struct PACKED Log_EFI_ECU_Lite {
     { LOG_ERROR_MSG, sizeof(log_Error), \
       "ERR",   "QBB",         "TimeUS,Subsys,ECode", "s--", "F--" }, \
     { LOG_EFI_ECU_LITE_MSG, sizeof(Log_EFI_ECU_Lite), \
-      "EFI", "Qfffffhhhhhih", "TimeUS,RunTime,RPM,V,A,Fuel,PWM,CH,ChTrim,ESC,OV,Hobbs,HobbsMsg", "ssqvA%Y----s-", "F????????????" }
+      "EFI", "Qifffffhhhhhi", "TimeUS,RunTime,RPM,V,A,mah,Fuel,PWM,CH,ChrTrim,ESC,Err,EngTime", "ssqvA-%Y----s", "F????????????" }
 
 
 #define LOG_SBP_STRUCTURES \
