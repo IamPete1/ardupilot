@@ -1,4 +1,5 @@
 #include <AP_HAL/AP_HAL.h>
+
 #include <AP_Common/AP_Common.h>
 #include <AP_Math/AP_Math.h>
 #include "AP_BattMonitor_EFI.h"
@@ -18,6 +19,7 @@ AP_BattMonitor_EFI::AP_BattMonitor_EFI(AP_BattMonitor &mon,
 // read - read the voltage and current
 void AP_BattMonitor_EFI::read()
 {
+#if EFI_ENABLED
     // get fuel cell lib pointer
     const AP_EFI* EFI = AP_EFI::get_singleton();
     if (EFI == nullptr) {
@@ -68,5 +70,5 @@ void AP_BattMonitor_EFI::read()
             break;
     }
 
-
+#endif
 }
