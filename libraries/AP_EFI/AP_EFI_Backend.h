@@ -34,7 +34,7 @@ public:
 
     virtual bool is_healthy();
 
-    virtual bool get_battery(float &voltage, float &current) const { return false; } ;
+    virtual bool get_battery(float &voltage, float &current, float &mah) const { return false; } ;
 
 protected:
     // Copies internal state to the frontend state

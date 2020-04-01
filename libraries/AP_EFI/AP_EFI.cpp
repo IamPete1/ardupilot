@@ -125,10 +125,10 @@ void AP_EFI::send_mavlink_status(mavlink_channel_t chan)
 }
 
 // get battery info from backend if available
-bool AP_EFI::get_battery(float &voltage, float &current) const
+bool AP_EFI::get_battery(float &voltage, float &current, float &mah) const
 {
     if (backend) {
-        return backend->get_battery(voltage, current);
+        return backend->get_battery(voltage, current, mah);
     }
 
     return false;

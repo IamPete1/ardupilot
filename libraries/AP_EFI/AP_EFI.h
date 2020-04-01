@@ -81,11 +81,11 @@ public:
     // send EFI_STATUS
     void send_mavlink_status(mavlink_channel_t chan);
 
-    // get fuel thank percentage
+    // get fuel tank percentage
     float get_tank_pct() const { return state.fuel_remaining_pct; }
 
     // get battery info from backend if available
-    bool get_battery(float &voltage, float &current) const;
+    bool get_battery(float &voltage, float &current, float &mah) const;
 
 protected:
 
