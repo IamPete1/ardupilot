@@ -17,7 +17,7 @@
 #include "AP_EFI.h"
 #include "AP_EFI_Backend.h"
 
-#define TERM_BUFFER 12          // max length of term we expect
+#define TERM_BUFFER 46          // the length of message we expect
 
 class AP_EFI_ECU_Lite: public AP_EFI_Backend {
 
@@ -38,8 +38,8 @@ private:
     // returns true if a complete sentence was successfully decoded
     bool decode(char c);
 
-    // decode the latest term in the sentence
-    void decode_latest_term();
+    // decode the whole message
+    bool decode_msg();
 
     void write_log();
 
@@ -64,9 +64,7 @@ private:
     ECU_Data _latest;
 
     // decodeing vars
-    char _term[TERM_BUFFER];    // term buffer
-    bool _sentence_valid;       // is current sentence valid so far
-    uint8_t _term_number;       // term index within the current sentence
+    uint8_t _payload[TERM_BUFFER];       // payload buffer
     uint8_t _term_offset;       // offset within the _term buffer where the next character should be placed
     bool _in_string;            // true if we should be decoding
 
@@ -78,4 +76,31 @@ private:
     bool _send_charge_complete_message;
     bool _send_error_state_message = true;
     uint32_t _charge_start_millis;
+
+
+    // incomming data
+    /*
+    struct ECU_Data {
+        uint32_t header = 1078281045; // '@ECU'
+        int32_t running_time;
+        float rpm;
+        float voltage;
+        float amperage;
+        float mah;
+        float fuel;
+        int16_t pwm;
+        int16_t charging;
+        int16_t charge_trim;
+        int16_t esc_position;
+        int16_t error_state;
+        int32_t engine_time;
+        uint32_t crc;
+    }; data // I calculate this to be 46 bytes long
+
+    // assign all the data here
+
+    data.crc = 0xFFFFFFFF
+    data.crc = crc_crc32(data.crc, data, sizeof(data)-sizeof(uint32_t));
+    uart->write((const uint8_t *)&data, sizeof(data));
+    */
 };

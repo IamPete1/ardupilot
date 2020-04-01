@@ -165,186 +165,81 @@ bool AP_EFI_ECU_Lite::decode(char c)
 {
     // look for start of a string
     if (!_in_string) {
-        if (c == 'R') {
-            // Expecting R as first Char
-            _sentence_valid = true;
-            _term_number = 0;
+        if (c == '@') {
             _term_offset = 0;
+            _payload[_term_offset++] = c;
             _in_string = true;
-            _term[_term_offset++] = c;
         }
         return false;
     }
 
-    // end of a string
-    if (c == '\n') {
-        decode_latest_term();
-        _in_string = false;
-        return _sentence_valid;
-    }
-
-    // end of a term in the string
-    if (c == ' ' || c == ':') {
-        decode_latest_term();
-        return false;
-    }
-
     // otherwise add the char to the current term
-    _term[_term_offset++] = c;
+    _payload[_term_offset++] = c;
 
-    // we have overrun the expected sentence
+    // end of a string
     if (_term_offset > TERM_BUFFER) {
         _in_string = false;
+        return decode_msg();
     }
 
     return false;
 }
 
-void AP_EFI_ECU_Lite::decode_latest_term()
+bool AP_EFI_ECU_Lite::decode_msg()
 {
-    // null terminate and move onto the next term
-    _term[_term_offset] = 0;
-    _term_offset = 0;
-    _term_number++;
+    uint8_t offset = 0;
+    uint32_t header;
+    memcpy(&header, &_payload[offset], sizeof(header));
+    offset += sizeof(header);
 
-    // debugging
-    //gcs().send_text(MAV_SEVERITY_INFO, "ECU: %s",_term);
-
-    switch (_term_number) {
-        case 1:
-            if (strcmp(_term, "RT") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 2:
-            _temp.running_time = strtol(_term, NULL, 10);
-            // out of range values
-            if (_temp.running_time < 0.0f) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 3:
-            if (strcmp(_term, "RPM") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 4:
-            _temp.rpm = strtof(_term, NULL);
-            break;
-
-        case 5:
-            if (strcmp(_term, "V") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 6:
-            _temp.voltage = strtof(_term, NULL);
-            if (_temp.voltage < 0.0f) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 7:
-            if (strcmp(_term, "A") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 8:
-            _temp.amperage = strtof(_term, NULL);
-            break;
-
-        case 9:
-            if (strcmp(_term, "MAH") != 0) {
-                _sentence_valid = false;
-            }
-            break;  
-
-        case 10:
-            _temp.mah = strtof(_term, NULL);
-            if (_temp.mah < 0.0f) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 11:
-            if (strcmp(_term, "F") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 12:
-            _temp.fuel = strtof(_term, NULL);
-            if (_temp.fuel < 0.0f || _temp.fuel > 100) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 13:
-            if (strcmp(_term, "PWM") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 14:
-            _temp.pwm = strtol(_term, NULL, 10);
-            break;
-
-        case 15:
-            if (strcmp(_term, "CH") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 16:
-            _temp.charging = strtol(_term, NULL, 10);
-            break;
-
-        case 17:
-            if (strcmp(_term, "ESC") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 18:
-            _temp.esc_position = strtol(_term, NULL, 10);
-            break;
-
-        case 19:
-            if (strcmp(_term, "CT") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 20:
-            _temp.charge_trim = strtol(_term, NULL, 10);
-            break;
-
-        case 21:
-            if (strcmp(_term, "ES") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 22:
-            _temp.error_state = strtol(_term, NULL, 10);
-            break;
-
-        case 23:
-            if (strcmp(_term, "ET") != 0) {
-                _sentence_valid = false;
-            }
-            break;
-
-        case 24:
-            _temp.engine_time = strtol(_term, NULL, 10);
-            break;
+    // Should be '@ECU'
+    if (header!= 1078281045) {
+        return false;
     }
 
+    memcpy(&_temp.running_time, &_payload[offset], sizeof(_temp.running_time));
+    offset += sizeof(_temp.running_time);
+
+    memcpy(&_temp.rpm, &_payload[offset], sizeof(_temp.rpm));
+    offset += sizeof(_temp.rpm);
+
+    memcpy(&_temp.voltage, &_payload[offset], sizeof(_temp.voltage));
+    offset += sizeof(_temp.voltage);
+
+    memcpy(&_temp.amperage, &_payload[offset], sizeof(_temp.amperage));
+    offset += sizeof(_temp.amperage);
+
+    memcpy(&_temp.mah, &_payload[offset], sizeof(_temp.mah));
+    offset += sizeof(_temp.mah);
+
+    memcpy(&_temp.fuel, &_payload[offset], sizeof(_temp.fuel));
+    offset += sizeof(_temp.fuel);
+
+    memcpy(&_temp.pwm, &_payload[offset], sizeof(_temp.pwm));
+    offset += sizeof(_temp.pwm);
+
+    memcpy(&_temp.charging, &_payload[offset], sizeof(_temp.charging));
+    offset += sizeof(_temp.charging);
+
+    memcpy(&_temp.charge_trim, &_payload[offset], sizeof(_temp.charge_trim));
+    offset += sizeof(_temp.charge_trim);
+
+    memcpy(&_temp.esc_position, &_payload[offset], sizeof(_temp.esc_position));
+    offset += sizeof(_temp.esc_position);
+
+    memcpy(&_temp.error_state, &_payload[offset], sizeof(_temp.error_state));
+    offset += sizeof(_temp.error_state);
+
+    memcpy(&_temp.engine_time, &_payload[offset], sizeof(_temp.engine_time));
+    offset += sizeof(_temp.engine_time);
+
+    uint32_t calc_crc = 0xFFFFFFFF;
+    calc_crc = crc_crc32(calc_crc, _payload, offset-1);
+
+    uint32_t received_crc;
+    memcpy(&received_crc, &_payload[offset], sizeof(received_crc));
+
+    return calc_crc == received_crc;
 }
 
 #endif // EFI_ENABLED
