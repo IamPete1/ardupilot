@@ -39,7 +39,7 @@ void AP_BattMonitor_EFI::read()
             _state.last_time_micros = now;
 
             // map consumed_mah to consumed percentage
-            _state.consumed_mah = (1 - proportion_remaining) * _params._pack_capacity;
+            _state.consumed_mah = (1 - (proportion_remaining * 0.01f)) * _params._pack_capacity;
 
             // map consumed_wh using fixed voltage of 1
             _state.consumed_wh = _state.consumed_mah;
@@ -49,20 +49,14 @@ void AP_BattMonitor_EFI::read()
         case AP_BattMonitor_Params::BattMonitor_TYPE_EFI_BATTERY:
             float voltage;
             float current;
-            if (EFI->get_battery(voltage, current)) {
+            float mah;
+            if (EFI->get_battery(voltage, current, mah)) {
                 _state.voltage = voltage;
                 _state.current_amps = current;
 
-                // calculate time since last current read
-                const float dt = now - _state.last_time_micros;
-
                 // update total current drawn since startup
-                if (_state.last_time_micros != 0 && dt < 2000000.0f) {
-                    // .0002778 is 1/3600 (conversion to hours)
-                    const float mah = _state.current_amps * dt * 0.0000002778f;
-                    _state.consumed_mah += mah;
-                    _state.consumed_wh  += 0.001f * mah * _state.voltage;
-                }
+                _state.consumed_mah = mah;
+                _state.consumed_wh  = 0.001f * mah * _state.voltage;
 
                 // record time
                 _state.last_time_micros = now;
