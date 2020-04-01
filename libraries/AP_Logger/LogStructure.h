@@ -1792,7 +1792,7 @@ struct PACKED Log_EFI_ECU_Lite {
     { LOG_ERROR_MSG, sizeof(log_Error), \
       "ERR",   "QBB",         "TimeUS,Subsys,ECode", "s--", "F--" }, \
     { LOG_EFI_ECU_LITE_MSG, sizeof(Log_EFI_ECU_Lite), \
-      "EFI", "Qifffffhhhhhi", "TimeUS,RunTime,RPM,V,A,mah,Fuel,PWM,CH,ChrTrim,ESC,Err,EngTime", "ssqvA-%Y----s", "F????????????" }
+      "EFLI", "Qifffffhhhhhi", "TimeUS,RunTime,RPM,V,A,mah,Fuel,PWM,CH,ChrTrim,ESC,Err,EngTime", "ssqvA-%Y----s", "F????????????" }
 
 
 #define LOG_SBP_STRUCTURES \
