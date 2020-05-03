@@ -1,6 +1,7 @@
 // auto generated bindings, don't manually edit.  See README.md for details.
 #include "lua_generated_bindings.h"
 #include "lua_boxed_numerics.h"
+#include <AP_HAL/I2CDevice.h>
 #include <AP_Button/AP_Button.h>
 #include <AP_RPM/AP_RPM.h>
 #include <AP_Mission/AP_Mission.h>
@@ -86,6 +87,15 @@ Location * check_Location(lua_State *L, int arg) {
     return (Location *)data;
 }
 
+int new_AP_HAL__I2CDevice(lua_State *L) {
+    luaL_checkstack(L, 2, "Out of stack");
+    void *ud = lua_newuserdata(L, sizeof(AP_HAL::I2CDevice *));
+    memset(ud, 0, sizeof(AP_HAL::I2CDevice *));
+    luaL_getmetatable(L, "AP_HAL::I2CDevice");
+    lua_setmetatable(L, -2);
+    return 1;
+}
+
 int new_AP_HAL__UARTDriver(lua_State *L) {
     luaL_checkstack(L, 2, "Out of stack");
     void *ud = lua_newuserdata(L, sizeof(AP_HAL::UARTDriver *));
@@ -93,6 +103,11 @@ int new_AP_HAL__UARTDriver(lua_State *L) {
     luaL_getmetatable(L, "AP_HAL::UARTDriver");
     lua_setmetatable(L, -2);
     return 1;
+}
+
+AP_HAL::I2CDevice ** check_AP_HAL__I2CDevice(lua_State *L, int arg) {
+    void *data = luaL_checkudata(L, arg, "AP_HAL::I2CDevice");
+    return (AP_HAL::I2CDevice **)data;
 }
 
 AP_HAL::UARTDriver ** check_AP_HAL__UARTDriver(lua_State *L, int arg) {
@@ -553,6 +568,32 @@ const luaL_Reg Location_meta[] = {
     {"get_distance", Location_get_distance},
     {NULL, NULL}
 };
+
+static int i2c_mgr_get_device_direct(lua_State *L) {
+    i2c_mgr * ud = i2c_mgr::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "i2c not supported on this firmware");
+    }
+
+    binding_argcheck(L, 3);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(0, 0)) && (raw_data_2 <= MIN(4, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    const lua_Integer raw_data_3 = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, ((raw_data_3 >= MAX(0, 0)) && (raw_data_3 <= MIN(UINT8_MAX, UINT8_MAX))), 3, "argument out of range");
+    const uint8_t data_3 = static_cast<uint8_t>(raw_data_3);
+    AP_HAL::I2CDevice *data = ud->get_device_direct(
+            data_2,
+            data_3);
+
+    if (data == NULL) {
+        lua_pushnil(L);
+    } else {
+        new_AP_HAL__I2CDevice(L);
+        *check_AP_HAL__I2CDevice(L, -1) = data;
+    }
+    return 1;
+}
 
 static int AP_Button_get_button_state(lua_State *L) {
     AP_Button * ud = AP_Button::get_singleton();
@@ -2396,6 +2437,11 @@ static int AP_AHRS_get_roll(lua_State *L) {
     return 1;
 }
 
+const luaL_Reg i2c_mgr_meta[] = {
+    {"get_device_direct", i2c_mgr_get_device_direct},
+    {NULL, NULL}
+};
+
 const luaL_Reg AP_Button_meta[] = {
     {"get_button_state", AP_Button_get_button_state},
     {NULL, NULL}
@@ -2578,6 +2624,79 @@ const luaL_Reg AP_AHRS_meta[] = {
     {NULL, NULL}
 };
 
+static int AP_HAL__I2CDevice_set_address(lua_State *L) {
+    binding_argcheck(L, 2);
+    AP_HAL::I2CDevice * ud = *check_AP_HAL__I2CDevice(L, 1);
+    if (ud == NULL) {
+        return luaL_error(L, "Internal error, null pointer");
+    }
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(0, 0)) && (raw_data_2 <= MIN(UINT8_MAX, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    ud->set_address(
+            data_2);
+
+    return 0;
+}
+
+static int AP_HAL__I2CDevice_read_registers(lua_State *L) {
+    binding_argcheck(L, 2);
+    AP_HAL::I2CDevice * ud = *check_AP_HAL__I2CDevice(L, 1);
+    if (ud == NULL) {
+        return luaL_error(L, "Internal error, null pointer");
+    }
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(0, 0)) && (raw_data_2 <= MIN(UINT8_MAX, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    uint8_t data_5003 = {};
+    const bool data = ud->read_registers(
+            data_2,
+            data_5003,
+            1);
+
+    if (data) {
+        lua_pushinteger(L, data_5003);
+    } else {
+        lua_pushnil(L);
+    }
+    return 1;
+}
+
+static int AP_HAL__I2CDevice_write_register(lua_State *L) {
+    binding_argcheck(L, 3);
+    AP_HAL::I2CDevice * ud = *check_AP_HAL__I2CDevice(L, 1);
+    if (ud == NULL) {
+        return luaL_error(L, "Internal error, null pointer");
+    }
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(0, 0)) && (raw_data_2 <= MIN(UINT8_MAX, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    const lua_Integer raw_data_3 = luaL_checkinteger(L, 3);
+    luaL_argcheck(L, ((raw_data_3 >= MAX(0, 0)) && (raw_data_3 <= MIN(UINT8_MAX, UINT8_MAX))), 3, "argument out of range");
+    const uint8_t data_3 = static_cast<uint8_t>(raw_data_3);
+    const bool data = ud->write_register(
+            data_2,
+            data_3);
+
+    lua_pushboolean(L, data);
+    return 1;
+}
+
+static int AP_HAL__I2CDevice_set_retries(lua_State *L) {
+    binding_argcheck(L, 2);
+    AP_HAL::I2CDevice * ud = *check_AP_HAL__I2CDevice(L, 1);
+    if (ud == NULL) {
+        return luaL_error(L, "Internal error, null pointer");
+    }
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= MAX(1, 0)) && (raw_data_2 <= MIN(20, UINT8_MAX))), 2, "argument out of range");
+    const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    ud->set_retries(
+            data_2);
+
+    return 0;
+}
+
 static int AP_HAL__UARTDriver_set_flow_control(lua_State *L) {
     binding_argcheck(L, 2);
     AP_HAL::UARTDriver * ud = *check_AP_HAL__UARTDriver(L, 1);
@@ -2650,6 +2769,14 @@ static int AP_HAL__UARTDriver_begin(lua_State *L) {
     return 0;
 }
 
+const luaL_Reg AP_HAL__I2CDevice_meta[] = {
+    {"set_address", AP_HAL__I2CDevice_set_address},
+    {"read_registers", AP_HAL__I2CDevice_read_registers},
+    {"write_register", AP_HAL__I2CDevice_write_register},
+    {"set_retries", AP_HAL__I2CDevice_set_retries},
+    {NULL, NULL}
+};
+
 const luaL_Reg AP_HAL__UARTDriver_meta[] = {
     {"set_flow_control", AP_HAL__UARTDriver_set_flow_control},
     {"available", AP_HAL__UARTDriver_available},
@@ -2699,6 +2826,7 @@ const struct userdata_meta userdata_fun[] = {
 };
 
 const struct userdata_meta singleton_fun[] = {
+    {"i2c", i2c_mgr_meta, NULL},
     {"button", AP_Button_meta, NULL},
     {"RPM", AP_RPM_meta, NULL},
     {"mission", AP_Mission_meta, AP_Mission_enums},
@@ -2722,6 +2850,7 @@ const struct userdata_meta singleton_fun[] = {
 };
 
 const struct userdata_meta ap_object_fun[] = {
+    {"AP_HAL::I2CDevice", AP_HAL__I2CDevice_meta, NULL},
     {"AP_HAL::UARTDriver", AP_HAL__UARTDriver_meta, NULL},
 };
 
@@ -2774,6 +2903,7 @@ void load_generated_bindings(lua_State *L) {
 }
 
 const char *singletons[] = {
+    "i2c",
     "button",
     "RPM",
     "mission",
@@ -2803,6 +2933,7 @@ const struct userdata {
     {"Vector2f", new_Vector2f},
     {"Vector3f", new_Vector3f},
     {"Location", new_Location},
+    {"AP_HAL::I2CDevice", new_AP_HAL__I2CDevice},
     {"AP_HAL::UARTDriver", new_AP_HAL__UARTDriver},
 };
 

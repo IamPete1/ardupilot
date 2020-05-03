@@ -1,5 +1,6 @@
 #pragma once
 // auto generated bindings, don't manually edit.  See README.md for details.
+#include <AP_HAL/I2CDevice.h>
 #include <AP_Button/AP_Button.h>
 #include <AP_RPM/AP_RPM.h>
 #include <AP_Mission/AP_Mission.h>
@@ -37,6 +38,8 @@ int new_Vector3f(lua_State *L);
 Vector3f * check_Vector3f(lua_State *L, int arg);
 int new_Location(lua_State *L);
 Location * check_Location(lua_State *L, int arg);
+int new_AP_HAL__I2CDevice(lua_State *L);
+AP_HAL::I2CDevice ** check_AP_HAL__I2CDevice(lua_State *L, int arg);
 int new_AP_HAL__UARTDriver(lua_State *L);
 AP_HAL::UARTDriver ** check_AP_HAL__UARTDriver(lua_State *L, int arg);
 void load_generated_bindings(lua_State *L);
