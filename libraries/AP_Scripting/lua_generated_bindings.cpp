@@ -570,10 +570,10 @@ const luaL_Reg Location_meta[] = {
 };
 
 static int i2c_mgr_get_device_direct(lua_State *L) {
-    i2c_mgr * ud = i2c_mgr::get_singleton();
-    if (ud == nullptr) {
-        return luaL_argerror(L, 1, "i2c not supported on this firmware");
-    }
+    //i2c_mgr * ud = i2c_mgr::get_singleton();
+    //if (ud == nullptr) {
+    //    return luaL_argerror(L, 1, "i2c not supported on this firmware");
+    //}
 
     binding_argcheck(L, 3);
     const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
@@ -582,7 +582,7 @@ static int i2c_mgr_get_device_direct(lua_State *L) {
     const lua_Integer raw_data_3 = luaL_checkinteger(L, 3);
     luaL_argcheck(L, ((raw_data_3 >= MAX(0, 0)) && (raw_data_3 <= MIN(UINT8_MAX, UINT8_MAX))), 3, "argument out of range");
     const uint8_t data_3 = static_cast<uint8_t>(raw_data_3);
-    AP_HAL::I2CDevice *data = ud->get_device_direct(
+    AP_HAL::I2CDevice *data = hal.i2c_mgr->get_device_direct(
             data_2,
             data_3);
 
@@ -2633,6 +2633,8 @@ static int AP_HAL__I2CDevice_set_address(lua_State *L) {
     const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
     luaL_argcheck(L, ((raw_data_2 >= MAX(0, 0)) && (raw_data_2 <= MIN(UINT8_MAX, UINT8_MAX))), 2, "argument out of range");
     const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+
+    WITH_SEMAPHORE(ud->get_semaphore());
     ud->set_address(
             data_2);
 
@@ -2649,9 +2651,11 @@ static int AP_HAL__I2CDevice_read_registers(lua_State *L) {
     luaL_argcheck(L, ((raw_data_2 >= MAX(0, 0)) && (raw_data_2 <= MIN(UINT8_MAX, UINT8_MAX))), 2, "argument out of range");
     const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
     uint8_t data_5003 = {};
+
+    WITH_SEMAPHORE(ud->get_semaphore());
     const bool data = ud->read_registers(
             data_2,
-            data_5003,
+            &data_5003,
             1);
 
     if (data) {
@@ -2674,6 +2678,7 @@ static int AP_HAL__I2CDevice_write_register(lua_State *L) {
     const lua_Integer raw_data_3 = luaL_checkinteger(L, 3);
     luaL_argcheck(L, ((raw_data_3 >= MAX(0, 0)) && (raw_data_3 <= MIN(UINT8_MAX, UINT8_MAX))), 3, "argument out of range");
     const uint8_t data_3 = static_cast<uint8_t>(raw_data_3);
+    WITH_SEMAPHORE(ud->get_semaphore());
     const bool data = ud->write_register(
             data_2,
             data_3);
@@ -2691,6 +2696,7 @@ static int AP_HAL__I2CDevice_set_retries(lua_State *L) {
     const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
     luaL_argcheck(L, ((raw_data_2 >= MAX(1, 0)) && (raw_data_2 <= MIN(20, UINT8_MAX))), 2, "argument out of range");
     const uint8_t data_2 = static_cast<uint8_t>(raw_data_2);
+    WITH_SEMAPHORE(ud->get_semaphore());
     ud->set_retries(
             data_2);
 
