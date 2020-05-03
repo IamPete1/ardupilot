@@ -357,6 +357,19 @@ I2CDeviceManager::get_device(uint8_t bus, uint8_t address,
     return dev;
 }
 
+AP_HAL::I2CDevice *I2CDeviceManager::get_device_direct(uint8_t bus, uint8_t address,
+                             uint32_t bus_clock,
+                             bool use_smbus,
+                             uint32_t timeout_ms)
+{
+    bus -= HAL_I2C_BUS_BASE;
+    if (bus >= ARRAY_SIZE(I2CD)) {
+        return nullptr;
+    }
+    auto dev = new I2CDevice(bus, address, bus_clock, use_smbus, timeout_ms);
+    return dev;
+}
+
 /*
   get mask of bus numbers for all configured I2C buses
 */
