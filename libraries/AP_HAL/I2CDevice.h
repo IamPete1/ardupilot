@@ -76,6 +76,11 @@ public:
                                                  uint32_t bus_clock=400000,
                                                  bool use_smbus = false,
                                                  uint32_t timeout_ms=4) = 0;
+
+    virtual AP_HAL::I2CDevice * get_device_direct(uint8_t bus, uint8_t address,
+                                                 uint32_t bus_clock=400000,
+                                                 bool use_smbus = false,
+                                                 uint32_t timeout_ms=4) {return nullptr;};
     /*
      * Get device by looking up the I2C bus on the buses from @devpaths.
      *
