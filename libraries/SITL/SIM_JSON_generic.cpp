@@ -30,11 +30,46 @@ extern const AP_HAL::HAL& hal;
 
 using namespace SITL;
 
+static const struct {
+    const char *name;
+    float value;
+    bool save;
+} sim_defaults[] = {
+    { "BRD_OPTIONS", 0},
+    { "INS_GYR_CAL", 0 },
+    { "INS_ACC2OFFS_X",    0.001 },
+    { "INS_ACC2OFFS_Y",    0.001 },
+    { "INS_ACC2OFFS_Z",    0.001 },
+    { "INS_ACC2SCAL_X",    1.001 },
+    { "INS_ACC2SCAL_Y",    1.001 },
+    { "INS_ACC2SCAL_Z",    1.001 },
+    { "INS_ACCOFFS_X",     0.001 },
+    { "INS_ACCOFFS_Y",     0.001 },
+    { "INS_ACCOFFS_Z",     0.001 },
+    { "INS_ACCSCAL_X",     1.001 },
+    { "INS_ACCSCAL_Y",     1.001 },
+    { "INS_ACCSCAL_Z",     1.001 },
+};
+
+
 JSON_generic::JSON_generic(const char *frame_str) :
     Aircraft(frame_str),
     sock(true)
 {
     printf("Starting SITL JSON generic\n");
+    rate_hz = 250 / target_speedup;
+    use_time_sync = false;
+
+    for (uint8_t i=0; i<ARRAY_SIZE(sim_defaults); i++) {
+    AP_Param::set_default_by_name(sim_defaults[i].name, sim_defaults[i].value);
+        if (sim_defaults[i].save) {
+            enum ap_var_type ptype;
+            AP_Param *p = AP_Param::find(sim_defaults[i].name, &ptype);
+            if (!p->configured()) {
+                p->save();
+            }
+        }
+    }
 }
 
 /*
@@ -283,7 +318,7 @@ void JSON_generic::update(const struct sitl_input &input)
     // update magnetic field
     update_mag_field_bf();
 
-    report_FPS();
+    //report_FPS();
 }
 
 /*
