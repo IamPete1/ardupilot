@@ -41,26 +41,26 @@ AP_Mission_Relative *AP_Mission_Relative::_singleton;
 
 const AP_Param::GroupInfo AP_Mission_Relative::var_info[] = {
 
-    // @Param: RADIUS
-    // @DisplayName: radius to ignore translation
-    // @Description: Radius around HomeLocation therein translation of Relative Mission will be ignored
-    // @Units: m
-    // @User: Advanced
-    AP_GROUPINFO("RADIUS",  1, AP_Mission_Relative, _no_translation_radius, AP_MISSION_RELATIVE_NO_TRANSLATION_RADIUS_DEFAULT),
-
     // @Param: MOVE
     // @DisplayName: kind of moving the mission
     // @Description: Defines how the mission will be translated/rotated
     // @Range: 0 2
     // @Values: 0:No move, 1:PARALLEL translation, 2:additional ROTATION
     // @User: Advanced
-    AP_GROUPINFO("MOVE",  2, AP_Mission_Relative, _kind_of_move, AP_MISSION_RELATIVE_KIND_OF_MOVE_DEFAULT),
+    AP_GROUPINFO_FLAGS("MOVE",  1, AP_Mission_Relative, _kind_of_move, AP_MISSION_RELATIVE_KIND_OF_MOVE_DEFAULT, AP_PARAM_FLAG_ENABLE),
+
+    // @Param: RADIUS
+    // @DisplayName: radius to ignore translation
+    // @Description: Radius around HomeLocation therein translation of Relative Mission will be ignored
+    // @Units: m
+    // @User: Advanced
+    AP_GROUPINFO("RADIUS",  2, AP_Mission_Relative, _no_translation_radius, AP_MISSION_RELATIVE_NO_TRANSLATION_RADIUS_DEFAULT),
 
     // @Param: OPTIONS
     // @DisplayName: selectable options for translation
     // @Description: Bitmask of what options to use in missions.
     // @Bitmask: 0: At restart skip altitude at first Waypoint, 1: At restart use altitude offset (Basepoint to first Waypoint) for all Waypoints
-// @User: Advanced
+    // @User: Advanced
     AP_GROUPINFO("OPTIONS",  3, AP_Mission_Relative, _rel_options, AP_MISSION_RELATIVE_OPTIONS_DEFAULT),
 
     AP_GROUPEND

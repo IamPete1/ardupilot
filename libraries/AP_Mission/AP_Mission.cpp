@@ -34,6 +34,12 @@ const AP_Param::GroupInfo AP_Mission::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("OPTIONS",  2, AP_Mission, _options, AP_MISSION_OPTIONS_DEFAULT),
 
+#if MISSION_RELATIVE == ENABLED
+    // @Group: REL_
+    // @Path: AP_Mission_Relative.cpp
+    AP_SUBGROUPINFO(mission_relative, "REL_",  3, AP_Mission, AP_Mission_Relative),
+#endif
+
     AP_GROUPEND
 };
 
