@@ -67,9 +67,6 @@
 #include <AP_NavEKF2/AP_NavEKF2.h>
 #include <AP_NavEKF3/AP_NavEKF3.h>
 #include <AP_Mission/AP_Mission.h>     // Mission command library
-#if MISSION_RELATIVE == ENABLED
-    #include <AP_Mission/AP_Mission_Relative.h> // Mission translation/rotation library
-#endif
 
 #include <AP_Soaring/AP_Soaring.h>
 #include <AP_BattMonitor/AP_BattMonitor.h> // Battery monitor library
@@ -600,11 +597,6 @@ private:
             FUNCTOR_BIND_MEMBER(&Plane::start_command_callback, bool, const AP_Mission::Mission_Command &),
             FUNCTOR_BIND_MEMBER(&Plane::verify_command_callback, bool, const AP_Mission::Mission_Command &),
             FUNCTOR_BIND_MEMBER(&Plane::exit_mission_callback, void)};
-
-#if MISSION_RELATIVE == ENABLED
-    // Mission_Relative library
-    AP_Mission_Relative mission_relative;
-#endif
 
 #if PARACHUTE == ENABLED
     AP_Parachute parachute{relay};

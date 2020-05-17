@@ -508,12 +508,6 @@ public:
     // button reporting library
     AP_Button *button_ptr;
 
-#if MISSION_RELATIVE == ENABLED
-    // mission_relative library
-    AP_Mission_Relative *mission_relative_ptr;
-#endif
-
-
 #if STATS_ENABLED == ENABLED
     // vehicle statistics
     AP_Stats stats;

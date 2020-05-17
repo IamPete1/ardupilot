@@ -1271,12 +1271,6 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("FWD_BAT_IDX", 25, ParametersG2, fwd_thr_batt_idx, 0),
 
-#if MISSION_RELATIVE == ENABLED
-    // @Group: MIR_
-    // @Path: ../libraries/AP_Mission/AP_Mission_Relative.cpp
-    AP_SUBGROUPPTR(mission_relative_ptr, "MIR_", 26, ParametersG2, AP_Mission_Relative),
-#endif
-
     AP_GROUPEND
 };
 
@@ -1286,9 +1280,6 @@ ParametersG2::ParametersG2(void) :
     ,soaring_controller(plane.TECS_controller, plane.aparm)
 #endif
     ,button_ptr(&plane.button)
-#if MISSION_RELATIVE == ENABLED
-    ,mission_relative_ptr(&plane.mission_relative)
-#endif
 {
     AP_Param::setup_object_defaults(this, var_info);
 }
