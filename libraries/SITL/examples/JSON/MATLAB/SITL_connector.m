@@ -79,6 +79,8 @@ while true
     physics_time_us = physics_time_us + delta_t * 10^6;
 
     if ~connected
+        % use port -1 to indicate connection to address of last recv pkt
+        pnet(u,'udpconnect',"",-1);
         connected = true;
         fprintf('Connected\n')
     end
@@ -97,7 +99,7 @@ while true
 
     % Report to AP  
     pnet(u,'printf',sprintf('\n%s\n',jsonencode(JSON)));
-    pnet(u,'writepacket',target_ip,9003);
+    pnet(u,'writepacket');
 
     % print a fps and runtime update
     if rem(frame_count,print_frame_count) == 0
