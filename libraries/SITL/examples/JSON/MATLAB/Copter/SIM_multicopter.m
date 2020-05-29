@@ -21,16 +21,12 @@ state.gravity_mss = 9.80665; % (m/s^2)
 % Setup the time step size for the Physics model
 delta_t = 1/400;
 
-% This is the ip that SITL is running at
-target_ip = '127.0.0.1';
-target_ip = '192.168.194.97';
-
 % define init and time setup functions
 init_function = @(state)init(state);
 physics_function = @(pwm_in,state)physics_step(pwm_in,state,delta_t);
 
 % setup connection
-SITL_connector(target_ip,state,init_function,physics_function,delta_t);
+SITL_connector(state,init_function,physics_function,delta_t);
 
 % Simulator model must take and return a structure with the felids: 
 % gyro(roll, pitch, yaw) (radians/sec) body frame

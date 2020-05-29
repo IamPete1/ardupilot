@@ -2,7 +2,7 @@
 % Toolbox 2.0.6 by Peter Rydesäter
 % https://uk.mathworks.com/matlabcentral/fileexchange/345-tcp-udp-ip-toolbox-2-0-6
 
-function SITL_connector(target_ip,state,init_function,physics_function,delta_t)
+function SITL_connector(state,init_function,physics_function,delta_t)
 try
     pnet('closeall') % close any connections left open from past runs
 catch
