@@ -16,6 +16,19 @@ import numpy as np
 GRAVITY_MSS = 9.80665
 TIME_STEP = 1/400
 
+from pyrobolearn.simulators import Bullet
+from pyrobolearn.worlds import BasicWorld
+from pyrobolearn.robots import Quadcopter
+
+# Create simulator
+sim = Bullet()
+
+# create world
+world = BasicWorld(sim)
+
+# create robot
+robot = Quadcopter(sim)
+
 # use pymavlink for ArduPilot convention transformations
 from pymavlink.rotmat import Vector3, Matrix3
 from pymavlink.quaternion import Quaternion
@@ -36,6 +49,8 @@ quad = p.loadURDF("quadrotor.urdf")
 p.setTimeStep(TIME_STEP)
 time_now = 0
 last_velocity = None
+
+name_to_index = {}
 
 def quaternion_to_AP(quaternion):
     '''convert pybullet quaternion to ArduPilot quaternion'''
@@ -137,6 +152,13 @@ connected = False
 frame_count = 0
 frame_time = time.time()
 print_frame_count = 1000
+
+print("num: ", p.getNumLinks(quad))
+for i in range(p.getNumJoints(quad)):
+    name = p.getJointInfo(quad, i)[12].decode('UTF-8')
+    name_to_index[name] = i
+print(name_to_index)
+
 
 while True:
 
