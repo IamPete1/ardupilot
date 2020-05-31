@@ -49,9 +49,8 @@ private:
 
     SocketAPM sock;
 
-    double average_frame_time;
     uint32_t frame_counter;
-    uint64_t last_timestamp;
+    double last_timestamp_s;
 
     void output_servos(const struct sitl_input &input);
     void recv_fdm(const struct sitl_input &input);
@@ -70,7 +69,7 @@ private:
     };
 
     struct {
-        uint64_t timestamp;
+        double timestamp_s;
         struct {
             Vector3f gyro;
             Vector3f accel_body;
@@ -87,7 +86,7 @@ private:
         void *ptr;
         enum data_type type;
     } keytable[6] = {
-        { "", "timestamp", &state.timestamp, DATA_UINT64 },
+        { "", "timestamp", &state.timestamp_s, DATA_DOUBLE },
         { "imu", "gyro",    &state.imu.gyro, DATA_VECTOR3F },
         { "imu", "accel_body", &state.imu.accel_body, DATA_VECTOR3F },
         { "", "position", &state.position, DATA_VECTOR3F },

@@ -242,10 +242,10 @@ void Aircraft::setup_frame_time(float new_rate, float new_speedup)
 /* adjust frame_time calculation */
 void Aircraft::adjust_frame_time(float new_rate)
 {
-    if (!is_equal(rate_hz, new_rate)) {
+    if (fabsf(rate_hz - new_rate) > 1.0) {
+        frame_time_us = static_cast<uint64_t>(1.0e6f/new_rate);
+        scaled_frame_time_us *= (rate_hz / new_rate);
         rate_hz = new_rate;
-        frame_time_us = static_cast<uint64_t>(1.0e6f/rate_hz);
-        scaled_frame_time_us = frame_time_us/target_speedup;
     }
 }
 
@@ -262,20 +262,21 @@ void Aircraft::sync_frame_time(void)
     if (frame_counter >= 40 &&
         now > last_wall_time_us) {
         const float rate = frame_counter * 1.0e6f/(now - last_wall_time_us);
-        achieved_rate_hz = (0.99f*achieved_rate_hz) + (0.01f * rate);
+        achieved_rate_hz = (0.9f*achieved_rate_hz) + (0.1f * rate);
         if (achieved_rate_hz < rate_hz * target_speedup) {
-            scaled_frame_time_us *= 0.999f;
+            scaled_frame_time_us *= 0.99f;
         } else {
-            scaled_frame_time_us /= 0.999f;
+            scaled_frame_time_us /= 0.99f;
         }
+        const uint32_t sleep_time = static_cast<uint32_t>(scaled_frame_time_us * frame_counter);
 #if 0
-        ::printf("achieved_rate_hz=%.3f rate=%.2f rate_hz=%.3f sft=%.1f\n",
+        ::printf("achieved_rate_hz=%.3f rate=%.2f rate_hz=%.3f sft=%.1f sleep=%u\n",
                  static_cast<double>(achieved_rate_hz),
                  static_cast<double>(rate),
                  static_cast<double>(rate_hz),
-                 static_cast<double>(scaled_frame_time_us));
+                 static_cast<double>(scaled_frame_time_us),
+                 unsigned(sleep_time));
 #endif
-        const uint32_t sleep_time = static_cast<uint32_t>(scaled_frame_time_us * frame_counter);
         if (sleep_time > min_sleep_time) {
             usleep(sleep_time);
         }

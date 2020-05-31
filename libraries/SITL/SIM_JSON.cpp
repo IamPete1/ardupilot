@@ -148,7 +148,7 @@ bool JSON::parse_sensors(const char *json)
         p += strlen(key.key)+2;
         switch (key.type) {
             case DATA_UINT64:
-                *((uint64_t *)key.ptr) = atof(p); // using atof rather than strtoul means we support scientific notation
+                *((uint64_t *)key.ptr) = strtoull(p, nullptr, 10);
                 //printf("%s/%s = %lu\n", key.section, key.key, *((uint64_t *)key.ptr));
                 break;
 
@@ -240,23 +240,24 @@ void JSON::recv_fdm(const struct sitl_input &input)
     // Convert from a meters from origin physics to a lat long alt
     update_position();
 
-    int deltat;
-    if (state.timestamp < last_timestamp) {
+    double deltat;
+    if (state.timestamp_s < last_timestamp_s) {
         // Physics time has gone backwards, don't reset AP, assume an average size timestep
         printf("Detected physics reset\n");
-        deltat = average_frame_time;
+        deltat = 0;
     } else {
-        deltat = state.timestamp - last_timestamp;
+        deltat = state.timestamp_s - last_timestamp_s;
     }
-    time_now_us += deltat;
+    time_now_us += deltat * 1.0e6;
 
-    if (deltat > 0 && deltat < 100000) {
-        if (average_frame_time < 1) {
-            average_frame_time = deltat;
-        }
-        average_frame_time = average_frame_time * 0.98 + deltat * 0.02;
+    if (deltat > 0 && deltat < 0.1) {
+        // time in us to hz
+        adjust_frame_time(1.0 / deltat);
+
+        // match actual frame rate with desired speedup
+        time_advance();
     }
-    last_timestamp = state.timestamp;
+    last_timestamp_s = state.timestamp_s;
     frame_counter++;
 
 #if 0
@@ -330,12 +331,6 @@ void JSON::update(const struct sitl_input &input)
     // update magnetic field
     // as the model does not provide mag feild we calculate it from position and attitude
     update_mag_field_bf();
-
-    // time in us to hz
-    adjust_frame_time(1000000/average_frame_time);
-
-    // match actual frame rate with desired speedup
-    sync_frame_time();
 
 #if 0
     // report frame rate
