@@ -100,7 +100,6 @@ void JSON::output_servos(const struct sitl_input &input)
 {
     servo_packet pkt;
     pkt.frame_count = frame_counter;
-    pkt.speedup = get_speedup();
     for (uint8_t i=0; i<16; i++) {
         pkt.pwm[i] = input.servos[i];
     }
@@ -241,24 +240,24 @@ void JSON::recv_fdm(const struct sitl_input &input)
     // Convert from a meters from origin physics to a lat long alt
     update_position();
 
-    if (last_timestamp) {
-        int deltat;
-        if (state.timestamp < last_timestamp) {
-            // Physics time has gone backwards, don't reset AP, assume an average size timestep
-            printf("Detected physics reset\n");
-            deltat = average_frame_time;
-        } else {
-            deltat = state.timestamp - last_timestamp;
-        }
-        time_now_us += deltat;
-
-        if (deltat > 0 && deltat < 100000) {
-            if (average_frame_time < 1) {
-                average_frame_time = deltat;
-            }
-            average_frame_time = average_frame_time * 0.98 + deltat * 0.02;
-        }
+    int deltat;
+    if (state.timestamp < last_timestamp) {
+        // Physics time has gone backwards, don't reset AP, assume an average size timestep
+        printf("Detected physics reset\n");
+        deltat = average_frame_time;
+    } else {
+        deltat = state.timestamp - last_timestamp;
     }
+    time_now_us += deltat;
+
+    if (deltat > 0 && deltat < 100000) {
+        if (average_frame_time < 1) {
+            average_frame_time = deltat;
+        }
+        average_frame_time = average_frame_time * 0.98 + deltat * 0.02;
+    }
+    last_timestamp = state.timestamp;
+    frame_counter++;
 
 #if 0
 // @LoggerMessage: JSN1
@@ -315,8 +314,6 @@ void JSON::recv_fdm(const struct sitl_input &input)
                        velocity_ef.z);
 #endif
 
-    last_timestamp = state.timestamp;
-    frame_counter++;
 }
 
 /*
@@ -333,4 +330,17 @@ void JSON::update(const struct sitl_input &input)
     // update magnetic field
     // as the model does not provide mag feild we calculate it from position and attitude
     update_mag_field_bf();
+
+    // time in us to hz
+    adjust_frame_time(1000000/average_frame_time);
+
+    // match actual frame rate with desired speedup
+    sync_frame_time();
+
+#if 0
+    // report frame rate
+    if (frame_counter % 1000 == 0) {
+        printf("FPS %.2f\n", achieved_rate_hz); // this is instantaneous rather than any clever average
+    }
+#endif
 }
