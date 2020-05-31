@@ -26,8 +26,12 @@ from math import degrees, radians
 
 parser = argparse.ArgumentParser(description="pybullet robot")
 parser.add_argument("--vehicle", required=True, choices=['quad', 'racecar', 'iris'], help="vehicle type")
+parser.add_argument("--fps", type=float, default=1000.0, help="physics frame rate")
 
 args = parser.parse_args()
+
+TIME_STEP = 1.0 / args.fps
+GRAVITY_MSS = 9.80665
 
 # Create simulator
 sim = Bullet()
@@ -69,11 +73,13 @@ elif args.vehicle == 'racecar':
     from pyrobolearn.robots import F10Racecar
     robot = F10Racecar(sim)
     control_pwm = control_racecar
+elif args.vehicle == 'opendog':
+    from pyrobolearn.robots import OpenDog
+    robot = OpenDog(sim)
+    control_pwm = control_dog
 else:
     raise Exception("Bad vehicle")
 
-GRAVITY_MSS = 9.80665
-TIME_STEP = 1/1200.0
 
 sim.set_time_step(TIME_STEP)
 
@@ -84,9 +90,17 @@ def quaternion_to_AP(quaternion):
     '''convert pybullet quaternion to ArduPilot quaternion'''
     return Quaternion([quaternion[3], quaternion[0], -quaternion[1], -quaternion[2]])
 
+def vector_to_AP(vec):
+    '''convert pybullet vector tuple to ArduPilot Vector3'''
+    return Vector3(vec[0], -vec[1], -vec[2])
+
 def quaternion_from_AP(q):
     '''convert ArduPilot quaternion to pybullet quaternion'''
     return [q.q[1], -q.q[2], -q.q[3], q.q[0]]
+
+def to_tuple(vec3):
+    '''convert a Vector3 to a tuple'''
+    return (vec3.x, vec3.y, vec3.z)
 
 def init():
   global time_now
@@ -109,46 +123,30 @@ def physics_step(pwm_in):
 
   control_pwm(pwm_in)
 
-  #robot.linear_velocity = [ 0, 0, 0 ]
-
   world.step(sleep_dt=0)
 
   global time_now
   time_now += TIME_STEP
 
-  # get the position of the vehicle to return to AP
-  pos = robot.position
-  quaternion = robot.orientation
-
-  roll, pitch, yaw = get_rpy_from_quaternion(robot.orientation)
-  quaternion = Quaternion([roll, -pitch, -yaw])
-  euler = quaternion.euler
-
-  velo = robot.linear_velocity
-
-  pos = (pos[0], -pos[1], -pos[2])
-  velo = (velo[0], -velo[1], -velo[2])
-
-  velocity = Vector3(velo)
+  # get the position orientation and velocity
+  quaternion = quaternion_to_AP(robot.orientation)
+  roll, pitch, yaw = quaternion.euler
+  velocity = vector_to_AP(robot.linear_velocity)
+  position = vector_to_AP(robot.position)
 
   # get ArduPilot DCM matrix (rotation matrix)
   dcm = quaternion.dcm
 
+  # get gyro vector in body frame
+  gyro = dcm.transposed() * vector_to_AP(robot.angular_velocity)
+  
   # calculate acceleration
   global last_velocity
   if last_velocity is None:
       last_velocity = velocity
 
   accel = (velocity - last_velocity) * (1.0 / TIME_STEP)
-
-  avel = robot.angular_velocity
-
-  gyro = Vector3(avel[0], -avel[1], -avel[2])
-  gyro = dcm.transposed() * gyro
-  gyro = [gyro.x, gyro.y, gyro.z]
-
   last_velocity = velocity
-  last_quaternion = quaternion
 
   # add in gravity in earth frame
   accel.z -= GRAVITY_MSS
@@ -156,11 +154,14 @@ def physics_step(pwm_in):
   # convert accel to body frame
   accel = dcm.transposed() * accel
 
-  # convert to a tuple
-  accel = (accel.x, accel.y, accel.z)
-  euler = (roll, -pitch, -yaw)
+  # convert to tuples
+  accel = to_tuple(accel)
+  gyro = to_tuple(gyro)
+  position = to_tuple(position)
+  velocity = to_tuple(velocity)
+  euler = (roll, pitch, yaw)
 
-  return time_now,gyro,accel,pos,euler,velo
+  return time_now,gyro,accel,position,euler,velocity
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', 9002))
