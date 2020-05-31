@@ -33,18 +33,25 @@ frame_time = tic;
 frame_count = 0;
 physics_time_us = 0;
 last_SITL_frame = -1;
-print_frame_count = 1000;
+print_frame_count = 1000; % print the fps every x frames
 connected = false;
-bytes_read =  4 + 4 + 16*2;
-time_correction = 1;
+bytes_read =  4 + 16*2; % the number of bytes received in each packet
+re_connect_timeout = 1; % after this time we close the socket and reopen to listen on any port, a AP can change ports after a re-start 
 while true
-    mat_time = tic;
 
     % Wait for data
-     while true
+    wait_start = tic;
+    while true
          in_bytes = pnet(u,'readpacket',bytes_read);
          if in_bytes > 0
              break;
+         end
+         if connected && toc(wait_start) > re_connect_timeout
+             pnet('closeall')
+             u = pnet('udpsocket',9002);
+             pnet(u,'setwritetimeout',1);
+             pnet(u,'setreadtimeout',0);
+             connected = false;
          end
      end
 
@@ -61,7 +68,6 @@ while true
 
     % read in the current SITL frame and PWM
     SITL_frame = pnet(u,'read',1,'UINT32','intel');
-    speed_up = double(pnet(u,'read',1,'SINGLE','intel'));
     pwm_in = double(pnet(u,'read',16,'UINT16','intel'))';
     % Check if the fame is in expected order
     if SITL_frame < last_SITL_frame
@@ -82,7 +88,6 @@ while true
         % use port -1 to indicate connection to address of last recv pkt
         pnet(u,'udpconnect',"",-1);
         connected = true;
-        fprintf('Connected\n')
     end
     frame_count = frame_count + 1;
 
@@ -107,14 +112,6 @@ while true
         frame_time = tic;
         time_ratio = (print_frame_count*delta_t)/total_time;
         fprintf("%0.2f fps, %0.2f%% of realtime\n",print_frame_count/total_time,time_ratio*100)
-        time_ratio = speed_up / time_ratio;
-        if time_ratio < 1.1 && time_ratio > 0.9
-            time_correction = time_correction * 0.95 + time_ratio * 0.05;
-        end
     end
-
-    while toc(mat_time) < (delta_t / speed_up) / time_correction
-    end
-
 end
 
