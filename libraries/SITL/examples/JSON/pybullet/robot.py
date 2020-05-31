@@ -25,7 +25,7 @@ import argparse
 from math import degrees, radians
 
 parser = argparse.ArgumentParser(description="pybullet robot")
-parser.add_argument("--vehicle", required=True, choices=['quad', 'racecar', 'iris'], help="vehicle type")
+parser.add_argument("--vehicle", required=True, choices=['quad', 'racecar', 'iris', 'opendog'], help="vehicle type")
 parser.add_argument("--fps", type=float, default=1000.0, help="physics frame rate")
 
 args = parser.parse_args()
@@ -61,13 +61,25 @@ def control_racecar(pwm):
     robot.steer(steering)
     robot.drive(throttle)
 
-if args.vehicle == 'quad':
+last_angles = [0.0] * 12
+
+def control_joints(pwm):
+    '''control a joint based bot'''
+    global last_angles
+    max_angle = radians(90)
+    joint_speed = radians(30)
+    pwm = pwm[0:len(robot.joints)]
+    angles = [ constrain((v-1500.0)/500.0, -1, 1) * max_angle for v in pwm ]
+    current = last_angles
+    max_change = joint_speed * TIME_STEP
+    for i in range(len(angles)):
+        angles[i] = constrain(angles[i], current[i]-max_change, current[i]+max_change)
+    robot.set_joint_positions(angles, robot.joints)
+    last_angles = angles
+
+if args.vehicle == 'iris':
     from pyrobolearn.robots import Quadcopter
-    robot = Quadcopter(sim, urdf="quadcopter.urdf")
-    control_pwm = control_quad
-elif args.vehicle == 'iris':
-    from pyrobolearn.robots import Quadcopter
-    robot = Quadcopter(sim, urdf="iris.urdf")
+    robot = Quadcopter(sim, urdf="models/iris/iris.urdf")
     control_pwm = control_quad
 elif args.vehicle == 'racecar':
     from pyrobolearn.robots import F10Racecar
@@ -75,8 +87,8 @@ elif args.vehicle == 'racecar':
     control_pwm = control_racecar
 elif args.vehicle == 'opendog':
     from pyrobolearn.robots import OpenDog
-    robot = OpenDog(sim)
-    control_pwm = control_dog
+    robot = OpenDog(sim, urdf="models/opendog/opendog.urdf")
+    control_pwm = control_joints
 else:
     raise Exception("Bad vehicle")
 
@@ -115,6 +127,8 @@ def constrain(v,min_v,max_v):
     if v > max_v:
         v = max_v
     return v
+
+print(robot.joints)
 
 #robot.position = [ 0, 0, 2]
 #robot.orientation = quaternion_from_AP(Quaternion([math.radians(0), math.radians(0), math.radians(50)]))
