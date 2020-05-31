@@ -22,6 +22,9 @@
       <geometry>
         <mesh filename="meshes/iris.dae" scale="1 1 1"/>
       </geometry>
+      <material name="blue">
+        <color rgba="0 0 1 1"/>
+      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -59,6 +62,9 @@
         <!-- The propeller meshes have a radius of 1m -->
         <!-- <box size="${2*radius_rotor} 0.01 0.005"/> -->
       </geometry>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
     </visual>
     <collision>
       <geometry>
@@ -109,6 +115,9 @@
         <!-- The propeller meshes have a radius of 1m -->
         <!-- <box size="${2*radius_rotor} 0.01 0.005"/> -->
       </geometry>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
     </visual>
     <collision>
       <geometry>
@@ -159,6 +168,9 @@
         <!-- The propeller meshes have a radius of 1m -->
         <!-- <box size="${2*radius_rotor} 0.01 0.005"/> -->
       </geometry>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
     </visual>
     <collision>
       <geometry>
@@ -209,6 +221,9 @@
         <!-- The propeller meshes have a radius of 1m -->
         <!-- <box size="${2*radius_rotor} 0.01 0.005"/> -->
       </geometry>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
     </visual>
     <collision>
       <geometry>
