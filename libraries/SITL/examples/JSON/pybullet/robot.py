@@ -192,14 +192,13 @@ while True:
 
   data,address = sock.recvfrom(100)
 
-  if len(data) != 4 + 4 + 16*2:
+  if len(data) != 4 + 16*2:
     continue
 
-  decoded = struct.unpack('IfHHHHHHHHHHHHHHHH',data)
+  decoded = struct.unpack('IHHHHHHHHHHHHHHHH',data)
 
   SITL_frame = decoded[0]
-  speedup = decoded[1]
-  pwm = decoded[2:18]
+  pwm = decoded[1:17]
 
   # Check if the fame is in expected order
   if SITL_frame < last_SITL_frame:
@@ -228,7 +227,7 @@ while True:
     "accel_body" : accel
   }
   JSON_fmt = {
-    "timestamp" : phys_time*10**-6,
+    "timestamp" : phys_time,
     "imu" : IMU_fmt,
     "position" : pos,
     "attitude" : euler,
@@ -245,9 +244,3 @@ while True:
     total_time = now - frame_time
     print("%.2f fps T=%.3f dt=%.3f" % (print_frame_count/total_time, phys_time, total_time))
     frame_time = now
-
-  # Time sync
-  while True:
-    if (time.time() - py_time) >= (TIME_STEP / speedup):
-      break
-    
