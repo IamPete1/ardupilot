@@ -635,6 +635,7 @@ private:
     bool start_takeoff(float alt) override;
     bool set_target_location(const Location& target_loc) override;
     bool set_target_velocity_NED(const Vector3f& vel_ned) override;
+    bool set_target_angle(const Vector3f& euler) override;
     void rc_loop();
     void throttle_loop();
     void update_batt_compass(void);

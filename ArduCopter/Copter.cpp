@@ -309,6 +309,21 @@ bool Copter::set_target_velocity_NED(const Vector3f& vel_ned)
     return true;
 }
 
+bool Copter::set_target_angle(const Vector3f& euler)
+{
+    // exit if vehicle is not in Guided mode or Auto-Guided mode
+    if (!flightmode->in_guided_mode()) {
+        return false;
+    }
+
+    Quaternion q;
+    q.from_euler(euler.x,euler.y,euler.z);
+
+    mode_guided.set_angle(q);
+    return true;
+}
+
+
 // rc_loops - reads user input from transmitter/receiver
 // called at 100hz
 void Copter::rc_loop()
