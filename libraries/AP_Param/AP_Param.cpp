@@ -2419,29 +2419,8 @@ void AP_Param::set_defaults_from_table(const struct defaults_table_struct *table
  */
 bool AP_Param::set_by_name(const char *name, float value)
 {
-    enum ap_var_type vtype;
-    AP_Param *vp = find(name, &vtype);
-    if (vp == nullptr) {
-        return false;
-    }
-    switch (vtype) {
-    case AP_PARAM_INT8:
-        ((AP_Int8 *)vp)->set(value);
-        return true;
-    case AP_PARAM_INT16:
-        ((AP_Int16 *)vp)->set(value);
-        return true;
-    case AP_PARAM_INT32:
-        ((AP_Int32 *)vp)->set(value);
-        return true;
-    case AP_PARAM_FLOAT:
-        ((AP_Float *)vp)->set(value);
-        return true;
-    default:
-        break;
-    }
-    // not a supported type
-    return false;
+    AP_HAL::OwnPtr<param_type_ptr> vp = find_param(name);
+    return vp->set(value);
 }
 
 /*
@@ -2449,32 +2428,8 @@ bool AP_Param::set_by_name(const char *name, float value)
  */
 bool AP_Param::get(const char *name, float &value)
 {
-    enum ap_var_type vtype;
-    AP_Param *vp = find(name, &vtype);
-    if (vp == nullptr) {
-        return false;
-    }
-    switch (vtype) {
-    case AP_PARAM_INT8:
-        value = ((AP_Int8 *)vp)->get();
-        break;
-    case AP_PARAM_INT16:
-        value = ((AP_Int16 *)vp)->get();
-        break;
-
-    case AP_PARAM_INT32:
-        value = ((AP_Int32 *)vp)->get();
-        break;
-
-    case AP_PARAM_FLOAT:
-        value = ((AP_Float *)vp)->get();
-        break;
-
-    default:
-        // not a supported type
-        return false;
-    }
-    return true;
+    AP_HAL::OwnPtr<param_type_ptr> vp = find_param(name);
+    return vp->get(value);
 }
 
 /*
@@ -2482,29 +2437,95 @@ bool AP_Param::get(const char *name, float &value)
  */
 bool AP_Param::set_and_save_by_name(const char *name, float value)
 {
-    enum ap_var_type vtype;
-    AP_Param *vp = find(name, &vtype);
-    if (vp == nullptr) {
+    AP_HAL::OwnPtr<param_type_ptr> vp = find_param(name);
+    return vp->set_and_save(value);
+}
+
+// param_type_ptr helper class
+AP_HAL::OwnPtr<param_type_ptr> AP_Param::find_param(const char *name)
+{
+    auto ret = AP_HAL::OwnPtr<param_type_ptr>(new param_type_ptr());
+    ret->param = find(name, &ret->type);
+    return ret;
+}
+
+bool param_type_ptr::set(float value)
+{
+    if (param == nullptr) {
         return false;
     }
-    switch (vtype) {
+    switch (type) {
     case AP_PARAM_INT8:
-        ((AP_Int8 *)vp)->set_and_save(value);
-        return true;
-    case AP_PARAM_INT16:
-        ((AP_Int16 *)vp)->set_and_save(value);
-        return true;
-    case AP_PARAM_INT32:
-        ((AP_Int32 *)vp)->set_and_save(value);
-        return true;
-    case AP_PARAM_FLOAT:
-        ((AP_Float *)vp)->set_and_save(value);
-        return true;
-    default:
+        ((AP_Int8 *)param)->set(value);
         break;
+    case AP_PARAM_INT16:
+        ((AP_Int16 *)param)->set(value);
+        break;
+    case AP_PARAM_INT32:
+        ((AP_Int32 *)param)->set(value);
+        break;
+    case AP_PARAM_FLOAT:
+        ((AP_Float *)param)->set(value);
+        break;
+    default:
+        return false;
     }
-    // not a supported type
-    return false;
+    return true;
+ }
+
+bool param_type_ptr::get(float &value)
+{
+    if (param == nullptr) {
+        return false;
+    }
+    switch (type) {
+    case AP_PARAM_INT8:
+        value = ((AP_Int8 *)param)->get();
+        break;
+    case AP_PARAM_INT16:
+        value = ((AP_Int16 *)param)->get();
+        break;
+
+    case AP_PARAM_INT32:
+        value = ((AP_Int32 *)param)->get();
+        break;
+
+    case AP_PARAM_FLOAT:
+        value = ((AP_Float *)param)->get();
+        break;
+
+    default:
+        return false;
+    }
+    return true;
+}
+
+bool param_type_ptr::set_and_save(float value)
+{
+    if (param == nullptr) {
+        return false;
+    }
+    switch (type) {
+    case AP_PARAM_INT8:
+        ((AP_Int8 *)param)->set_and_save(value);
+        break;
+
+    case AP_PARAM_INT16:
+        ((AP_Int16 *)param)->set_and_save(value);
+        break;
+
+    case AP_PARAM_INT32:
+        ((AP_Int32 *)param)->set_and_save(value);
+        break;
+
+    case AP_PARAM_FLOAT:
+        ((AP_Float *)param)->set_and_save(value);
+        break;
+
+    default:
+        return false;
+    }
+    return true;
 }
 
 #if AP_PARAM_KEY_DUMP

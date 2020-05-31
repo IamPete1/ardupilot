@@ -138,6 +138,17 @@ enum ap_var_type {
 };
 
 
+class param_type_ptr
+{
+public:
+    bool get(float &value);
+    bool set(float value);
+    bool set_and_save(float value);
+
+    AP_Param *param;
+    ap_var_type type;
+};
+
 /// Base class for variables.
 ///
 /// Provides naming and lookup services for variables.
@@ -304,6 +315,8 @@ public:
     static bool set_and_save_by_name(const char *name, float value);
     // name helper for scripting
     static bool set_and_save(const char *name, float value) { return set_and_save_by_name(name, value); };
+    // find to param_type_ptr type for scripting
+    static AP_HAL::OwnPtr<param_type_ptr> find_param(const char *name);
 
     /// Find a variable by index.
     ///
