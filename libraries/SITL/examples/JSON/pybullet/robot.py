@@ -244,7 +244,7 @@ while True:
   move_view(interface.key_down)
 
   try:
-      data,address = sock.recvfrom(10)
+      data,address = sock.recvfrom(100)
   except Exception as ex:
       time.sleep(0.01)
       continue
