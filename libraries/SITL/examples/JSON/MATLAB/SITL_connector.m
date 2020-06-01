@@ -2,7 +2,7 @@
 % Toolbox 2.0.6 by Peter Rydesäter
 % https://uk.mathworks.com/matlabcentral/fileexchange/345-tcp-udp-ip-toolbox-2-0-6
 
-function SITL_connector(state,init_function,physics_function,delta_t)
+function SITL_connector(state,init_function,physics_function,max_timestep)
 try
     pnet('closeall') % close any connections left open from past runs
 catch
@@ -35,7 +35,7 @@ physics_time_s = 0;
 last_SITL_frame = -1;
 print_frame_count = 1000; % print the fps every x frames
 connected = false;
-bytes_read =  4 + 16*2; % the number of bytes received in each packet
+bytes_read =  4 + 4 + 16*2; % the number of bytes received in each packet
 re_connect_timeout = 1; % after this time we close the socket and reopen to listen on any port, a AP can change ports after a re-start 
 while true
 
@@ -68,6 +68,7 @@ while true
 
     % read in the current SITL frame and PWM
     SITL_frame = pnet(u,'read',1,'UINT32','intel');
+    frame_rate = double(pnet(u,'read',1,'UINT32','intel'));
     pwm_in = double(pnet(u,'read',16,'UINT16','intel'))';
     % Check if the fame is in expected order
     if SITL_frame < last_SITL_frame
@@ -82,7 +83,8 @@ while true
         fprintf('Missed %i input frames\n',SITL_frame - last_SITL_frame - 1)
     end
     last_SITL_frame = SITL_frame;
-    physics_time_s = physics_time_s + delta_t;
+    state.delta_t = min(1/frame_rate,max_timestep);
+    physics_time_s = physics_time_s + state.delta_t;
 
     if ~connected
         % use port -1 to indicate connection to address of last recv pkt
@@ -110,7 +112,7 @@ while true
     if rem(frame_count,print_frame_count) == 0
         total_time = toc(frame_time);
         frame_time = tic;
-        time_ratio = (print_frame_count*delta_t)/total_time;
+        time_ratio = (print_frame_count*state.delta_t)/total_time;
         fprintf("%0.2f fps, %0.2f%% of realtime\n",print_frame_count/total_time,time_ratio*100)
     end
 end
