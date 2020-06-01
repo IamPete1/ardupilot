@@ -232,21 +232,16 @@ void Aircraft::setup_frame_time(float new_rate, float new_speedup)
 {
     rate_hz = new_rate;
     target_speedup = new_speedup;
-    frame_time_us = static_cast<uint64_t>(1.0e6f/rate_hz);
+    frame_time_us = uint64_t(1.0e6f/rate_hz);
 
-    scaled_frame_time_us = frame_time_us/target_speedup;
     last_wall_time_us = get_wall_time_us();
-    achieved_rate_hz = rate_hz;
 }
 
 /* adjust frame_time calculation */
 void Aircraft::adjust_frame_time(float new_rate)
 {
-    if (fabsf(rate_hz - new_rate) > 1.0) {
-        frame_time_us = static_cast<uint64_t>(1.0e6f/new_rate);
-        scaled_frame_time_us *= (rate_hz / new_rate);
-        rate_hz = new_rate;
-    }
+    frame_time_us = uint64_t(1.0e6f/new_rate);
+    rate_hz = new_rate;
 }
 
 /*
@@ -259,30 +254,23 @@ void Aircraft::sync_frame_time(void)
 {
     frame_counter++;
     uint64_t now = get_wall_time_us();
-    if (frame_counter >= 40 &&
-        now > last_wall_time_us) {
-        const float rate = frame_counter * 1.0e6f/(now - last_wall_time_us);
-        achieved_rate_hz = (0.9f*achieved_rate_hz) + (0.1f * rate);
-        if (achieved_rate_hz < rate_hz * target_speedup) {
-            scaled_frame_time_us *= 0.99f;
-        } else {
-            scaled_frame_time_us /= 0.99f;
-        }
-        const uint32_t sleep_time = static_cast<uint32_t>(scaled_frame_time_us * frame_counter);
-#if 0
-        ::printf("achieved_rate_hz=%.3f rate=%.2f rate_hz=%.3f sft=%.1f sleep=%u\n",
-                 static_cast<double>(achieved_rate_hz),
-                 static_cast<double>(rate),
-                 static_cast<double>(rate_hz),
-                 static_cast<double>(scaled_frame_time_us),
-                 unsigned(sleep_time));
-#endif
-        if (sleep_time > min_sleep_time) {
-            usleep(sleep_time);
-        }
-        last_wall_time_us = now;
-        frame_counter = 0;
+    uint64_t dt_us = now - last_wall_time_us;
+
+    const float target_dt_us = 1.0e6/(rate_hz*target_speedup);
+
+    // accumulate sleep debt if we're running too fast
+    sleep_debt_us += target_dt_us - dt_us;
+
+    if (sleep_debt_us < -1.0e5) {
+        // don't let a large negative debt build up
+        sleep_debt_us = -1.0e5;
     }
+    if (sleep_debt_us > min_sleep_time) {
+        // sleep if we have built up a debt of min_sleep_tim
+        usleep(sleep_debt_us);
+        sleep_debt_us -= (get_wall_time_us() - now);
+    }
+    last_wall_time_us = get_wall_time_us();
 }
 
 /* add noise based on throttle level (from 0..1) */
