@@ -272,6 +272,7 @@ const AP_Param::GroupInfo SITL::var_info3[] = {
     AP_GROUPINFO("MAG3_ODI",     29, SITL,  mag_offdiag[2], 0),
     AP_GROUPINFO("MAG3_ORIENT",  30, SITL,  mag_orient[2], 0),
 #endif
+    AP_GROUPINFO("RATE_HZ",  20, SITL,  loop_rate_hz, 1200),
 
     AP_GROUPEND
 
