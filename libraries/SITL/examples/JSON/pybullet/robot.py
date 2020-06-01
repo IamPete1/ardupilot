@@ -18,6 +18,7 @@ from pyrobolearn.worlds import BasicWorld
 from pymavlink.rotmat import Vector3, Matrix3
 from pymavlink.quaternion import Quaternion
 from pyrobolearn.utils.transformation import get_rpy_from_quaternion
+import pyrobolearn as prl
 
 import time
 
@@ -25,7 +26,7 @@ import argparse
 from math import degrees, radians
 
 parser = argparse.ArgumentParser(description="pybullet robot")
-parser.add_argument("--vehicle", required=True, choices=['quad', 'racecar', 'iris', 'opendog'], help="vehicle type")
+parser.add_argument("--vehicle", required=True, choices=['quad', 'racecar', 'iris', 'opendog', 'all'], help="vehicle type")
 parser.add_argument("--fps", type=float, default=1000.0, help="physics frame rate")
 
 args = parser.parse_args()
@@ -38,6 +39,9 @@ sim = Bullet()
 
 # create world
 world = BasicWorld(sim)
+
+# keyboard interface
+interface = prl.tools.interfaces.MouseKeyboardInterface()
 
 def control_quad(pwm):
     '''control quadcopter'''
@@ -77,6 +81,7 @@ def control_joints(pwm):
     robot.set_joint_positions(angles, robot.joints)
     last_angles = angles
 
+
 if args.vehicle == 'iris':
     from pyrobolearn.robots import Quadcopter
     robot = Quadcopter(sim, urdf="models/iris/iris.urdf")
@@ -89,6 +94,14 @@ elif args.vehicle == 'opendog':
     from pyrobolearn.robots import OpenDog
     robot = OpenDog(sim, urdf="models/opendog/opendog.urdf")
     control_pwm = control_joints
+elif args.vehicle == 'all':
+    from pyrobolearn.robots import OpenDog, Aibo, Ant, ANYmal, HyQ, HyQ2Max, Laikago, LittleDog, Minitaur, Pleurobot, Crab, Morphex, Rhex, SEAHexapod
+    bots = [Crab, Morphex, Rhex, SEAHexapod, Aibo, Ant, ANYmal, HyQ, HyQ2Max, Laikago, LittleDog, Minitaur, Pleurobot ]
+    for i in range(len(bots)):
+        r = bots[i](sim)
+        r.position = [0, i*2, 2]
+    control_pwm = control_joints
+    robot = OpenDog(sim, urdf="models/opendog/opendog.urdf")
 else:
     raise Exception("Bad vehicle")
 
@@ -179,6 +192,7 @@ def physics_step(pwm_in):
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind(('', 9002))
+sock.settimeout(0.1)
 
 last_SITL_frame = -1
 connected = False
@@ -186,11 +200,54 @@ frame_count = 0
 frame_time = time.time()
 print_frame_count = 1000
 
+move_accel = 0.0
+
+def move_view(keys):
+    '''move camera target based on arrow keys'''
+    KEY_LEFT = 65295
+    KEY_RIGHT = 65296
+    KEY_UP = 65297
+    KEY_DOWN = 65298
+    global move_accel
+    angle = None
+    if KEY_LEFT in keys:
+        angle = 90
+    elif KEY_RIGHT in keys:
+        angle = -90
+    elif KEY_UP in keys:
+        angle = 180
+    elif KEY_DOWN in keys:
+        angle = 0
+    else:
+        move_accel = 0
+        return
+
+    caminfo = list(sim.sim.getDebugVisualizerCamera())
+    target = caminfo[-1]
+    dist = caminfo[-2]
+    pitch = caminfo[-3]
+    yaw = caminfo[-4]
+    look = 90.0-yaw
+    step = 0.3 + move_accel
+    move_accel += 0.1
+    move_accel = min(move_accel, 5)
+    target = (target[0] + step*math.cos(radians(look+angle)),
+              target[1] - step*math.sin(radians(look+angle)),
+              target[2])
+    sim.reset_debug_visualizer(dist, radians(yaw), radians(pitch), target)
+
 while True:
 
   py_time = time.time()
 
-  data,address = sock.recvfrom(100)
+  interface.step()
+  move_view(interface.key_down)
+
+  try:
+      data,address = sock.recvfrom(10)
+  except Exception as ex:
+      time.sleep(0.01)
+      continue
 
   if len(data) != 4 + 16*2:
     continue
