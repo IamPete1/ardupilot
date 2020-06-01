@@ -38,6 +38,7 @@ private:
 
     struct servo_packet {
         uint32_t frame_count;
+        uint32_t frame_rate;
         uint16_t pwm[16];
     };
 

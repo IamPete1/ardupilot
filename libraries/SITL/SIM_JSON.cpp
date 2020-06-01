@@ -100,6 +100,7 @@ void JSON::output_servos(const struct sitl_input &input)
 {
     servo_packet pkt;
     pkt.frame_count = frame_counter;
+    pkt.frame_rate = rate_hz;
     for (uint8_t i=0; i<16; i++) {
         pkt.pwm[i] = input.servos[i];
     }
@@ -331,6 +332,9 @@ void JSON::update(const struct sitl_input &input)
     // update magnetic field
     // as the model does not provide mag feild we calculate it from position and attitude
     update_mag_field_bf();
+
+    // allow for changes in physics step
+    adjust_frame_time(constrain_float(sitl->loop_rate_hz, rate_hz-1, rate_hz+1));
 
 #if 0
     // report frame rate
