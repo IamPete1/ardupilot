@@ -62,8 +62,10 @@ function update()
   ]]--
 
   ------------------------------------------------------------------------------------------------------------------------
-  -- Reading tilt angle
+  -- Reading tilt angle and output to scripting servo
   ------------------------------------------------------------------------------------------------------------------------
+  -- Tilt angle in AP is a linear output.  This example shows how the linear tilt angle is read from the tilt servo function (Where no servo should be connected), 
+  -- modified/mapped to make it non-linear, and the subsequent position is then output on a scripting servo (where the tilt servo is actually connected).
 
   local tilt_servo = SRV_Channels:get_output_scaled(41) -- 41 is the SERVOx_FUNCTION value of motor tilt
   -- tilt angle is in the range +-1000, note that this is not the same for all servo functional
@@ -75,7 +77,7 @@ function update()
 
   -- AP assumes that the servo output is a linear map to the tilt angle, you could correct for this and output on a second servo function
   -- the motor tilt function we are reading does not need to be setup on a output for this to work
-  local corrected_tilt_angle = tilt_angle * 1 -- some clever maths function
+  local corrected_tilt_angle = tilt_angle * 1 -- some clever maths function that mapps from linear to non-linear to output
   local corrected_tilt = (corrected_tilt_angle / 90) * 1000 -- we set the range to 1000 on line 14 to match the tilt servo, output is a integer so we cant just use a range of 1 and set a output as a decimal
   SRV_Channels:set_output_scaled(94,math.floor(corrected_tilt)) -- output to servo function 94 (scripting 1), we must round to a integer
 
@@ -85,7 +87,7 @@ function update()
   -- Plane aileron
   ------------------------------------------------------------------------------------------------------------------------
   -- new scaling parameter RLL2SRV_SCALE and PTCH2SRV_SCALE
-  -- plane roll and pitch are not a nice to access as AC_PID used for VTOL flight as we have to go via vehicle each time
+  -- plane roll and pitch are not as nice to access as AC_PID used for VTOL flight as we have to go via vehicle each time
   gcs:send_text(0,string.format("Plane Roll: P %0.2f, I %0.2f, D %0.2f, scale %0.2f",vehicle:roll_kP(),vehicle:roll_kI(),vehicle:roll_kD(),vehicle:roll_scale()))
   gcs:send_text(0,string.format("Plane Pitch: P %0.2f, I %0.2f, D %0.2f, scale %0.2f",vehicle:pitch_kP(),vehicle:pitch_kI(),vehicle:pitch_kD(),vehicle:pitch_scale()))
 
@@ -124,11 +126,11 @@ function update()
   -- Logging
   ------------------------------------------------------------------------------------------------------------------------
   -- the new scale factors are not logged in the existing PID logs, so we can log them manually here
-  -- we can also log wherever other calculations from the script we like
+  -- we can also log whatever other calculations from the script we like
 
   -- care must be taken when selecting a name, must be less than four characters and not clash with an existing log type
   -- format characters specify the type of variable to be logged, see AP_Logger/README.md
-  -- not all format types are supported by scripting only: i, L, e, f, n, M, B, I, E, and N
+  -- not all format types are supported by scripting.  These are the only types supported: i, L, e, f, n, M, B, I, E, and N
   -- lua automatically adds a timestamp in micro seconds
   logger.write('SCR','QR,QP,QY,R,P,tilt_ang,corrected','fffffff',roll_pid:scale(),pitch_pid:scale(),yaw_pid:scale(),vehicle:roll_scale(),vehicle:pitch_scale(),tilt_angle,corrected_tilt_angle)
 
