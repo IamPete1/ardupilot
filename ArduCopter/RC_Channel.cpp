@@ -82,6 +82,7 @@ void RC_Channel_Copter::init_aux_function(const aux_func_t ch_option, const AuxS
     case AUX_FUNC::LOITER:
     case AUX_FUNC::PARACHUTE_RELEASE:
     case AUX_FUNC::POSHOLD:
+    case AUX_FUNC::PROX_DIST_HOLD:
     case AUX_FUNC::RESETTOARMEDYAW:
     case AUX_FUNC::RTL:
     case AUX_FUNC::SAVE_TRIM:
@@ -612,6 +613,25 @@ void RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const AuxSwi
 #endif
             break;
         }
+
+        case AUX_FUNC::PROX_DIST_HOLD:
+#if AC_AVOID_ENABLED == ENABLED
+            switch (ch_flag) {
+            case AuxSwitchPos::HIGH:
+                copter.avoid.set_active_proximity_hold(true);
+                gcs().send_text(MAV_SEVERITY_INFO, "Active proximity hold enabled");
+                break;
+            case AuxSwitchPos::LOW:
+                copter.avoid.set_active_proximity_hold(false);
+                gcs().send_text(MAV_SEVERITY_INFO, "Active proximity hold disabled");
+                break;
+            case AuxSwitchPos::MIDDLE:
+                break;
+            }
+#else
+            gcs().send_text(MAV_SEVERITY_INFO, "Active proximity hold not available");
+            break;
+#endif
 
     default:
         RC_Channel::do_aux_function(ch_option, ch_flag);
