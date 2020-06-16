@@ -834,9 +834,13 @@ void AC_Avoid::adjust_velocity_polygon(float kP, float accel_cmss, Vector2f &des
                 limit_direction.normalize();
                 const float stop_dist = limit_distance_cm - margin_cm; 
                 limit_accel_velocity(kP, accel_cmss, safe_vel, safe_accel, limit_direction, MAX(stop_dist,0.0f), dt);
+                const Vector2f active_limits_dist = limit_direction * stop_dist;
                 if (is_negative(stop_dist)) {
                     // We need to back up
-                    const Vector2f active_limits_dist = limit_direction * stop_dist;
+                    Vector2f_min_max(distance_min, distance_max, active_limits_dist);
+                } else if ((stop_dist < margin_cm * 0.5f) && _active_hold) {
+                    // only trigger if the vehicle is within 1.5 times the margin of a obstical
+                    // we need to move forward to hold distance
                     Vector2f_min_max(distance_min, distance_max, active_limits_dist);
                 }
             } else {

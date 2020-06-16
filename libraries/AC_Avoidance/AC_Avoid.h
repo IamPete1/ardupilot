@@ -100,6 +100,9 @@ public:
     // return the value of the backaway speed param in m/s
     float get_backaway_speed() const { return _backaway_speed; }
 
+    // Enable or disable active proximity distance hold
+    void set_active_proximity_hold(bool state) {_active_hold = state;};
+
     static const struct AP_Param::GroupInfo var_info[];
 
 private:
@@ -173,6 +176,7 @@ private:
 
     bool _proximity_enabled = true; // true if proximity sensor based avoidance is enabled (used to allow pilot to enable/disable)
     uint32_t _last_limit_time;      // the last time a limit was active
+    bool _active_hold;              // true if vehicle should actively more towards a obstiacal to matain a fixed distance
 
     static AC_Avoid *_singleton;
 };
