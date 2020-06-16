@@ -182,6 +182,8 @@ public:
         Q_ASSIST =            82, // disable, enable and force Q assist
         ZIGZAG_Auto =         83, // zigzag auto switch
         AIRMODE =             84, // enable / disable airmode for copter
+        PROX_DIST_HOLD  =     85, // enable / disable proximity distance hold
+
         // entries from 100 onwards are expected to be developer
         // options used for testing
         KILL_IMU1 =          100, // disable first IMU (for IMU failure testing)
