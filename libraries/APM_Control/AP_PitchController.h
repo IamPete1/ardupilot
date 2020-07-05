@@ -7,6 +7,8 @@
 #include <AP_Logger/AP_Logger.h>
 #include <AP_Math/AP_Math.h>
 
+#include <AP_HAL/utility/Socket.h>
+
 class AP_PitchController {
 public:
     AP_PitchController(AP_AHRS &ahrs, const AP_Vehicle::FixedWing &parms)
@@ -61,5 +63,8 @@ private:
     float   _get_coordination_rate_offset(float &aspeed, bool &inverted) const;
 	
 	AP_AHRS &_ahrs;
-	
+
+
+    SocketAPM sock{true};
+
 };

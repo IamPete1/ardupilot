@@ -188,6 +188,7 @@ int32_t AP_PitchController::_get_rate_out(float desired_rate, float scaler, bool
 	_last_out = _pid_info.D + _pid_info.FF + _pid_info.P;
     _pid_info.target = desired_rate;
     _pid_info.actual = achieved_rate;
+	_pid_info.error = desired_rate - achieved_rate;
 
     if (autotune.running && aspeed > aparm.airspeed_min) {
         // let autotune have a go at the values 
@@ -330,6 +331,9 @@ int32_t AP_PitchController::get_servo_out(int32_t angle_err, float scaler, bool 
 
 	// Apply the turn correction offset
 	desired_rate = desired_rate + rate_offset;
+
+    // send the PID values out over UDP
+    sock.sendto(&_pid_info, sizeof(_pid_info), "192.168.1.22", 9002);
 
     return _get_rate_out(desired_rate, scaler, disable_integrator, aspeed);
 }
