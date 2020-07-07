@@ -28,6 +28,9 @@ void AC_AttitudeControl::control_monitor_update(void)
     control_monitor_filter_pid(iroll.P + iroll.FF,  _control_monitor.rms_roll_P);
     control_monitor_filter_pid(iroll.D,             _control_monitor.rms_roll_D);
 
+    // send the PID values out over UDP
+    sock.sendto(&iroll, sizeof(iroll), "192.168.1.22", 9002);
+
     const AP_Logger::PID_Info &ipitch = get_rate_pitch_pid().get_pid_info();
     control_monitor_filter_pid(ipitch.P + iroll.FF,  _control_monitor.rms_pitch_P);
     control_monitor_filter_pid(ipitch.D,             _control_monitor.rms_pitch_D);
