@@ -597,15 +597,19 @@ void RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const AuxSwi
                     copter.auto_yaw_enabled = true;
                     gcs().send_text(MAV_SEVERITY_INFO, "Proximity auto yaw enabled");
                     break;
-                default:
+                case AuxSwitchPos::LOW:
                     copter.auto_yaw_enabled = false;
                     gcs().send_text(MAV_SEVERITY_INFO, "Proximity auto yaw disabled");
                     break;
+                case AuxSwitchPos::MIDDLE:
+                    break;
                 }
-                break;
+            } else {
+                gcs().send_text(MAV_SEVERITY_INFO, "Proximity not available");
             }
-#endif
+#else
             gcs().send_text(MAV_SEVERITY_INFO, "Proximity not available");
+#endif
             break;
         }
 
