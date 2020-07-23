@@ -20,6 +20,8 @@
 
 #include <AP_Scripting/lua_generated_bindings.h>
 
+#define AP_SCRIPTING_CHECKS 10
+
 extern const AP_HAL::HAL& hal;
 
 bool lua_scripts::overtime;
@@ -50,22 +52,55 @@ int lua_scripts::atpanic(lua_State *L) {
     return 0;
 }
 
-lua_scripts::script_info *lua_scripts::load_script(lua_State *L, char *filename) {
+lua_scripts::script_info *lua_scripts::load_script(lua_State *L, char *filename, script_info *script_reload) {
+
+    script_info *new_script;
+    new_script = (script_info *)hal.util->heap_realloc(_heap, nullptr, sizeof(script_info));
+    if (script_reload == nullptr) {
+        if (new_script == nullptr) {
+            // No memory, shouldn't happen, we even attempted to do a GC
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: Insufficent memory loading %s", filename);
+            lua_pop(L, 1); // we can't use the function we just loaded, so ditch it
+            return nullptr;
+        }
+        new_script->name = filename;
+        new_script->next = nullptr;
+        new_script->reload_mask = reload_bitmask(511);
+        new_script->reload_time_ms = 10000;
+    } else {
+        new_script->name =  script_reload->name;
+        new_script->reload_mask = script_reload->reload_mask;
+        new_script->reload_time_ms = script_reload->reload_time_ms;
+        new_script->next =  script_reload->next;
+    }
+
     if (int error = luaL_loadfile(L, filename)) {
         switch (error) {
             case LUA_ERRSYNTAX:
                 gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: Syntax error in %s", filename);
                 gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: Error: %s", lua_tostring(L, -1));
                 lua_pop(L, lua_gettop(L));
+                if (should_reload(RELOAD_SYNTAX,new_script->reload_mask)) {
+                    new_script->next_run_ms =  AP_HAL::millis64() + new_script->reload_time_ms;
+                    return new_script;
+                }
                 return nullptr;
             case LUA_ERRMEM:
                 gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: Insufficent memory loading %s", filename);
                 lua_pop(L, lua_gettop(L));
+                if (should_reload(RELOAD_MEMMORY,new_script->reload_mask)) {
+                    new_script->next_run_ms =  AP_HAL::millis64() + new_script->reload_time_ms;
+                    return new_script;
+                }
                 return nullptr;
             case LUA_ERRFILE:
                 gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: Unable to load the file: %s", lua_tostring(L, -1));
                 hal.console->printf("Lua: File error: %s\n", lua_tostring(L, -1));
                 lua_pop(L, lua_gettop(L));
+                if (should_reload(RELOAD_FILE,new_script->reload_mask)) {
+                    new_script->next_run_ms =  AP_HAL::millis64() + new_script->reload_time_ms;
+                    return new_script;
+                }
                 return nullptr;
             default:
                 gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: Unknown error (%d) loading %s", error, filename);
@@ -74,22 +109,12 @@ lua_scripts::script_info *lua_scripts::load_script(lua_State *L, char *filename)
         }
     }
 
-    script_info *new_script = (script_info *)hal.util->heap_realloc(_heap, nullptr, sizeof(script_info));
-    if (new_script == nullptr) {
-        // No memory, shouldn't happen, we even attempted to do a GC
-        gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: Insufficent memory loading %s", filename);
-        lua_pop(L, 1); // we can't use the function we just loaded, so ditch it
-        return nullptr;
-    }
-
-    new_script->name = filename;
-    new_script->next = nullptr;
-
     create_sandbox(L);
     lua_setupvalue(L, -2, 1);
 
     new_script->lua_ref = luaL_ref(L, LUA_REGISTRYINDEX);   // cache the reference
     new_script->next_run_ms = AP_HAL::millis64() - 1; // force the script to be stale
+    new_script->active = true;
 
     return new_script;
 }
@@ -193,13 +218,13 @@ void lua_scripts::run_next_script(lua_State *L) {
         if (overtime) {
             // script has consumed an excessive amount of CPU time
             gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: %s exceeded time limit", script->name);
-            remove_script(L, script);
+            remove_script(L, script, RELOAD_OVERTIME);
         } else {
             hal.console->printf("Lua: Error: %s\n", lua_tostring(L, -1));
             gcs().send_text(MAV_SEVERITY_INFO, "Lua: %s", lua_tostring(L, -1));
-            remove_script(L, script);
+            remove_script(L, script, RELOAD_ERROR);
         }
-        lua_pop(L, 1);
+        //lua_pop(L, 1);
         return;
     } else {
         int returned = lua_gettop(L) - stack_top;
@@ -214,13 +239,13 @@ void lua_scripts::run_next_script(lua_State *L) {
                    if (lua_type(L, -1) != LUA_TNUMBER) {
                        gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: %s did not return a delay (0x%d)", script->name, lua_type(L, -1));
                        lua_pop(L, 2);
-                       remove_script(L, script);
+                       remove_script(L, script, RELOAD_NO_DELAY);
                        return;
                    }
                    if (lua_type(L, -2) != LUA_TFUNCTION) {
                        gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: %s did not return a function (0x%d)", script->name, lua_type(L, -2));
                        lua_pop(L, 2);
-                       remove_script(L, script);
+                       remove_script(L, script, RELOAD_NO_FUNCTION);
                        return;
                    }
 
@@ -236,7 +261,7 @@ void lua_scripts::run_next_script(lua_State *L) {
             default:
                 {
                     gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: %s returned bad result count (%d)", script->name, returned);
-                    remove_script(L, script);
+                    remove_script(L, script, RELOAD_BAD_COUNT);
                     // pop all the results we got that we didn't expect
                     lua_pop(L, returned);
                     break;
@@ -245,9 +270,37 @@ void lua_scripts::run_next_script(lua_State *L) {
      }
 }
 
-void lua_scripts::remove_script(lua_State *L, script_info *script) {
+bool lua_scripts::should_reload(reload_bitmask error, reload_bitmask reload_mask)
+{
+    if ((error & reload_mask) != 0) {
+        // check if we should reload if armed
+        if ((reload_mask & RELOAD_ARMED) != 0 || !hal.util->get_soft_armed()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void lua_scripts::remove_script(lua_State *L, script_info *script, reload_bitmask error) {
     if (script == nullptr) {
         return;
+    }
+
+    gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: %s removing", script->name);
+
+    if (error != RELOAD_NEVER) {
+        // Check if this script should be re-loaded
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: %s %i %i",script->name, error, script->reload_mask);
+
+        if (should_reload(error, script->reload_mask) && L != nullptr) {
+            // mark inactive and set re-load time
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "Lua: %s mark for reloading in %ld", script->name, script->reload_time_ms);
+            script->active = false;
+            script->next_run_ms = AP_HAL::millis64() + script->reload_time_ms;
+            // unload the script
+            luaL_unref(L, LUA_REGISTRYINDEX, script->lua_ref);
+            return;
+        }
     }
 
     // ensure that the script isn't in the loaded list for any reason
@@ -399,6 +452,16 @@ void lua_scripts::run(void) {
             uint64_t now_ms = AP_HAL::millis64();
             if (now_ms < scripts->next_run_ms) {
                 hal.scheduler->delay(scripts->next_run_ms - now_ms);
+            }
+
+            if (!scripts->active) {
+                // Current script is not running, reload it
+                if (_debug_level > 1) {
+                    gcs().send_text(MAV_SEVERITY_DEBUG, "Lua: Reloading %s", scripts->name);
+                }
+                load_script(L, scripts->name, scripts);
+                scripts = scripts->next;
+                continue;
             }
 
             if (_debug_level > 1) {

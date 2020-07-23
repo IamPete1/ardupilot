@@ -68,14 +68,30 @@ private:
 
     void repl_cleanup(void);
 
+    enum reload_bitmask {
+        RELOAD_NEVER       = 0,
+        RELOAD_SYNTAX      = 1U << 0,
+        RELOAD_MEMMORY     = 1U << 1,
+        RELOAD_FILE        = 1U << 2,
+        RELOAD_OVERTIME    = 1U << 3,
+        RELOAD_ERROR       = 1U << 4,
+        RELOAD_NO_DELAY    = 1U << 5,
+        RELOAD_NO_FUNCTION = 1U << 6,
+        RELOAD_BAD_COUNT   = 1U << 7,
+        RELOAD_ARMED       = 1U << 8,
+    };
+
     typedef struct script_info {
-       int lua_ref;          // reference to the loaded script object
-       uint64_t next_run_ms; // time (in milliseconds) the script should next be run at
-       char *name;           // filename for the script // FIXME: This information should be available from Lua
+       int lua_ref;                                 // reference to the loaded script object
+       uint64_t next_run_ms;                        // time (in milliseconds) the script should next be run at
+       char *name;                                  // filename for the script // FIXME: This information should be available from Lua
+       bool active;                                 // true if the current script is running, false if it should be re-loaded
+       reload_bitmask reload_mask = RELOAD_SYNTAX;  // mask of the errors that the script should be restarted after
+       uint64_t reload_time_ms = 10000;             // time to wait before reloading
        script_info *next;
     } script_info;
 
-    script_info *load_script(lua_State *L, char *filename);
+    script_info *load_script(lua_State *L, char *filename, script_info *script_reload = nullptr);
 
     void reset_loop_overtime(lua_State *L);
 
@@ -83,10 +99,13 @@ private:
 
     void run_next_script(lua_State *L);
 
-    void remove_script(lua_State *L, script_info *script);
+    void remove_script(lua_State *L, script_info *script, reload_bitmask error = RELOAD_NEVER);
 
     // reschedule the script for execution. It is assumed the script is not in the list already
     void reschedule_script(script_info *script);
+
+    // check if this script should reload from a given error
+    bool should_reload(reload_bitmask error, reload_bitmask reload_mask);
 
     // REPL stuff
     struct AP_Scripting::terminal_s &terminal;
