@@ -383,5 +383,11 @@ void Copter::do_failsafe_action(Failsafe_Action action, ModeReason reason){
         }
         break;
     }
+
+#if GRIPPER_ENABLED == ENABLED
+    if (failsafe_option(FailsafeOption::Release_Gripper)) {
+        copter.g2.gripper.release();
+    }
+#endif
 }
 
