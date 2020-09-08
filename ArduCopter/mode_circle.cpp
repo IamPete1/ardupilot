@@ -86,6 +86,8 @@ void ModeCircle::run()
         }
     }
 
+    copter.circle_nav->set_radius(copter.circle_nav->get_radius() + copter.circle_nav->get_radius_inc() * ((fabsf(copter.circle_nav->get_rate())*G_Dt) / 360.0f) );
+
     // get pilot desired climb rate (or zero if in radio failsafe)
     float target_climb_rate = get_pilot_desired_climb_rate(channel_throttle->get_control_in());
     // adjust climb rate using rangefinder
