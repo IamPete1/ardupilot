@@ -976,6 +976,15 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_GROUPINFO("ACRO_OPTIONS", 39, ParametersG2, acro_options, 0),
 #endif
 
+#if MODE_FOLLOW_ENABLED == ENABLED
+    // @Param: FOLL_RTL_TIMEOUT
+    // @DisplayName: Follow mode RTL timeout
+    // @Description: If a valid follow target is lost for more than this time the vehicle will RTL, 0 disabled
+    // @Units: s
+    // @User: Advanced
+    AP_GROUPINFO("FOLL_RTL_TIMEOUT", 40, ParametersG2, follow_rtl_timeout, 0),
+#endif
+
     AP_GROUPEND
 };
 

@@ -1392,6 +1392,7 @@ protected:
     int32_t wp_bearing() const override;
 
     uint32_t last_log_ms;   // system time of last time desired velocity was logging
+    uint32_t last_valid_ms;   // system time of last time last valid target was received
 };
 
 class ModeZigZag : public Mode {        

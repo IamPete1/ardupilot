@@ -619,6 +619,10 @@ public:
     AP_Int8 acro_options;
 #endif
 
+#if MODE_FOLLOW_ENABLED == ENABLED
+    AP_Int16 follow_rtl_timeout;
+#endif
+
 };
 
 extern const AP_Param::Info        var_info[];

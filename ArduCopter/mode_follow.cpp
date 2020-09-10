@@ -20,6 +20,8 @@ bool ModeFollow::init(const bool ignore_checks)
         gcs().send_text(MAV_SEVERITY_WARNING, "Set FOLL_ENABLE = 1");
         return false;
     }
+    last_valid_ms = 0; // reset last valid target time
+
     // re-use guided mode
     return ModeGuided::init(ignore_checks);
 }
@@ -53,7 +55,11 @@ void ModeFollow::run()
     Vector3f dist_vec;  // vector to lead vehicle
     Vector3f dist_vec_offs;  // vector to lead vehicle + offset
     Vector3f vel_of_target;  // velocity of lead vehicle
+    uint32_t now = AP_HAL::millis();
     if (g2.follow.get_target_dist_and_vel_ned(dist_vec, dist_vec_offs, vel_of_target)) {
+        // have a valid target
+        last_valid_ms = now;
+
         // convert dist_vec_offs to cm in NEU
         const Vector3f dist_vec_offs_neu(dist_vec_offs.x * 100.0f, dist_vec_offs.y * 100.0f, -dist_vec_offs.z * 100.0f);
 
@@ -144,10 +150,12 @@ void ModeFollow::run()
                break;
 
         }
+    } else if ( (last_valid_ms != 0) && (copter.g2.follow_rtl_timeout > 0) && (int16_t(now - last_valid_ms) > (copter.g2.follow_rtl_timeout*1000))) {
+        // no valid target for longer than set time, RTL
+        copter.set_mode(Mode::Number::RTL, ModeReason::MISSION_END);
     }
 
     // log output at 10hz
-    uint32_t now = AP_HAL::millis();
     bool log_request = false;
     if ((now - last_log_ms >= 100) || (last_log_ms == 0)) {
         log_request = true;
