@@ -495,7 +495,15 @@ public:
     bool is_best_land_sequence(void);
 
     // set in_landing_sequence flag
-    void set_in_landing_sequence_flag(bool flag) { _flags.in_landing_sequence = flag; }
+    void set_in_landing_sequence_flag(bool flag)
+    {
+        _flags.in_landing_sequence = flag;
+    }
+
+    // get in_landing_sequence flag
+    bool get_in_landing_sequence_flag() const {
+        return _flags.in_landing_sequence;
+    }
 
     // get a reference to the AP_Mission semaphore, allowing an external caller to lock the
     // storage while working with multiple waypoints
