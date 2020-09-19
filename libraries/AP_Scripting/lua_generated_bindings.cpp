@@ -819,6 +819,57 @@ static int AP_Terrain_enabled(lua_State *L) {
     return 1;
 }
 
+static int RangeFinder_distance_cm_orient(lua_State *L) {
+    RangeFinder * ud = RangeFinder::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "rangefinder not supported on this firmware");
+    }
+
+    binding_argcheck(L, 2);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= static_cast<int32_t>(ROTATION_NONE)) && (raw_data_2 <= static_cast<int32_t>(ROTATION_MAX-1))), 2, "argument out of range");
+    const Rotation data_2 = static_cast<Rotation>(raw_data_2);
+    const uint16_t data = ud->distance_cm_orient(
+            data_2);
+
+    lua_pushinteger(L, data);
+    return 1;
+}
+
+static int RangeFinder_has_data_orient(lua_State *L) {
+    RangeFinder * ud = RangeFinder::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "rangefinder not supported on this firmware");
+    }
+
+    binding_argcheck(L, 2);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= static_cast<int32_t>(ROTATION_NONE)) && (raw_data_2 <= static_cast<int32_t>(ROTATION_MAX-1))), 2, "argument out of range");
+    const Rotation data_2 = static_cast<Rotation>(raw_data_2);
+    const bool data = ud->has_data_orient(
+            data_2);
+
+    lua_pushboolean(L, data);
+    return 1;
+}
+
+static int RangeFinder_has_orientation(lua_State *L) {
+    RangeFinder * ud = RangeFinder::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "rangefinder not supported on this firmware");
+    }
+
+    binding_argcheck(L, 2);
+    const lua_Integer raw_data_2 = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((raw_data_2 >= static_cast<int32_t>(ROTATION_NONE)) && (raw_data_2 <= static_cast<int32_t>(ROTATION_MAX-1))), 2, "argument out of range");
+    const Rotation data_2 = static_cast<Rotation>(raw_data_2);
+    const bool data = ud->has_orientation(
+            data_2);
+
+    lua_pushboolean(L, data);
+    return 1;
+}
+
 static int RangeFinder_num_sensors(lua_State *L) {
     RangeFinder * ud = RangeFinder::get_singleton();
     if (ud == nullptr) {
@@ -1730,6 +1781,9 @@ const luaL_Reg AP_Terrain_meta[] = {
 };
 
 const luaL_Reg RangeFinder_meta[] = {
+    {"distance_cm_orient", RangeFinder_distance_cm_orient},
+    {"has_data_orient", RangeFinder_has_data_orient},
+    {"has_orientation", RangeFinder_has_orientation},
     {"num_sensors", RangeFinder_num_sensors},
     {NULL, NULL}
 };
