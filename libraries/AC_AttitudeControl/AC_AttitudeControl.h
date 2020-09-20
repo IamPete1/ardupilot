@@ -61,11 +61,21 @@ public:
         _aparm(aparm),
         _motors(motors)
         {
+            if (_singleton != nullptr) {
+                AP_HAL::panic("AC_AttitudeControl must be singleton");
+            }
+            _singleton = this;
+
             AP_Param::setup_object_defaults(this, var_info);
         }
 
     // Empty destructor to suppress compiler warning
     virtual ~AC_AttitudeControl() {}
+
+    // get singleton instance
+    static AC_AttitudeControl *get_singleton() {
+        return _singleton;
+    }
 
     // pid accessors
     AC_P& get_angle_roll_p() { return _p_angle_roll; }
@@ -475,4 +485,11 @@ public:
     float control_monitor_rms_output_pitch_D(void) const;
     float control_monitor_rms_output_pitch(void) const;
     float control_monitor_rms_output_yaw(void) const;
+
+private:
+    static AC_AttitudeControl *_singleton;
+};
+
+namespace AP {
+    AC_AttitudeControl *ac_attitudecontrol();
 };

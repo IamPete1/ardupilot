@@ -1066,3 +1066,12 @@ bool AC_AttitudeControl::pre_arm_checks(const char *param_prefix,
     }
     return true;
 }
+
+AC_AttitudeControl *AC_AttitudeControl::_singleton = nullptr;
+
+namespace AP {
+    AC_AttitudeControl *ac_attitudecontrol()
+    {
+        return AC_AttitudeControl::get_singleton();
+    }
+};
