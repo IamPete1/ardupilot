@@ -278,3 +278,12 @@ singleton AP_RPM method get_rpm boolean uint8_t 0 RPM_MAX_INSTANCES float'Null
 include AP_Button/AP_Button.h
 singleton AP_Button alias button
 singleton AP_Button method get_button_state boolean uint8_t 1 AP_BUTTON_NUM_PINS
+
+include AC_AttitudeControl/AC_AttitudeControl.h
+singleton AC_AttitudeControl alias attitude_control
+singleton AC_AttitudeControl method get_att_target_euler_cd Vector3f
+
+include AP_Motors/AP_Motors.h
+singleton AP_Motors alias motors
+singleton AP_Motors method get_throttle_hover float
+singleton AP_Motors method get_throttle float
