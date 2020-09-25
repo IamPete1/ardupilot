@@ -287,3 +287,7 @@ include AP_Motors/AP_Motors.h
 singleton AP_Motors alias motors
 singleton AP_Motors method get_throttle_hover float
 singleton AP_Motors method get_throttle float
+
+include AP_Motors/AP_MotorsMulticopter.h
+singleton AP_MotorsMulticopter alias motors_multi
+singleton AP_MotorsMulticopter method get_batt_voltage_filt float
