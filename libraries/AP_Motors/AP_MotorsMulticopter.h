@@ -35,6 +35,11 @@ public:
     // Constructor
     AP_MotorsMulticopter(uint16_t loop_rate, uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT);
 
+    // get singleton instance
+    static AP_MotorsMulticopter *get_singleton() {
+        return _singleton;
+    }
+
     // output - sends commands to the motors
     virtual void        output() override;
 
@@ -200,4 +205,11 @@ protected:
 
     // array of motor output values
     float _actuator[AP_MOTORS_MAX_NUM_MOTORS];
+
+private:
+    static AP_MotorsMulticopter *_singleton;
+};
+
+namespace AP {
+    AP_MotorsMulticopter *ap_motorsmulticopter();
 };

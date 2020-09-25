@@ -224,6 +224,11 @@ AP_MotorsMulticopter::AP_MotorsMulticopter(uint16_t loop_rate, uint16_t speed_hz
     // default throttle range
     _throttle_radio_min = 1100;
     _throttle_radio_max = 1900;
+
+    if (_singleton != nullptr) {
+        AP_HAL::panic("AP_MotorsMulticopter must be singleton");
+    }
+    _singleton = this;
 };
 
 // output - sends commands to the motors
@@ -786,3 +791,12 @@ void AP_MotorsMulticopter::save_params_on_disarm()
         _throttle_hover.save();
     }
 }
+
+AP_MotorsMulticopter *AP_MotorsMulticopter::_singleton = nullptr;
+
+namespace AP {
+    AP_MotorsMulticopter *ap_motorsmulticopter()
+    {
+        return AP_MotorsMulticopter::get_singleton();
+    }
+};
