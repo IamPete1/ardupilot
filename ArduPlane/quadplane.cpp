@@ -667,27 +667,30 @@ bool QuadPlane::setup(void)
         break;
     }
 
-    if (tailsitter.motor_mask == 0) {
-        // this is a normal quadplane
-        switch (motor_class) {
-        case AP_Motors::MOTOR_FRAME_TRI:
-            motors = new AP_MotorsTri(plane.scheduler.get_loop_rate_hz(), rc_speed);
-            motors_var_info = AP_MotorsTri::var_info;
-            break;
-        case AP_Motors::MOTOR_FRAME_TAILSITTER:
-            // this is a duo-motor tailsitter (vectored thrust if tilt.tilt_mask != 0)
-            motors = new AP_MotorsTailsitter(plane.scheduler.get_loop_rate_hz(), rc_speed);
-            motors_var_info = AP_MotorsTailsitter::var_info;
-            if (tilt.tilt_type != TILT_TYPE_BICOPTER) {
-                rotation = ROTATION_PITCH_90;
-            }
-            break;
-        default:
-            motors = new AP_MotorsMatrix(plane.scheduler.get_loop_rate_hz(), rc_speed);
-            motors_var_info = AP_MotorsMatrix::var_info;
-            break;
+    switch (motor_class) {
+    case AP_Motors::MOTOR_FRAME_TRI:
+        motors = new AP_MotorsTri(plane.scheduler.get_loop_rate_hz(), rc_speed);
+        motors_var_info = AP_MotorsTri::var_info;
+        break;
+    case AP_Motors::MOTOR_FRAME_TAILSITTER:
+        // this is a duo-motor tailsitter (vectored thrust if tilt.tilt_mask != 0)
+        motors = new AP_MotorsTailsitter(plane.scheduler.get_loop_rate_hz(), rc_speed);
+        motors_var_info = AP_MotorsTailsitter::var_info;
+        if (tilt.tilt_type != TILT_TYPE_BICOPTER) {
+            rotation = ROTATION_PITCH_90;
         }
-    } else {
+        if (tailsitter.motor_mask != 0) {
+            // tailsitter framse type does not use mask
+            tailsitter.motor_mask.set(0);
+        }
+        break;
+    default:
+        motors = new AP_MotorsMatrix(plane.scheduler.get_loop_rate_hz(), rc_speed);
+        motors_var_info = AP_MotorsMatrix::var_info;
+        break;
+    }
+
+    if (tailsitter.motor_mask != 0) {
         // this is a copter tailsitter with motor layout specified by frame_class and frame_type
         // tilting motors are not supported (tiltrotor control variables are ignored)
         if (tilt.tilt_mask != 0) {
@@ -695,8 +698,6 @@ bool QuadPlane::setup(void)
             tilt.tilt_mask.set(0);
         }
         rotation = ROTATION_PITCH_90;
-        motors = new AP_MotorsMatrix(plane.scheduler.get_loop_rate_hz(), rc_speed);
-        motors_var_info = AP_MotorsMatrix::var_info;
     }
 
     const static char *strUnableToAllocate = "Unable to allocate";
