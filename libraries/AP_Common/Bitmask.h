@@ -118,15 +118,15 @@ public:
             if (bits[i] == 0) {
                 continue;
             }
-            int fs;
+            int fss;
             if (sizeof(bits[i]) <= sizeof(int)) {
-                fs = __builtin_ffs(bits[i]);
+                fss = __builtin_ffs(bits[i]);
             } else if (sizeof(bits[i]) <= sizeof(long)) {
-                fs = __builtin_ffsl(bits[i]);
+                fss = __builtin_ffsl(bits[i]);
             } else {
-                fs = __builtin_ffsll(bits[i]);
+                fss = __builtin_ffsll(bits[i]);
             }
-            return i*32 + fs - 1;
+            return i*32 + fss - 1;
         }
         return -1;
     }

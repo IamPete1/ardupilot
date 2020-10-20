@@ -60,6 +60,8 @@ const AP_Filesystem::Backend AP_Filesystem::backends[] = {
 #define LOCAL_BACKEND backends[0];
 #define BACKEND_IDX(backend) (&(backend) - &backends[0])
 
+#include <GCS_MAVLink/GCS.h>
+
 /*
   find backend by path
  */
@@ -122,13 +124,25 @@ int32_t AP_Filesystem::read(int fd, void *buf, uint32_t count)
 int32_t AP_Filesystem::write(int fd, const void *buf, uint32_t count)
 {
     const Backend &backend = backend_by_fd(fd);
-    return backend.fs.write(fd, buf, count);
+    int32_t ret = backend.fs.write(fd, buf, count);
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"FD: %i, Count: %u, ret: %i",fd,count,ret);
+#else
+    GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"FD: %i, Count: %lu, ret: %li",fd,count,ret);
+#endif
+    return ret;
 }
 
 int AP_Filesystem::fsync(int fd)
 {
     const Backend &backend = backend_by_fd(fd);
-    return backend.fs.fsync(fd);
+    int32_t ret = backend.fs.fsync(fd);
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"Ret: %i",ret);
+#else
+    GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"Ret: %li",ret);
+#endif
+    return ret;
 }
 
 int32_t AP_Filesystem::lseek(int fd, int32_t offset, int seek_from)

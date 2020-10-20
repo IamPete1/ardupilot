@@ -6,6 +6,9 @@
 #include <AP_Math/AP_Math.h>
 #include <stdio.h>
 
+#include <GCS_MAVLink/GCS.h>
+
+
 #if HAVE_FILESYSTEM_SUPPORT && CONFIG_HAL_BOARD == HAL_BOARD_CHIBIOS
 
 #include <AP_HAL_ChibiOS/sdcard.h>
@@ -454,6 +457,7 @@ int32_t AP_Filesystem_FATFS::write(int fd, const void *buf, uint32_t count)
         UINT n = MIN(bytes, MAX_IO_SIZE);
         UINT size = 0;
         res = f_write(fh, buf, n, &size);
+        GCS_SEND_TEXT(MAV_SEVERITY_WARNING,"file %p, Res: %i, n: %i, size: %i",fh,res,n,size);
         if (res == FR_DISK_ERR && RETRY_ALLOWED()) {
             // one retry on disk error
             hal.scheduler->delay(100);
