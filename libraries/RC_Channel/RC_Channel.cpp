@@ -619,25 +619,25 @@ bool RC_Channel::read_aux()
         return false;
     }
 
-#if !HAL_MINIMIZE_FEATURES
-    // announce the change to the GCS:
-    const char *aux_string = string_for_aux_function(_option);
-    if (aux_string != nullptr) {
-        const char *temp =  nullptr;
-        switch (new_position) {
-        case AuxSwitchPos::HIGH:
-            temp = "HIGH";           
-            break;
-        case AuxSwitchPos::MIDDLE:
-            temp = "MIDDLE";
-            break;
-        case AuxSwitchPos::LOW:
-            temp = "LOW";          
-            break;
-        }
-        gcs().send_text(MAV_SEVERITY_INFO, "%s %s", aux_string, temp);
-    }
-#endif
+// #if !HAL_MINIMIZE_FEATURES
+//     // announce the change to the GCS:
+//     const char *aux_string = string_for_aux_function(_option);
+//     if (aux_string != nullptr) {
+//         const char *temp =  nullptr;
+//         switch (new_position) {
+//         case AuxSwitchPos::HIGH:
+//             temp = "HIGH";           
+//             break;
+//         case AuxSwitchPos::MIDDLE:
+//             temp = "MIDDLE";
+//             break;
+//         case AuxSwitchPos::LOW:
+//             temp = "LOW";          
+//             break;
+//         }
+//         gcs().send_text(MAV_SEVERITY_INFO, "%s %s", aux_string, temp);
+//     }
+// #endif
 
     // debounced; undertake the action:
     run_aux_function(_option, new_position, AuxFuncTriggerSource::RC);
@@ -701,12 +701,14 @@ void RC_Channel::do_aux_function_avoid_proximity(const AuxSwitchPos ch_flag)
     switch (ch_flag) {
     case AuxSwitchPos::HIGH:
         avoid->proximity_avoidance_enable(true);
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "Lidars enabled");
         break;
     case AuxSwitchPos::MIDDLE:
         // nothing
         break;
     case AuxSwitchPos::LOW:
         avoid->proximity_avoidance_enable(false);
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "Lidars disabled");
         break;
     }
 }
