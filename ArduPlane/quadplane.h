@@ -492,8 +492,10 @@ private:
     };
 
     enum tailsitter_gscl_mask {
-        TAILSITTER_GSCL_BOOST   = (1U<<0),
+        TAILSITTER_GSCL_THROTTLE = (1U<<0),
         TAILSITTER_GSCL_ATT_THR = (1U<<1),
+        TAILSITTER_GSCL_DISK_THEORY = (1U<<2),
+        TAILSITTER_GSCL_ALTITUDE = (1U<<3),
     };
 
     // tailsitter control variables
@@ -512,6 +514,7 @@ private:
         AP_Float scaling_speed_min;
         AP_Float scaling_speed_max;
         AP_Int16 gain_scaling_mask;
+        AP_Float disk_loading;
     } tailsitter;
 
     // tailsitter speed scaler
