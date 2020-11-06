@@ -572,6 +572,11 @@ QuadPlane::QuadPlane(AP_AHRS_NavEKF &_ahrs) :
 {
     AP_Param::setup_object_defaults(this, var_info);
     AP_Param::setup_object_defaults(this, var_info2);
+
+    if (_singleton != nullptr) {
+        AP_HAL::panic("Can only be one Quadplane");
+    }
+    _singleton = this;
 }
 
 
@@ -3398,3 +3403,5 @@ bool QuadPlane::show_vtol_view() const
 
     return show_vtol;
 }
+
+QuadPlane *QuadPlane::_singleton = nullptr;
