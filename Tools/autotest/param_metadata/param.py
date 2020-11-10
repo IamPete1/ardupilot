@@ -106,6 +106,7 @@ known_units = {
              'gravities': 'standard acceleration due to gravity' , # g_n would be a more correct unit, but IMHO no one understands what g_n means
              'octal'   : 'octal'                 ,
              'RPM'     : 'Revolutions Per Minute',
+             'kg/m.m'  : 'kilogram per meter squared'
              }
 
 required_param_fields = [
