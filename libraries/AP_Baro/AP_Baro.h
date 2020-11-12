@@ -85,7 +85,8 @@ public:
 
     // update the barometer calibration to the current pressure. Can
     // be used for incremental preflight update of baro
-    void update_calibration(void);
+    // return true is new calibration set
+    bool update_calibration(void);
 
     // get current altitude in meters relative to altitude at the time
     // of the last calibrate() call
@@ -265,6 +266,7 @@ private:
     AP_Float                            _user_ground_temperature; // user override of the ground temperature used for EAS2TAS
     bool                                _hil_mode:1;
     float                               _guessed_ground_temperature; // currently ground temperature estimate using our best abailable source
+    AP_Float                            _QNH_press;
 
     // when did we last notify the GCS of new pressure reference?
     uint32_t                            _last_notify_ms;

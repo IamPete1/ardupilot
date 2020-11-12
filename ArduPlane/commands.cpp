@@ -128,15 +128,19 @@ void Plane::update_home()
             // altitude or we can end up perpetuating a bias in
             // altitude, as AHRS alt depends on home alt, which means
             // we would have a circular dependency
-            loc.alt = gps.location().alt;
+            //loc.alt = gps.location().alt;
+            loc.alt = barometer.get_altitude();
             if (!AP::ahrs().set_home(loc)) {
                 // silently fail
             }
         }
     }
-    barometer.update_calibration();
-    ahrs.resetHeightDatum();
+
+    if (barometer.update_calibration()) {
+        ahrs.resetHeightDatum();
+    }
 }
+
 
 bool Plane::set_home_persistently(const Location &loc)
 {

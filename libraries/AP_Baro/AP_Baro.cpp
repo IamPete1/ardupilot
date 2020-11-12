@@ -197,7 +197,14 @@ const AP_Param::GroupInfo AP_Baro::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("BARO3_ID", 17, AP_Baro, sensors[2].bus_id, 0),
 #endif
-    
+
+    // @Param: QNH_PRESS
+    // @DisplayName: Baro QNH pressure
+    // @Description: The refernce QNH pressure, set to override calibration of ground pressue
+    // @Units: Pa
+    // @User: Advanced
+    AP_GROUPINFO("QNH_PRESS", 18, AP_Baro, _QNH_press, 0),
+
     AP_GROUPEND
 };
 
@@ -314,9 +321,15 @@ void AP_Baro::calibrate(bool save)
    update the barometer calibration
    this updates the baro ground calibration to the current values. It
    can be used before arming to keep the baro well calibrated
+   return true if new calibration set
 */
-void AP_Baro::update_calibration()
+bool AP_Baro::update_calibration()
 {
+    if (is_positive(_QNH_press)) {
+        // QNH press set, do not override
+        return false;
+    }
+
     const uint32_t now = AP_HAL::millis();
     const bool do_notify = now - _last_notify_ms > 10000;
     if (do_notify) {
@@ -339,6 +352,8 @@ void AP_Baro::update_calibration()
 
     // force EAS2TAS to recalculate
     _EAS2TAS = 0;
+
+    return is_zero(_alt_offset_active);
 }
 
 // return altitude difference in meters between current pressure and a
@@ -805,9 +820,20 @@ void AP_Baro::update(void)
     if (fabsf(_alt_offset - _alt_offset_active) > 0.01f) {
         // If there's more than 1cm difference then slowly slew to it via LPF.
         // The EKF does not like step inputs so this keeps it happy.
-        _alt_offset_active = (0.95f*_alt_offset_active) + (0.05f*_alt_offset);
+        _alt_offset_active = constrain_float((0.95f*_alt_offset_active) + (0.05f*_alt_offset), _alt_offset_active-1,_alt_offset_active+1);
     } else {
         _alt_offset_active = _alt_offset;
+    }
+
+    if (is_positive(_QNH_press)) {
+        // slew the ground pressue to the QNH press if set
+        // The EKF does not like step inputs so this keeps it happy.
+        for (uint8_t i=0; i<_num_sensors; i++) {
+            sensors[i].ground_pressure.set(constrain_float((sensors[i].ground_pressure * 0.98f) + (0.02f * _QNH_press),sensors[i].ground_pressure-1,sensors[i].ground_pressure+1));
+            if (fabsf(sensors[i].ground_pressure - _QNH_press) < 10) {
+                sensors[i].ground_pressure.set(_QNH_press);
+            }
+        }
     }
 
     if (!_hil_mode) {
