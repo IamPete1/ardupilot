@@ -988,10 +988,10 @@ MAV_RESULT GCS_MAVLINK_Copter::handle_command_long_packet(const mavlink_command_
         case 1:
             if (packet.param2 <= 0) {
                 copter.surface_tracking.set_surface(Copter::SurfaceTracking::Surface::NONE);
-                gcs().send_text(MAV_SEVERITY_INFO, "Roof disabled"); 
+                gcs().send_text(MAV_SEVERITY_INFO, "surface tracking disabled"); 
             } else {
                 copter.surface_tracking.set_surface(Copter::SurfaceTracking::Surface::CEILING);
-                gcs().send_text(MAV_SEVERITY_INFO, "Roof enabled");
+                gcs().send_text(MAV_SEVERITY_INFO, "surface tracking roof");
             }
             return MAV_RESULT_ACCEPTED;
             break;
