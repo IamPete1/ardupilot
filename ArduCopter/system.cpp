@@ -208,6 +208,9 @@ void Copter::init_ardupilot()
         AP_Notify::events.user_mode_change_failed = 1;
     }
 
+    // Set multinov led pwm to 1001 so the led board does not go nuts
+    SRV_Channels::set_output_pwm(SRV_Channel::k_ledsPower, 1001);
+
     // flag that initialisation has completed
     ap.initialised = true;
 }
