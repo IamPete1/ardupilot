@@ -55,6 +55,8 @@ void AP_MotorsTailsitter::init(motor_frame_class frame_class, motor_frame_type f
 
     // record successful initialisation if what we setup was the desired frame_class
     set_initialised_ok(frame_class == MOTOR_FRAME_TAILSITTER);
+
+    _mav_type = MAV_TYPE_COAXIAL;
 }
 
 

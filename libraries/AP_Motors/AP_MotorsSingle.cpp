@@ -39,6 +39,8 @@ void AP_MotorsSingle::init(motor_frame_class frame_class, motor_frame_type frame
 
     // record successful initialisation if what we setup was the desired frame_class
     set_initialised_ok(frame_class == MOTOR_FRAME_SINGLE);
+
+    _mav_type = MAV_TYPE_COAXIAL;
 }
 
 // set frame class (i.e. quad, hexa, heli) and type (i.e. x, plus)

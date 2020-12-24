@@ -285,7 +285,36 @@ bool AP_MotorsMatrix_6DoF_Scripting::initialize(uint8_t expected_num_motors) {
     }
 
     set_initialised_ok(expected_num_motors == num_motors);
-    return initialised_ok();
+
+    if (initialised_ok()) {
+        switch (num_motors) {
+            case 3:
+                _mav_type = MAV_TYPE_TRICOPTER;
+                break;
+            case 4:
+                _mav_type = MAV_TYPE_QUADROTOR;
+                break;
+            case 6:
+                _mav_type = MAV_TYPE_HEXAROTOR;
+                break;
+            case 8:
+                _mav_type = MAV_TYPE_OCTOROTOR;
+                break;
+            case 10:
+                _mav_type = MAV_TYPE_DECAROTOR;
+                break;
+            case 12:
+                _mav_type = MAV_TYPE_DODECAROTOR;
+                break;
+            default:
+                _mav_type = MAV_TYPE_GENERIC;
+        }
+        return true;
+    } else {
+        _mav_type = MAV_TYPE_GENERIC;
+    }
+
+    return false;
 }
 
 // singleton instance

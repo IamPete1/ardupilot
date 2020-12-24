@@ -56,6 +56,8 @@ void AP_MotorsTri::init(motor_frame_class frame_class, motor_frame_type frame_ty
 
     // record successful initialisation if what we setup was the desired frame_class
     set_initialised_ok(frame_class == MOTOR_FRAME_TRI);
+
+    _mav_type = MAV_TYPE_TRICOPTER;
 }
 
 // set frame class (i.e. quad, hexa, heli) and type (i.e. x, plus)
