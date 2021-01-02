@@ -1,4 +1,5 @@
 #pragma once
+#ifdef ENABLE_SCRIPTING
 
 #include <AP_Common/AP_Common.h>
 #include <AP_Math/AP_Math.h>
@@ -56,3 +57,5 @@ private:
     static AP_MotorsMatrix_6DoF_Scripting *_singleton;
 
 };
+
+#endif // ENABLE_SCRIPTING
