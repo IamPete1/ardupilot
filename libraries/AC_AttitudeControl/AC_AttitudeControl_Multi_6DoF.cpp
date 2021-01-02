@@ -1,3 +1,5 @@
+#ifdef ENABLE_SCRIPTING
+
 #include "AC_AttitudeControl_Multi_6DoF.h"
 #include <AP_HAL/AP_HAL.h>
 #include <AP_Math/AP_Math.h>
@@ -113,3 +115,5 @@ void AC_AttitudeControl_Multi_6DoF::input_angle_step_bf_roll_pitch_yaw(float rol
 }
 
 AC_AttitudeControl_Multi_6DoF *AC_AttitudeControl_Multi_6DoF::_singleton = nullptr;
+
+#endif // ENABLE_SCRIPTING

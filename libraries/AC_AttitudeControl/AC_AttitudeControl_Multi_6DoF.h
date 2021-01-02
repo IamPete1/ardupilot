@@ -1,4 +1,5 @@
 #pragma once
+#ifdef ENABLE_SCRIPTING
 
 #include "AC_AttitudeControl_Multi.h"
 
@@ -87,3 +88,5 @@ private:
     static AC_AttitudeControl_Multi_6DoF *_singleton;
 
 };
+
+#endif // ENABLE_SCRIPTING
