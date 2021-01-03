@@ -13,7 +13,17 @@ void AC_AttitudeControl_Multi_6DoF::rate_controller_run() {
 
     // pass current offsets to motors and run baseclass controller
     // motors require the offsets to know which way is up
-    _motors.set_roll_pitch(roll_offset_deg,pitch_offset_deg);
+    float roll_deg = roll_offset_deg;
+    float pitch_deg = pitch_offset_deg;
+    // if 6DoF control, always point directly up
+    // this stops horizontal drift due to error between target and true attitude
+    if (lateral_enable) {
+        roll_deg = degrees(AP::ahrs().get_roll());
+    }
+    if (forward_enable) {
+        pitch_deg = degrees(AP::ahrs().get_pitch());
+    }
+    _motors.set_roll_pitch(roll_deg,pitch_deg);
 
     AC_AttitudeControl_Multi::rate_controller_run();
 }
