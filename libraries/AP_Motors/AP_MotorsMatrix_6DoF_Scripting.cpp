@@ -125,7 +125,7 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
     /*
         yaw
     */
-    float ratio = 1.0f;  // scale factor, outputs will be scaled to this ratio so it can all fit evenly
+    float yaw_ratio = 1.0f;  // scale factor, outputs will be scaled to this ratio so it can all fit evenly
     float thrust[AP_MOTORS_MAX_NUM_MOTORS];
     // Calculate how much head room would be left by yaw
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
@@ -134,66 +134,66 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
             float total_thrust = _thrust_rpyt_out[i] + thrust[i];
             // control input will be limited by motor range
             if (total_thrust > 1.0f) {
-                ratio = MIN(ratio,(1.0f - _thrust_rpyt_out[i]) / thrust[i]);
+                yaw_ratio = MIN(yaw_ratio,(1.0f - _thrust_rpyt_out[i]) / thrust[i]);
             } else if (total_thrust < -1.0f) {
-                ratio = MIN(ratio,(-1.0f -_thrust_rpyt_out[i]) / thrust[i]);
+                yaw_ratio = MIN(yaw_ratio,(-1.0f -_thrust_rpyt_out[i]) / thrust[i]);
             }
         }
     }
 
     // set limit flag if output is being scaled
-    if (ratio < 1) {
+    if (yaw_ratio < 1) {
         limit.yaw = 1;
     }
 
     // scale back yaw evenly so it will all fit
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * ratio,-1.0f,1.0f);
+            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * yaw_ratio,-1.0f,1.0f);
         }
     }
 
     /*
         throttle
     */
-    ratio = 1.0f; 
+    float thr_ratio = 1.0f; 
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
             thrust[i] = throttle_thrust * _throttle_factor[i];
             float total_thrust = _thrust_rpyt_out[i] + thrust[i];
             // control input will be limited by motor range
             if (total_thrust > 1.0f) {
-                ratio = MIN(ratio,(1.0f - _thrust_rpyt_out[i]) / thrust[i]);
+                thr_ratio = MIN(thr_ratio,(1.0f - _thrust_rpyt_out[i]) / thrust[i]);
             } else if (total_thrust < -1.0f) {
-                ratio = MIN(ratio,(-1.0f -_thrust_rpyt_out[i]) / thrust[i]);
+                thr_ratio = MIN(thr_ratio,(-1.0f -_thrust_rpyt_out[i]) / thrust[i]);
             }
         }
     }
 
-    if (ratio < 1) {
+    if (thr_ratio < 1) {
         limit.throttle_upper = true;
     }
 
     // scale back evenly so it will all fit
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * ratio,-1.0f,1.0f);
+            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * thr_ratio,-1.0f,1.0f);
         }
     }
 
     /*
         forward and lateral
     */
-    ratio = 1.0f; 
+    float horz_ratio = 1.0f; 
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
             thrust[i] = forward_thrust * _forward_factor[i] + right_thrust * _right_factor[i];
             float total_thrust = _thrust_rpyt_out[i] + thrust[i];
             // control input will be limited by motor range
             if (total_thrust > 1.0f) {
-                ratio = MIN(ratio,(1.0f - _thrust_rpyt_out[i]) / thrust[i]);
+                horz_ratio = MIN(horz_ratio,(1.0f - _thrust_rpyt_out[i]) / thrust[i]);
             } else if (total_thrust < -1.0f) {
-                ratio = MIN(ratio,(-1.0f -_thrust_rpyt_out[i]) / thrust[i]);
+                horz_ratio = MIN(horz_ratio,(-1.0f -_thrust_rpyt_out[i]) / thrust[i]);
             }
         }
     }
@@ -201,7 +201,7 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
     // scale back evenly so it will all fit
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * ratio,-1.0f,1.0f);
+            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * horz_ratio,-1.0f,1.0f);
         }
     }
 
@@ -227,6 +227,20 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
             }
         }
     }
+
+// @LoggerMessage: 6DOF
+// @Description: 6DOF mixer inputs and outputs
+// @Field: TimeUS: Time since system startup
+// @Field: Th: rotated throttle input -1 to 1
+// @Field: Fw: rotated Forward input -1 to 1
+// @Field: La: rotated lateral input -1 to 1
+// @Field: Y_ratio: ratio of yaw scaling, if less than 1 yaw has been scaled to avoid ouput saturation
+// @Field: T_ratio: ratio of throttle scaling, if less than 1 throttle has been scaled to avoid ouput saturation
+// @Field: Hz_ratio: ratio of horizontal scaling, if less than 1 horizontal has been scaled to avoid ouput saturation
+
+    AP::logger().Write("6DOF", "TimeUS,Th,Fw,La,Y_ratio,T_ratio,Hz_ratio", "Qffffff", AP_HAL::micros64(),
+                                               (double)throttle_thrust, (double)forward_thrust, (double)right_thrust,
+                                               (double)yaw_ratio, (double)thr_ratio, (double)horz_ratio);
 
 }
 
