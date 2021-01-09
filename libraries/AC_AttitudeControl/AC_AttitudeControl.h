@@ -260,7 +260,7 @@ public:
     float angle_boost() const { return _angle_boost; }
 
     // Return tilt angle limit for pilot input that prioritises altitude hold over lean angle
-    float get_althold_lean_angle_max() const;
+    virtual float get_althold_lean_angle_max() const;
 
     // Return configured tilt angle limit in centidegrees
     float lean_angle_max() const { return _aparm.angle_max; }
