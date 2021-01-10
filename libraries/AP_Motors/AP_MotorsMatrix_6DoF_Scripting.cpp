@@ -76,20 +76,26 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
     float   forward_thrust;             // forward thrust input value, +/- 1.0
     float   right_thrust;               // right thrust input value, +/- 1.0
 
+    // note that the throttle, forwards and right inputs are not in bodyframe, they are in the frame of the 'normal' 4DoF copter were pretending to be
+
     // apply voltage and air pressure compensation
     const float compensation_gain = get_compensation_gain(); // compensation for battery voltage and altitude
     roll_thrust = (_roll_in + _roll_in_ff) * compensation_gain;
     pitch_thrust = (_pitch_in + _pitch_in_ff) * compensation_gain;
     yaw_thrust = (_yaw_in + _yaw_in_ff) * compensation_gain;
     throttle_thrust = get_throttle() * compensation_gain;
+
     // scale horizontal thrust with throttle, this mimics a normal copter
+    // so we don't break the lean angle proportional acceleration assumption made by the position controller
     forward_thrust = get_forward() * throttle_thrust;
     right_thrust = get_lateral() * throttle_thrust;
 
 
-    // sanity check throttle is above zero and below current limited throttle
+    // set throttle limit flags
     if (throttle_thrust <= 0) {
         throttle_thrust = 0;
+        // we cant thrust down, the vehicle can do it, but it would break a lot of assumptions further up the control stack
+        // 1G decent probably plenty anyway....
         limit.throttle_lower = true;
     }
     if (throttle_thrust >= 1) {
@@ -97,97 +103,82 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
         limit.throttle_upper = true;
     }
 
-    // rotate the throttle, forward and lateral to account for vehicle orentaiton
+    // rotate the thrust into bodyframe
     Matrix3f rot;
-    rot.from_euler(_roll_offset, _pitch_offset, 0.0f);
-
     Vector3f thrust_vec;
-    thrust_vec.x = forward_thrust;
-    thrust_vec.y = right_thrust;
-    thrust_vec.z = throttle_thrust;
+    rot.from_euler312(_roll_offset, _pitch_offset, 0.0f);
 
-    thrust_vec = rot * thrust_vec;
-
-    forward_thrust = thrust_vec.x;
-    right_thrust = thrust_vec.y;
-    throttle_thrust = thrust_vec.z;
 
     /*
-        Roll and pitch
+        upwards thrust, independent of orentaiton
     */
+    thrust_vec.x = 0.0f;
+    thrust_vec.y = 0.0f;
+    thrust_vec.z = throttle_thrust;
+    thrust_vec = rot * thrust_vec;
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            // calculate the thrust outputs for roll and pitch
-            _thrust_rpyt_out[i] = constrain_float(roll_thrust * _roll_factor[i] + pitch_thrust * _pitch_factor[i],-1.0f,1.0f);
+            _thrust_rpyt_out[i] =  thrust_vec.x * _forward_factor[i];
+            _thrust_rpyt_out[i] += thrust_vec.y * _right_factor[i];
+            _thrust_rpyt_out[i] += thrust_vec.z * _throttle_factor[i];
+
+            if (fabsf(_thrust_rpyt_out[i]) >= 1) {
+                // if we hit this the mixer is probably scaled incorrectly
+                limit.throttle_upper = true;
+            }
+            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i],-1.0f,1.0f);
         }
     }
 
+
     /*
-        yaw
+        rotations
     */
-    float yaw_ratio = 1.0f;  // scale factor, outputs will be scaled to this ratio so it can all fit evenly
+    float rpy_ratio = 1.0f;  // scale factor, output will be scaled by this ratio so it can all fit evenly
     float thrust[AP_MOTORS_MAX_NUM_MOTORS];
-    // Calculate how much head room would be left by yaw
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            thrust[i] = yaw_thrust * _yaw_factor[i];
+            thrust[i] =  roll_thrust * _roll_factor[i];
+            thrust[i] += pitch_thrust * _pitch_factor[i];
+            thrust[i] += yaw_thrust * _yaw_factor[i];
             float total_thrust = _thrust_rpyt_out[i] + thrust[i];
             // control input will be limited by motor range
             if (total_thrust > 1.0f) {
-                yaw_ratio = MIN(yaw_ratio,(1.0f - _thrust_rpyt_out[i]) / thrust[i]);
+                rpy_ratio = MIN(rpy_ratio,(1.0f - _thrust_rpyt_out[i]) / thrust[i]);
             } else if (total_thrust < -1.0f) {
-                yaw_ratio = MIN(yaw_ratio,(-1.0f -_thrust_rpyt_out[i]) / thrust[i]);
+                rpy_ratio = MIN(rpy_ratio,(-1.0f -_thrust_rpyt_out[i]) / thrust[i]);
             }
         }
     }
 
-    // set limit flag if output is being scaled
-    if (yaw_ratio < 1) {
+    // set limit flags if output is being scaled
+    if (rpy_ratio < 1) {
+        limit.roll = 1;
+        limit.pitch = 1;
         limit.yaw = 1;
     }
 
-    // scale back yaw evenly so it will all fit
+    // scale back rotations evenly so it will all fit
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * yaw_ratio,-1.0f,1.0f);
+            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * rpy_ratio,-1.0f,1.0f);
         }
     }
 
     /*
-        throttle
+        forward and lateral, independent of orentaiton
     */
-    float thr_ratio = 1.0f; 
-    for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (motor_enabled[i]) {
-            thrust[i] = throttle_thrust * _throttle_factor[i];
-            float total_thrust = _thrust_rpyt_out[i] + thrust[i];
-            // control input will be limited by motor range
-            if (total_thrust > 1.0f) {
-                thr_ratio = MIN(thr_ratio,(1.0f - _thrust_rpyt_out[i]) / thrust[i]);
-            } else if (total_thrust < -1.0f) {
-                thr_ratio = MIN(thr_ratio,(-1.0f -_thrust_rpyt_out[i]) / thrust[i]);
-            }
-        }
-    }
+    thrust_vec.x = forward_thrust;
+    thrust_vec.y = right_thrust;
+    thrust_vec.z = 0.0f;
+    thrust_vec = rot * thrust_vec;
 
-    if (thr_ratio < 1) {
-        limit.throttle_upper = true;
-    }
-
-    // scale back evenly so it will all fit
-    for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * thr_ratio,-1.0f,1.0f);
-        }
-    }
-
-    /*
-        forward and lateral
-    */
     float horz_ratio = 1.0f; 
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            thrust[i] = forward_thrust * _forward_factor[i] + right_thrust * _right_factor[i];
+            thrust[i] =  thrust_vec.x * _forward_factor[i];
+            thrust[i] += thrust_vec.y * _right_factor[i];
+            thrust[i] += thrust_vec.z * _throttle_factor[i];
             float total_thrust = _thrust_rpyt_out[i] + thrust[i];
             // control input will be limited by motor range
             if (total_thrust > 1.0f) {
@@ -229,18 +220,11 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
     }
 
 // @LoggerMessage: 6DOF
-// @Description: 6DOF mixer inputs and outputs
+// @Description: 6DOF mixer saturation
 // @Field: TimeUS: Time since system startup
-// @Field: Th: rotated throttle input -1 to 1
-// @Field: Fw: rotated Forward input -1 to 1
-// @Field: La: rotated lateral input -1 to 1
-// @Field: Y_ratio: ratio of yaw scaling, if less than 1 yaw has been scaled to avoid ouput saturation
-// @Field: T_ratio: ratio of throttle scaling, if less than 1 throttle has been scaled to avoid ouput saturation
-// @Field: Hz_ratio: ratio of horizontal scaling, if less than 1 horizontal has been scaled to avoid ouput saturation
-
-    AP::logger().Write("6DOF", "TimeUS,Th,Fw,La,Y_ratio,T_ratio,Hz_ratio", "Qffffff", AP_HAL::micros64(),
-                                               (double)throttle_thrust, (double)forward_thrust, (double)right_thrust,
-                                               (double)yaw_ratio, (double)thr_ratio, (double)horz_ratio);
+// @Field: rpy_ratio: ratio of rotaion scaling, if less than 1 roll pitch and yaw has been scaled to avoid output saturation
+// @Field: Hz_ratio: ratio of horizontal scaling, if less than 1 horizontal has been scaled to avoid output saturation
+    AP::logger().Write("6DOF", "TimeUS,rpy_ratio,Hz_ratio", "Qff", AP_HAL::micros64(), (double)rpy_ratio, (double)horz_ratio);
 
 }
 
