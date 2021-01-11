@@ -35,19 +35,33 @@ void AC_AttitudeControl_Multi_6DoF::rate_controller_run() {
 // Command an euler roll and pitch angle and an euler yaw rate with angular velocity feedforward and smoothing
 void AC_AttitudeControl_Multi_6DoF::input_euler_angle_roll_pitch_euler_rate_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds)  {
 
+    // set forward and lateral motors and substitute desired angles
     set_forward_lateral(euler_pitch_angle_cd, euler_roll_angle_cd);
 
-    AC_AttitudeControl_Multi::input_euler_angle_roll_pitch_euler_rate_yaw(euler_roll_angle_cd, euler_pitch_angle_cd, euler_yaw_rate_cds);
+    if (!use_rate_input()) {
+        // direct passthrough to parent function
+        AC_AttitudeControl_Multi::input_euler_angle_roll_pitch_euler_rate_yaw(euler_roll_angle_cd, euler_pitch_angle_cd, euler_yaw_rate_cds);
+    } else {
+        // acro!
+        if (!yaw_override) {
+            AC_AttitudeControl_Multi::input_rate_bf_roll_pitch_yaw(roll_rate_degs * 100.0f, pitch_rate_degs * 100.0f, euler_yaw_rate_cds);
+        } else {
+            AC_AttitudeControl_Multi::input_rate_bf_roll_pitch_yaw(roll_rate_degs * 100.0f, pitch_rate_degs * 100.0f, yaw_rate_degs * 100.0f);
+        }
+    }
+
 }
 
 // Command an euler roll, pitch and yaw angle with angular velocity feedforward and smoothing
 void AC_AttitudeControl_Multi_6DoF::input_euler_angle_roll_pitch_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_angle_cd, bool slew_yaw) {
 
+    // set forward and lateral motors and substitute desired angles
     set_forward_lateral(euler_pitch_angle_cd, euler_roll_angle_cd);
 
     AC_AttitudeControl_Multi::input_euler_angle_roll_pitch_yaw(euler_roll_angle_cd, euler_pitch_angle_cd, euler_yaw_angle_cd, slew_yaw);
 }
 
+// helper to set forward and lateral motors from angle inputs
 void AC_AttitudeControl_Multi_6DoF::set_forward_lateral(float &euler_pitch_angle_cd, float &euler_roll_angle_cd)
 {
     // pitch/forward
@@ -69,6 +83,61 @@ void AC_AttitudeControl_Multi_6DoF::set_forward_lateral(float &euler_pitch_angle
         euler_roll_angle_cd += roll_offset_deg * 100.0f;
     }
     euler_roll_angle_cd = wrap_180_cd(euler_roll_angle_cd);
+}
+
+// set the attitude that will be used in 6DoF flight
+void AC_AttitudeControl_Multi_6DoF::set_offset_roll_pitch(float roll_deg, float pitch_deg) {
+    last_angle_input_ms = AP_HAL::millis();
+    roll_offset_deg = roll_deg;
+    pitch_offset_deg = pitch_deg;
+}
+
+// set the rotation rate that will be used in 6DoF flight
+void AC_AttitudeControl_Multi_6DoF::set_rate_roll_pitch(float roll_degs, float pitch_degs) {
+    last_rate_input_ms = AP_HAL::millis();
+    roll_rate_degs = roll_degs;
+    pitch_rate_degs = pitch_degs;
+    yaw_override = false;
+}
+
+// set the rotation rate that will be used in 6DoF flight
+void AC_AttitudeControl_Multi_6DoF::set_rate_roll_pitch_yaw(float roll_degs, float pitch_degs, float yaw_degs) {
+    last_rate_input_ms = AP_HAL::millis();
+    roll_rate_degs = roll_degs;
+    pitch_rate_degs = pitch_degs;
+    yaw_rate_degs = yaw_degs;
+    yaw_override = true;
+}
+
+// enable or disable forward control, allow to switch from 6DoF down to 5 or 4DoF
+void AC_AttitudeControl_Multi_6DoF::set_forward_enable(bool b) {
+    forward_enable = b;
+}
+
+// enable or disable lateral control, allow to switch from 6DoF down to 5 or 4DoF
+void AC_AttitudeControl_Multi_6DoF::set_lateral_enable(bool b) {
+    lateral_enable = b;
+}
+
+// determes we have valid roll and pitch rates to use and updates roll and pitch angles accordingly
+bool AC_AttitudeControl_Multi_6DoF::use_rate_input() {
+    if (!forward_enable || !lateral_enable) {
+        // not full 6DoF
+        return false;
+    }
+    if (last_angle_input_ms >= last_rate_input_ms) {
+        // had a angle input more recently
+        return false;
+    }
+    if ((AP_HAL::millis() - last_rate_input_ms) > 100) {
+        // rate input has timed out after 1/10 of a second
+        return false;
+    }
+    // set the offset angle to the current, this removes any big step if rate input times-out
+    roll_offset_deg = degrees(AP::ahrs().get_roll());
+    pitch_offset_deg = degrees(AP::ahrs().get_pitch());
+
+    return true;
 }
 
 /*
@@ -100,7 +169,7 @@ void AC_AttitudeControl_Multi_6DoF::input_rate_bf_roll_pitch_yaw(float roll_rate
     AC_AttitudeControl_Multi::input_rate_bf_roll_pitch_yaw(roll_rate_bf_cds, pitch_rate_bf_cds, yaw_rate_bf_cds);
 }
 
-// Command an angular velocity with angular velocity feedforward and smoothing
+// Command an angular velocity with angular velocity smoothing using rate loops only with no attitude loop stabilization
 void AC_AttitudeControl_Multi_6DoF::input_rate_bf_roll_pitch_yaw_2(float roll_rate_bf_cds, float pitch_rate_bf_cds, float yaw_rate_bf_cds) {
     _motors.set_lateral(0.0f);
     _motors.set_forward(0.0f);

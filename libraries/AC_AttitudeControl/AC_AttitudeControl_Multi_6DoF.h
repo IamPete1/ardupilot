@@ -47,10 +47,10 @@ public:
     // Command an euler roll, pitch, and yaw rate with angular velocity feedforward and smoothing
     void input_euler_rate_roll_pitch_yaw(float euler_roll_rate_cds, float euler_pitch_rate_cds, float euler_yaw_rate_cds) override;
 
-     // Command an angular velocity with angular velocity feedforward and smoothing
+    // Command an angular velocity with angular velocity feedforward and smoothing
     void input_rate_bf_roll_pitch_yaw(float roll_rate_bf_cds, float pitch_rate_bf_cds, float yaw_rate_bf_cds) override;
 
-    // Command an angular velocity with angular velocity feedforward and smoothing
+    // Command an angular velocity with angular velocity smoothing using rate loops only with no attitude loop stabilization
     void input_rate_bf_roll_pitch_yaw_2(float roll_rate_bf_cds, float pitch_rate_bf_cds, float yaw_rate_bf_cds) override;
 
     // Command an angular velocity with angular velocity smoothing using rate loops only with integrated rate error stabilization
@@ -65,26 +65,46 @@ public:
     // limiting lean angle based on throttle makes no sense for 6DoF, always allow 90 deg, return in centi-degrees
     float get_althold_lean_angle_max() const override { return 9000.0f; }
 
-    // set the attitude that will be used in 6DoF flight
-    void set_offset_roll_pitch(float roll_deg, float pitch_deg) {
-        roll_offset_deg = roll_deg;
-        pitch_offset_deg = pitch_deg;
-    }
+    /*
+        Scripting access helpers, to allow roll and pitch angles or rates to be set independently
+    */
 
-    void set_forward_enable(bool b) {
-        forward_enable = b;
-    }
-    void set_lateral_enable(bool b) {
-        lateral_enable = b;
-    }
+    // set the attitude that will be used in 6DoF flight
+    void set_offset_roll_pitch(float roll_deg, float pitch_deg);
+
+    // set the rotation rate that will be used in 6DoF flight
+    void set_rate_roll_pitch(float roll_degs, float pitch_degs);
+    void set_rate_roll_pitch_yaw(float roll_degs, float pitch_degs, float yaw_degs);
+
+    // enable or disable forward and lateral control, allow to switch from 6DoF down to 5 or 4DoF
+    void set_forward_enable(bool b);
+    void set_lateral_enable(bool b);
 
 private:
 
+    // helper to set forward and lateral motors from angle inputs
     void set_forward_lateral(float &euler_pitch_angle_cd, float &euler_roll_angle_cd);
 
+    // determes we have valid roll and pitch rates to use and updates roll and pitch angles accordingly
+    bool use_rate_input();
+
+    // latest angle inputs
     float roll_offset_deg;
     float pitch_offset_deg;
 
+    // latest rate inputs
+    float roll_rate_degs;
+    float pitch_rate_degs;
+    float yaw_rate_degs;
+
+    // override flag for yaw
+    bool yaw_override;
+
+    // angle and rate input timestamps
+    uint32_t last_rate_input_ms;
+    uint32_t last_angle_input_ms;
+
+    // enable flags for forward and lateral axis
     bool forward_enable = true;
     bool lateral_enable = true;
 
