@@ -43,4 +43,6 @@ protected:
     float _tilt_right;  // -1..1
     float _thrust_left;  // 0..1
     float _thrust_right;  // 0..1
+
+    float _throttle_boost_ratio; // 0..1
 };

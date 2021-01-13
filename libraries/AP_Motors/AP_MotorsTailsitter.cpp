@@ -26,6 +26,8 @@
 extern const AP_HAL::HAL& hal;
 
 #define SERVO_OUTPUT_RANGE  4500
+#define BOOST_RATIO_INCREASE 0.0025f // 0 to 1 in 400 calls
+#define BOOST_RAITO_DECREASE 0.0025f
 
 // init
 void AP_MotorsTailsitter::init(motor_frame_class frame_class, motor_frame_type frame_type)
@@ -132,15 +134,15 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
     float   pitch_thrust;               // pitch thrust input value, +/- 1.0
     float   yaw_thrust;                 // yaw thrust input value, +/- 1.0
     float   throttle_thrust;            // throttle thrust input value, 0.0 - 1.0
-    float   thrust_max;                 // highest motor value
-    float   thr_adj = 0.0f;             // the difference between the pilot's desired throttle and throttle_thrust_best_rpy
+    float   max_boost_throttle;         // maximum throttle the mixer can boost to if outputs are saturated
 
     // apply voltage and air pressure compensation
     const float compensation_gain = get_compensation_gain();
-    roll_thrust = (_roll_in + _roll_in_ff) * compensation_gain;
+    roll_thrust = (_roll_in + _roll_in_ff) * compensation_gain * 0.5f;
     pitch_thrust = _pitch_in + _pitch_in_ff;
     yaw_thrust = _yaw_in + _yaw_in_ff;
     throttle_thrust = get_throttle() * compensation_gain;
+    max_boost_throttle = _throttle_avg_max * compensation_gain;
 
     // sanity check throttle is above zero and below current limited throttle
     if (throttle_thrust <= 0.0f) {
@@ -152,24 +154,38 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
         limit.throttle_upper = true;
     }
 
-    // calculate left and right throttle outputs
-    _thrust_left  = throttle_thrust + roll_thrust * 0.5f;
-    _thrust_right = throttle_thrust - roll_thrust * 0.5f;
-
     // if max thrust is more than one reduce average throttle
-    thrust_max = MAX(_thrust_right,_thrust_left);
-    if (thrust_max > 1.0f) {
-        thr_adj = 1.0f - thrust_max;
+    float thrust_headroom = 1.0f - (throttle_thrust + fabsf(roll_thrust));
+    if (is_negative(thrust_headroom)) {
+        throttle_thrust -= thrust_headroom;
         limit.throttle_upper = true;
         limit.roll = true;
-        limit.pitch = true;
+    } else if (limit.pitch || limit.yaw || limit.roll) {
+        // these limits are set by the Quadplane code based on the gain scaling and servo limits
+        // Some throttle head room so if limited in roll, pitch or yaw boost throttle
+        // also add decrease value to cancel out the decrease on this call
+        // ideally we would know how saturated the outputs are, but we cant compare thrust forces to aero forces
+        _throttle_boost_ratio += BOOST_RATIO_INCREASE + BOOST_RAITO_DECREASE;
+    }
+    _throttle_boost_ratio = constrain_float(_throttle_boost_ratio - BOOST_RAITO_DECREASE, 0, 1.0f);
+
+    if (throttle_thrust < max_boost_throttle && is_positive(thrust_headroom)) {
+        // boost the throttle, but not so much as to limit roll
+        throttle_thrust += MIN(thrust_headroom, (max_boost_throttle - throttle_thrust) * _throttle_boost_ratio);
     }
 
-    // Add adjustment to reduce average throttle
-    _thrust_left  = constrain_float(_thrust_left  + thr_adj, 0.0f, 1.0f);
-    _thrust_right = constrain_float(_thrust_right + thr_adj, 0.0f, 1.0f);
-    _throttle = throttle_thrust + thr_adj;
-    // compensation_gain can never be zero
+    if (limit.throttle_lower) {
+        // limit roll, pitch and yaw at 0 throttle, prevent I build up
+        limit.pitch = true;
+        limit.yaw = true;
+        limit.roll = true;
+    }
+
+
+    // calculate left and right throttle outputs
+    _thrust_left  = constrain_float(throttle_thrust + roll_thrust, 0.0f, 1.0f);
+    _thrust_right = constrain_float(throttle_thrust - roll_thrust, 0.0f, 1.0f);
+    _throttle = throttle_thrust;
     _throttle_out = _throttle / compensation_gain;
 
     // thrust vectoring
