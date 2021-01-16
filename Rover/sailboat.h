@@ -111,4 +111,5 @@ private:
     uint32_t tack_clear_ms;         // system time when tack was cleared
     bool tack_assist;               // true if we should use some throttle to assist tack
     UseMotor motor_state;           // current state of motor output
+    bool has_wing;                  // true if using a wing sail, cannot have both wing and mainsheet outputs
 };

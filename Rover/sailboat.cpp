@@ -147,6 +147,14 @@ void Sailboat::init()
         rover.g2.loit_type.set_default(1);
     }
 
+    if (SRV_Channels::function_assigned(SRV_Channel::k_mainsail_sheet) && SRV_Channels::function_assigned(SRV_Channel::k_wingsail_elevator)) {
+        AP_BoardConfig::config_error("Sailboat can't have wing & mainsheet");
+    }
+
+    if (SRV_Channels::function_assigned(SRV_Channel::k_wingsail_elevator)) {
+        has_wing = true;
+    }
+
     // initialise motor state to USE_MOTOR_ASSIST
     // this will silently fail if there is no motor attached
     set_motor_state(UseMotor::USE_MOTOR_ASSIST, false);
@@ -215,51 +223,63 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
         return;
     }
 
-    // use PID controller to sheet out
-    float pid_offset = rover.g2.attitude_control.get_sail_out_from_heel(radians(sail_heel_angle_max), rover.G_Dt) * 100.0f;
-    pid_offset = constrain_float(pid_offset, 0.0f, 100.0f);
 
-    //
-    // mainsail control
-    //
+    if (!has_wing) {
+        //
+        // mainsail control
+        //
 
-    // main sails cannot be used to reverse
-    if (!is_positive(desired_speed)) {
-        mainsail_out = 100.0f;
+        // use PID controller to sheet out
+        float pid_offset = rover.g2.attitude_control.get_sail_out_from_heel(radians(sail_heel_angle_max), rover.G_Dt) * 100.0f;
+
+        // main sails cannot be used to reverse
+        if (!is_positive(desired_speed)) {
+            mainsail_out = 100.0f;
+        } else {
+            // + is wind over starboard side, - is wind over port side, but as the sails are sheeted the same on each side it makes no difference so take abs
+            float wind_dir_apparent = fabsf(rover.g2.windvane.get_apparent_wind_direction_rad());
+            wind_dir_apparent = degrees(wind_dir_apparent);
+
+            // set the main sail to the ideal angle to the wind
+            float mainsail_angle = wind_dir_apparent -sail_angle_ideal;
+
+            // make sure between allowable range
+            mainsail_angle = constrain_float(mainsail_angle,sail_angle_min, sail_angle_max);
+
+            // linear interpolate mainsail value (0 to 100) from wind angle mainsail_angle
+            float mainsail_base = linear_interpolate(0.0f, 100.0f, mainsail_angle,sail_angle_min,sail_angle_max);
+
+            mainsail_out = mainsail_base + pid_offset;
+
+            if (mainsail_out >= 100.0f || mainsail_out <= 0.0f) {
+                rover.g2.attitude_control.limit_sail();
+            }
+            mainsail_out = constrain_float(mainsail_out, 0.0f ,100.0f);
+        }
+
     } else {
-        // + is wind over starboard side, - is wind over port side, but as the sails are sheeted the same on each side it makes no difference so take abs
-        float wind_dir_apparent = fabsf(rover.g2.windvane.get_apparent_wind_direction_rad());
-        wind_dir_apparent = degrees(wind_dir_apparent);
+        //
+        // wingsail control
+        //
 
-        // set the main sail to the ideal angle to the wind
-        float mainsail_angle = wind_dir_apparent -sail_angle_ideal;
+        // wing sails must be trimmed for the correct tack
+        float target_angle = radians(sail_heel_angle_max);
+        if (rover.g2.windvane.get_current_tack() == AP_WindVane::Sailboat_Tack::TACK_STARBOARD) {
+            target_angle *= -1.0f;
+        }
 
-        // make sure between allowable range
-        mainsail_angle = constrain_float(mainsail_angle,sail_angle_min, sail_angle_max);
+        wingsail_out = rover.g2.attitude_control.get_wing_sail_out_from_heel(target_angle, rover.G_Dt) * 100.0f;
 
-        // linear interpolate mainsail value (0 to 100) from wind angle mainsail_angle
-        float mainsail_base = linear_interpolate(0.0f, 100.0f, mainsail_angle,sail_angle_min,sail_angle_max);
+        // wing sails can be used to go backwards, probably not recommended though
+        if (!is_positive(desired_speed)) {
+            wingsail_out *= -1.0f;
+        }
 
-        mainsail_out = constrain_float((mainsail_base + pid_offset), 0.0f ,100.0f);
+        if (wingsail_out >= 100.0f || wingsail_out <= -100.0f) {
+            rover.g2.attitude_control.limit_sail();
+        }
+        wingsail_out = constrain_float(wingsail_out, -100.0f ,100.0f);
     }
-
-    //
-    // wingsail control
-    //
-
-    // wing sails auto trim, we only need to reduce power if we are tipping over
-    wingsail_out = 100.0f - pid_offset;
-
-    // wing sails must be trimmed for the correct tack
-    if (rover.g2.windvane.get_current_tack() == AP_WindVane::Sailboat_Tack::TACK_PORT) {
-        wingsail_out *= -1.0f;
-    }
-
-    // wing sails can be used to go backwards, probably not recommended though
-    if (!is_positive(desired_speed)) {
-        wingsail_out *= -1.0f;
-    }
-
 }
 
 // Velocity Made Good, this is the speed we are traveling towards the desired destination
