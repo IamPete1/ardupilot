@@ -700,7 +700,8 @@ float AR_AttitudeControl::get_sail_out_from_heel(float desired_heel, float dt)
     // set PID's dt
     _sailboat_heel_pid.set_dt(dt);
 
-    _sailboat_heel_pid.update_all(desired_heel, fabsf(_ahrs.roll));
+    _sailboat_heel_pid.update_all(desired_heel, fabsf(_ahrs.roll), _sail_limit);
+    _sail_limit = false;
 
     // get feed-forward
     const float ff = _sailboat_heel_pid.get_ff();
@@ -723,6 +724,31 @@ float AR_AttitudeControl::get_sail_out_from_heel(float desired_heel, float dt)
 
     // constrain and return final output
     return (ff + p + i + d) * -1.0f;
+}
+
+// Sailboat heel(roll) angle controller releases sail to keep at maximum heel angle
+float AR_AttitudeControl::get_wing_sail_out_from_heel(float desired_heel, float dt)
+{
+    // sanity check dt
+    dt = constrain_float(dt, 0.0f, 1.0f);
+
+    // if not called recently, reset input filter
+    const uint32_t now = AP_HAL::millis();
+    if ((_heel_controller_last_ms == 0) || ((now - _heel_controller_last_ms) > AR_ATTCONTROL_TIMEOUT_MS)) {
+        _sailboat_heel_pid.reset_filter();
+        _sailboat_heel_pid.reset_I();
+    }
+    _heel_controller_last_ms = now;
+
+    // set PID's dt
+    _sailboat_heel_pid.set_dt(dt);
+
+    float pid = _sailboat_heel_pid.update_all(desired_heel, _ahrs.roll, _sail_limit);
+    _sail_limit = false;
+
+    float ff = _sailboat_heel_pid.get_ff();
+
+    return  pid + ff;
 }
 
 // get forward speed in m/s (earth-frame horizontal velocity but only along vehicle x-axis).  returns true on success

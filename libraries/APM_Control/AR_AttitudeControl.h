@@ -114,6 +114,8 @@ public:
 
     // Sailboat heel(roll) angle contorller, release sail to keep at maximum heel angle
     float get_sail_out_from_heel(float desired_heel, float dt);
+    float get_wing_sail_out_from_heel(float desired_heel, float dt);
+    void limit_sail() {_sail_limit = true;}
 
     // low level control accessors for reporting and logging
     AC_P& get_steering_angle_p() { return _steer_angle_p; }
@@ -187,4 +189,5 @@ private:
     // Sailboat heel control
     AC_PID   _sailboat_heel_pid;    // Sailboat heel angle pid controller
     uint32_t _heel_controller_last_ms = 0;
+    bool     _sail_limit;
 };
