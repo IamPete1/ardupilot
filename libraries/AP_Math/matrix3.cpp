@@ -145,6 +145,15 @@ Vector3<T> Matrix3<T>::operator *(const Vector3<T> &v) const
                       c.x * v.x + c.y * v.y + c.z * v.z);
 }
 
+// helper for scripting
+template <typename T>
+Vector3<T> Matrix3<T>::multiply(const Vector3<T> &v) const
+{
+   return Vector3<T>(a.x * v.x + a.y * v.y + a.z * v.z,
+                      b.x * v.x + b.y * v.y + b.z * v.z,
+                      c.x * v.x + c.y * v.y + c.z * v.z);
+}
+
 // multiplication by a vector, extracting only the xy components
 template <typename T>
 Vector2<T> Matrix3<T>::mulXY(const Vector3<T> &v) const
