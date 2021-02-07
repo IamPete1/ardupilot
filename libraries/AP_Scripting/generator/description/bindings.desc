@@ -369,3 +369,4 @@ singleton hal.analogin method channel AP_HAL::AnalogSource ANALOG_INPUT_NONE'lit
 userdata Matrix3f method from_euler void float -FLT_MAX FLT_MAX  float -FLT_MAX FLT_MAX  float -FLT_MAX FLT_MAX
 userdata Matrix3f method from_euler312 void float -FLT_MAX FLT_MAX  float -FLT_MAX FLT_MAX  float -FLT_MAX FLT_MAX
 userdata Matrix3f method multiply Vector3f Vector3f
+userdata Matrix3f method mul_transpose Vector3f Vector3f
