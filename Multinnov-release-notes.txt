@@ -1,24 +1,21 @@
-MN-Uaview-stereo-v2.0
+------- MN-Uaview-stereo-v2.0
 
-Rebased to master on 12 december 2020, in order to get the new ekf lane functionality. Besides that,
-we also implemented here:
+rebased to master on first week of February 2021. Finally we have it working with ekf src firmware. Also we have
+make a huge refactor on the commits.
 
-- Start in alt hold mode. Note we first tried using start as loiter, but loiter init was problematic as
-  it was requesting position from ekf before actually having ekf origin set.
+All the avoid and proximity has been updated to 3D in ardupilot, and in this branch we also re did all the particular
+of align yaw and wall mode for complying with this new 3d paradigm in avoidance and proximity.
 
-- Start pwm led power to 1015
+We also have here some spare commits from Rmackay that hasn't yet done it to master. It is indicated in the commit name,
+so in the future it is easy to drop them and just rebase master when they get merged.
 
-- Add timers for pwm for camera take photo action. The pwm for photo is mantained 350ms. This was added
-  in a 10z new task in the scheduler.
 
-- Fix bug triggering roof/ground mode. Some little fixes for our particular setup. surface was roof at 
-  startup, now is NONE
-
-- Don't use avoidance for z. For alt hold and loiter there was a call to avoidance library for calculating
-  z climb rate. That was messing with our setup for roof mode, so we disabled it. We only want lidars in z
-  comming from roof mode.
-
-MN-Uaview-stereo-v1.0
+------- MN-Uaview-stereo-v1.0
 
 First iteration, rebased 2 days before sending the prototype. This is considered the stable version. It has the
 same features as 2.0 but it is from an older master
+
+update late january 2021:
+
+We updated the last features to this branch as a stable solution, so this has actually all the new features from
+the 2020 November development. This has proven to be stable.
