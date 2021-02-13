@@ -19,6 +19,7 @@ char keyword_operator[]            = "operator";
 char keyword_read[]                = "read";
 char keyword_scheduler_semaphore[] = "scheduler-semaphore";
 char keyword_semaphore[]           = "semaphore";
+char keyword_semaphore_pointer[]   = "semaphore-pointer";
 char keyword_singleton[]           = "singleton";
 char keyword_userdata[]            = "userdata";
 char keyword_write[]               = "write";
@@ -349,6 +350,7 @@ enum userdata_flags {
   UD_FLAG_SEMAPHORE         = (1U << 0),
   UD_FLAG_SCHEDULER_SEMAPHORE = (1U << 1),
   UD_FLAG_LITERAL = (1U << 2),
+  UD_FLAG_SEMAPHORE_POINTER = (1U << 3),
 };
 
 struct userdata_enum {
@@ -884,6 +886,8 @@ void handle_singleton(void) {
     node->flags |= UD_FLAG_SEMAPHORE;
   } else if (strcmp(type, keyword_scheduler_semaphore) == 0) {
     node->flags |= UD_FLAG_SCHEDULER_SEMAPHORE;
+  } else if (strcmp(type, keyword_semaphore_pointer) == 0) {
+    node->flags |= UD_FLAG_SCHEDULER_SEMAPHORE;
   } else if (strcmp(type, keyword_method) == 0) {
     handle_method(node->name, &(node->methods));
   } else if (strcmp(type, keyword_enum) == 0) {
@@ -954,6 +958,8 @@ void handle_ap_object(void) {
     node->flags |= UD_FLAG_SEMAPHORE;
   } else if (strcmp(type, keyword_scheduler_semaphore) == 0) {
     node->flags |= UD_FLAG_SCHEDULER_SEMAPHORE;
+  } else if (strcmp(type, keyword_semaphore_pointer) == 0) {
+    node->flags |= UD_FLAG_SEMAPHORE_POINTER;
   } else if (strcmp(type, keyword_method) == 0) {
     handle_method(node->name, &(node->methods));
   } else {
@@ -961,8 +967,8 @@ void handle_ap_object(void) {
   }
 
   // check that we didn't just add 2 singleton flags
-  if ((node->flags & UD_FLAG_SEMAPHORE) && (node->flags & UD_FLAG_SCHEDULER_SEMAPHORE)) {
-    error(ERROR_SINGLETON, "Taking both a library semaphore and scheduler semaphore is prohibited");
+  if ((node->flags & UD_FLAG_SEMAPHORE) && (node->flags & UD_FLAG_SCHEDULER_SEMAPHORE) && (node->flags & UD_FLAG_SEMAPHORE_POINTER)) {
+    error(ERROR_SINGLETON, "Taking multiple types of semaphore is prohibited");
   }
 
   // ensure no more tokens on the line
@@ -1504,6 +1510,10 @@ void emit_userdata_method(const struct userdata *data, const struct method *meth
     fprintf(source, "    %s->get_semaphore().take_blocking();\n", ud_name);
   }
 
+  if (data->flags & UD_FLAG_SEMAPHORE_POINTER) {
+    fprintf(source, "    %s->get_semaphore()->take_blocking();\n", ud_name);
+  }
+
   if (data->flags & UD_FLAG_SCHEDULER_SEMAPHORE) {
     fprintf(source, "    AP::scheduler().get_semaphore().take_blocking();\n");
   }
@@ -1629,6 +1639,10 @@ void emit_userdata_method(const struct userdata *data, const struct method *meth
 
   if (data->flags & UD_FLAG_SEMAPHORE) {
     fprintf(source, "    %s->get_semaphore().give();\n", ud_name);
+  }
+
+  if (data->flags & UD_FLAG_SEMAPHORE_POINTER) {
+    fprintf(source, "    %s->get_semaphore()->give();\n", ud_name);
   }
 
   if (data->flags & UD_FLAG_SCHEDULER_SEMAPHORE) {
