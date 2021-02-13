@@ -332,7 +332,7 @@ singleton AP_MotorsMatrix_6DoF_Scripting method add_motor void int8_t 0 (AP_MOTO
 include AP_HAL/I2CDevice.h
 ap_object AP_HAL::I2CDevice method set_retries void uint8_t 1 20
 ap_object AP_HAL::I2CDevice method write_register boolean uint8_t 0 UINT8_MAX uint8_t 0 UINT8_MAX
-ap_object AP_HAL::I2CDevice method read_registers boolean uint8_t 0 UINT8_MAX uint8_t'Null_ptr 1'literal
+ap_object AP_HAL::I2CDevice method read_registers boolean uint8_t 0 UINT8_MAX &uint8_t'Null 1'literal
 ap_object AP_HAL::I2CDevice method set_address void uint8_t 0 UINT8_MAX
 
 userdata AP_HAL::OwnPtr<AP_HAL::I2CDevice> method get()->set_retries void uint8_t 1 20
