@@ -69,6 +69,7 @@ struct generator_state {
 FILE *description;
 FILE *header;
 FILE *source;
+FILE *readme;
 
 static struct generator_state state;
 static struct header * headers;
@@ -1214,39 +1215,51 @@ void emit_checker(const struct type t, int arg_number, int skipped, const char *
       case TYPE_FLOAT:
         // this is a trivial transformation, trust the compiler to resolve it for us
         fprintf(source, "%sconst float data_%d = raw_data_%d;\n", indentation, arg_number, arg_number);
+        fprintf(readme, "float");
         break;
       case TYPE_INT8_T:
         fprintf(source, "%sconst int8_t data_%d = static_cast<int8_t>(raw_data_%d);\n", indentation, arg_number, arg_number);
+        fprintf(readme, "int8_t");
         break;
       case TYPE_INT16_T:
         fprintf(source, "%sconst int16_t data_%d = static_cast<int16_t>(raw_data_%d);\n", indentation, arg_number, arg_number);
+        fprintf(readme, "int16_t");
         break;
       case TYPE_INT32_T:
         fprintf(source, "%sconst int32_t data_%d = raw_data_%d;\n", indentation, arg_number, arg_number);
+        fprintf(readme, "int32_t");
         break;
       case TYPE_UINT8_T:
         fprintf(source, "%sconst uint8_t data_%d = static_cast<uint8_t>(raw_data_%d);\n", indentation, arg_number, arg_number);
+        fprintf(readme, "uint8_t");
         break;
       case TYPE_UINT16_T:
         fprintf(source, "%sconst uint16_t data_%d = static_cast<uint16_t>(raw_data_%d);\n", indentation, arg_number, arg_number);
+        fprintf(readme, "uint16_t");
         break;
       case TYPE_UINT32_T:
         fprintf(source, "%sconst uint32_t data_%d = static_cast<uint32_t>(raw_data_%d);\n", indentation, arg_number, arg_number);
+        fprintf(readme, "uint32_t");
         break;
       case TYPE_BOOLEAN:
         fprintf(source, "%sconst bool data_%d = static_cast<bool>(lua_toboolean(L, %d));\n", indentation, arg_number, arg_number);
+        fprintf(readme, "bool");
         break;
       case TYPE_STRING:
         fprintf(source, "%sconst char * data_%d = luaL_checkstring(L, %d);\n", indentation, arg_number, arg_number);
+        fprintf(readme, "string");
         break;
       case TYPE_ENUM:
         fprintf(source, "%sconst %s data_%d = static_cast<%s>(raw_data_%d);\n", indentation, t.data.enum_name, arg_number, t.data.enum_name, arg_number);
+        fprintf(readme, "enum");
         break;
       case TYPE_USERDATA:
         fprintf(source, "%s%s & data_%d = *check_%s(L, %d);\n", indentation, t.data.ud.name, arg_number, t.data.ud.sanatized_name, arg_number);
+        fprintf(readme, "%s",t.data.ud.name);
         break;
       case TYPE_AP_OBJECT:
         fprintf(source, "%s%s * data_%d = *check_%s(L, %d);\n", indentation, t.data.ud.name, arg_number, t.data.ud.sanatized_name, arg_number);
+        fprintf(readme, "%s",t.data.ud.name);
         break;
       case TYPE_LITERAL:
         // literals are expected to be done directly later
@@ -1255,6 +1268,13 @@ void emit_checker(const struct type t, int arg_number, int skipped, const char *
         // nothing to do, we've either already emitted a reasonable value, or returned
         break;
     }
+
+    if ((t.range != NULL) && (forced_min != NULL) && (forced_max != NULL)) {
+        fprintf(readme, "|MAX(%s,%s)|MIN(%s,%s)\n",t.range->low,forced_min,t.range->high,forced_max);
+    } else {
+      fprintf(readme, "||\n");
+    }
+
   }
 }
 
@@ -1384,6 +1404,10 @@ int emit_references(const struct argument *arg, const char * tab) {
 
 void emit_userdata_method(const struct userdata *data, const struct method *method) {
   int arg_count = 1;
+
+  fprintf(readme, "\n### %s:%s\n",data->alias?data->alias:data->name,method->name);
+  fprintf(readme, "argument|min|max\n");
+  fprintf(readme, ":---:|:---:|:---:\n");
 
   start_dependency(source, data->dependency);
 
@@ -1717,6 +1741,11 @@ void emit_operators(struct userdata *data) {
 void emit_userdata_methods(struct userdata *node) {
   while(node) {
     // methods
+    fprintf(readme, "## %s\n",node->alias?node->alias:node->name);
+    if (node->dependency != NULL) {
+      fprintf(readme, "depends on `%s`\n", node->dependency);
+    }
+
     struct method *method = node->methods;
     while(method) {
       emit_userdata_method(node, method);
@@ -1727,6 +1756,8 @@ void emit_userdata_methods(struct userdata *node) {
     if (node->operations) {
       emit_operators(node);
     }
+
+    fprintf(readme, "\n\n");
     node = node->next;
   }
 }
@@ -1965,6 +1996,7 @@ void emit_not_supported_helper(void) {
 }
 
 char * output_path = NULL;
+char * readme_path = NULL;
 
 int main(int argc, char **argv) {
   state.line_num = -1;
@@ -1981,6 +2013,7 @@ int main(int argc, char **argv) {
         if (description == NULL) {
           error(ERROR_GENERAL, "Unable to load the description file: %s", optarg);
         }
+        readme_path = optarg;
         break;
       case 'o':
         if (output_path != NULL) {
@@ -1994,6 +2027,10 @@ int main(int argc, char **argv) {
 
   if (output_path == NULL) {
     error(ERROR_GENERAL, "An output path must be provided for the generated bindings");
+  }
+
+  if (readme_path == NULL) {
+    error(ERROR_GENERAL, "no readme path");
   }
 
   state.line_num = 0;
@@ -2032,6 +2069,16 @@ int main(int argc, char **argv) {
   if (source == NULL) {
     error(ERROR_GENERAL, "Unable to open the output source file: %s", file_name);
   }
+
+  char *readme_name = (char *)allocate(strlen(readme_path) + 10);
+  readme_path[(strrchr(readme_path, '/') - readme_path)+1] = 0;
+  sprintf(readme_name, "%sREADME.md", readme_path);
+  readme = fopen(readme_name, "w");
+  if (readme == NULL) {
+    error(ERROR_GENERAL, "Unable to open the output readme file: /readme.md");
+  }
+  fprintf(readme, "# auto generated readme\n\n");
+
 
   fprintf(source, "// auto generated bindings, don't manually edit.  See README.md for details.\n");
   
