@@ -219,8 +219,8 @@ void AP_MotorsMatrix::output_armed_stabilizing()
         limit.throttle_upper = true;
     }
 
-    // ensure that throttle_avg_max is between the input throttle and the maximum throttle
-    throttle_avg_max = constrain_float(throttle_avg_max, throttle_thrust, throttle_thrust_max);
+    // ensure that throttle_avg_max is between 0 and the maximum throttle
+    throttle_avg_max = constrain_float(throttle_avg_max, 0.0f, throttle_thrust_max);
 
     // calculate the highest allowed average thrust that will provide maximum control range
     throttle_thrust_best_rpy = MIN(0.5f, throttle_avg_max);
