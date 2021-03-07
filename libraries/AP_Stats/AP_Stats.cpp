@@ -39,6 +39,13 @@ const AP_Param::GroupInfo AP_Stats::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("_RESET",    3, AP_Stats, params.reset, 1),
 
+    // @Param: _SERVICE
+    // @DisplayName: net Flight time when last service was performed
+    // @Description: the value of STAT_FLTTTIME when last service was performed
+    // @Units: s
+    // @User: Standard
+    AP_GROUPINFO("_SERVICE",   4, AP_Stats, params.service, 0),
+
     AP_GROUPEND
 };
 
@@ -105,6 +112,7 @@ void AP_Stats::update()
         params.bootcount.set_and_save_ifchanged(params_reset == 0 ? 1 : 0);
         params.flttime.set_and_save_ifchanged(0);
         params.runtime.set_and_save_ifchanged(0);
+        params.service.set_and_save_ifchanged(0);
         uint32_t system_clock = 0; // in seconds
         uint64_t rtc_clock_us;
         if (AP::rtc().get_utc_usec(rtc_clock_us)) {

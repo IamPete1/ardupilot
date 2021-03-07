@@ -39,7 +39,11 @@ public:
     // accessor for flighttime. Returns 0 if not flying, otherwise
     // total time flying since boot in seconds
     uint32_t get_flight_time_s(void);
-    
+
+    // helpers as scripting does not yet have param accsess
+    int32_t get_total_flight_time() const {return params.flttime.get();}
+    int32_t get_service_time() const {return params.service.get();}
+
     // get singleton
     static AP_Stats *get_singleton(void) {
         return _singleton;
@@ -55,6 +59,7 @@ private:
         AP_Int32 flttime;
         AP_Int32 runtime;
         AP_Int32 reset;
+        AP_Int32 service;
     } params;
 
     void copy_variables_from_parameters();
