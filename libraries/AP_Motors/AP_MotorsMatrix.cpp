@@ -134,6 +134,7 @@ void AP_MotorsMatrix::output_to_motors()
                     _actuator[i] = 0.0f;
                 }
             }
+            _thr_adj_scale = 1.0f;
             break;
         }
         case SpoolState::GROUND_IDLE:
@@ -143,6 +144,7 @@ void AP_MotorsMatrix::output_to_motors()
                     set_actuator_with_slew(_actuator[i], actuator_spin_up_to_ground_idle());
                 }
             }
+            _thr_adj_scale = 1.0f;
             break;
         case SpoolState::SPOOLING_UP:
         case SpoolState::THROTTLE_UNLIMITED:
@@ -348,6 +350,7 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     rpy_low *= rpy_scale;
     throttle_thrust_best_rpy = -rpy_low;
     thr_adj = throttle_thrust - throttle_thrust_best_rpy;
+    float thr_adj_scale = 1.0f;
     if (rpy_scale < 1.0f) {
         // Full range is being used by roll, pitch, and yaw.
         limit.roll = true;
@@ -357,6 +360,7 @@ void AP_MotorsMatrix::output_armed_stabilizing()
             limit.throttle_upper = true;
         }
         thr_adj = 0.0f;
+        thr_adj_scale = 0.0f;
     } else {
         if (thr_adj < 0.0f) {
             // Throttle can't be reduced to desired value
@@ -368,11 +372,15 @@ void AP_MotorsMatrix::output_armed_stabilizing()
             limit.throttle_upper = true;
         }
     }
+    // only allow the throttle adjust scale to increase slowly
+    _thr_adj_scale = MIN(thr_adj_scale, _thr_adj_scale + 1.0f / (_spool_up_time * _loop_rate));
+    _thr_adj_scale = MIN(_thr_adj_scale,1.0f); // never larger than 1
+
 
     // add scaled roll, pitch, constrained yaw and throttle for each motor
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] = throttle_thrust_best_rpy + thr_adj + (rpy_scale * _thrust_rpyt_out[i]);
+            _thrust_rpyt_out[i] = throttle_thrust_best_rpy + (thr_adj*_thr_adj_scale) + (rpy_scale * _thrust_rpyt_out[i]);
         }
     }
 
