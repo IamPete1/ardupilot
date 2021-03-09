@@ -384,6 +384,16 @@ void AP_MotorsMatrix::output_armed_stabilizing()
         }
     }
 
+    AP::logger().Write("MMIX", "TimeUS,Thr_bst,thr_ad,ad_scle,slew_ad_scle,rpy_scle,rpy_l,rpy_h", "Qfffffff",
+                                               AP_HAL::micros64(),
+                                               (double)throttle_thrust_best_rpy,
+                                               (double)thr_adj,
+                                               (double)thr_adj_scale,
+                                               (double)_thr_adj_scale,
+                                               (double)rpy_scale,
+                                               (double)rpy_low,
+                                               (double)rpy_high);
+
     // determine throttle thrust for harmonic notch
     const float throttle_thrust_best_plus_adj = throttle_thrust_best_rpy + thr_adj;
     // compensation_gain can never be zero
