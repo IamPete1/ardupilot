@@ -359,22 +359,22 @@ void AP_MotorsMatrix::output_armed_stabilizing()
         if (thr_adj > 0.0f) {
             limit.throttle_upper = true;
         }
-        thr_adj = 0.0f;
         thr_adj_scale = 0.0f;
     } else {
-        if (thr_adj < 0.0f) {
+        if (thr_adj <= 0.0f) {
             // Throttle can't be reduced to desired value
             // todo: add lower limit flag and ensure it is handled correctly in altitude controller
             thr_adj = 0.0f;
         } else if (thr_adj > 1.0f - (throttle_thrust_best_rpy + rpy_high)) {
             // Throttle can't be increased to desired value
-            thr_adj = 1.0f - (throttle_thrust_best_rpy + rpy_high);
+            thr_adj_scale = (1.0f - (throttle_thrust_best_rpy + rpy_high)) / thr_adj;
             limit.throttle_upper = true;
         }
     }
-    // only allow the throttle adjust scale to increase slowly
-    _thr_adj_scale = MIN(thr_adj_scale, _thr_adj_scale + 1.0f / (_spool_up_time * _loop_rate));
-    _thr_adj_scale = MIN(_thr_adj_scale,1.0f); // never larger than 1
+    // Slew rate limit change in throttle scale
+    const float max_slew_rate = 1.0f / (_spool_up_time * _loop_rate);
+    _thr_adj_scale = constrain_float(thr_adj_scale, _thr_adj_scale - max_slew_rate, _thr_adj_scale + max_slew_rate);
+    _thr_adj_scale = constrain_float(_thr_adj_scale,0.0f,1.0f);
 
 
     // add scaled roll, pitch, constrained yaw and throttle for each motor
