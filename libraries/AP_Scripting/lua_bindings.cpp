@@ -9,6 +9,9 @@
 #include <AP_Scripting/lua_generated_bindings.h>
 
 #include <AP_Scripting/AP_Scripting.h>
+#if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
+#include <AP_Motors/AP_MotorsMatrix_Scripting_interp.h>
+#endif
 
 extern const AP_HAL::HAL& hal;
 
@@ -74,12 +77,79 @@ static int lua_mission_receive(lua_State *L) {
 
     return 5;
 }
+#if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
+static int lua_add_motors_interp_table(lua_State *L) {
+
+    AP_MotorsMatrix_Scripting_interp * ud = AP_MotorsMatrix_Scripting_interp::get_singleton();
+    if (ud == nullptr) {
+        return luaL_argerror(L, 1, "Motors_interp not enabled");
+    }
+
+    if (lua_type(L, 2) != LUA_TTABLE) {
+        return luaL_error(L, "expected param table for argument 2");
+    }
+
+    size_t num_params = lua_rawlen(L,2);
+    if (num_params == 0) {
+        return luaL_error(L, "need at least one motor");
+    }
+    if (num_params > AP_MOTORS_MAX_NUM_MOTORS) {
+        return luaL_error(L, "only support up to %u motors",AP_MOTORS_MAX_NUM_MOTORS);
+    }
+
+    AP_MotorsMatrix_Scripting_interp::factors_table table {};
+
+    table.value = luaL_checknumber(L, 1);
+
+    for (uint8_t i=1; i<=num_params; i++) { // lua is 1 indexed
+        lua_pushinteger(L, i); 
+        lua_gettable(L,-2);
+        if (lua_type(L, -1) != LUA_TTABLE) {
+            return luaL_error(L, "Lua: expected table in table index %u", i);
+        }
+
+        size_t len = lua_rawlen(L,-1);
+        if (len != 3 && len != 4) {
+            return luaL_error(L, "Lua: expected three values in table index %u", i);
+        }
+
+        lua_pushinteger(L, 1);
+        lua_gettable(L,-2);
+        table.roll[i-1] = luaL_checknumber(L, -1);
+        lua_pop (L, 1);
+
+        lua_pushinteger(L, 2);
+        lua_gettable(L,-2);
+        table.pitch[i-1] = luaL_checknumber(L, -1);
+        lua_pop (L, 1);
+
+        lua_pushinteger(L, 3);
+        lua_gettable(L,-2);
+        table.yaw[i-1] = luaL_checknumber(L, -1);
+        lua_pop (L, 1);
+
+        lua_pop (L, 1);
+    }
+
+    // now we have loaded everything successfully create a new table and send it to motors
+    AP_MotorsMatrix_Scripting_interp::factors_table *new_table = new AP_MotorsMatrix_Scripting_interp::factors_table{};
+    memcpy(new_table, &table, sizeof(AP_MotorsMatrix_Scripting_interp::factors_table));
+
+    ud->add_table(new_table);
+
+
+    return 0;
+}
+#endif
 
 static const luaL_Reg global_functions[] =
 {
     {"millis", lua_millis},
     {"micros", lua_micros},
     {"mission_receive", lua_mission_receive},
+#if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
+    {"add_motors_interp_table", lua_add_motors_interp_table},
+#endif
     {NULL, NULL}
 };
 
