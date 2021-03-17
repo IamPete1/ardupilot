@@ -141,6 +141,7 @@ public:
     // Returns true if the height datum reset has been performed
     // If using a range finder for height no reset is performed and it returns false
     bool resetHeightDatum(void);
+    void resetHeightDatum(float alt);
 
     // return the horizontal speed limit in m/s set by optical flow sensor limits
     // return the scale factor to be applied to navigation velocity gains to compensate for increase in velocity noise with height when using optical flow

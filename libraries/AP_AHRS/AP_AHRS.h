@@ -516,6 +516,7 @@ public:
     virtual bool resetHeightDatum(void) WARN_IF_UNUSED {
         return false;
     }
+    virtual void resetHeightDatum(float alt) {};
 
     // return the innovations for the specified instance
     // An out of range instance (eg -1) returns data for the primary instance

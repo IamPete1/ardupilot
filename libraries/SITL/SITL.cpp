@@ -418,6 +418,8 @@ void SITL::simstate_send(mavlink_channel_t chan) const
                               radians(state.yawRate),
                               state.latitude*1.0e7,
                               state.longitude*1.0e7);
+
+    gcs().send_named_float("SIM_ALT",state.altitude);
 }
 
 /* report SITL state via MAVLink SIM_STATE */

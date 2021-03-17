@@ -278,6 +278,16 @@ void NavEKF3_core::ResetHeight(void)
 
 // Zero the EKF height datum
 // Return true if the height datum reset has been performed
+void NavEKF3_core::resetHeightDatum(float alt)
+{
+    //stateStruct.position.z = alt;
+    //stateStruct.velocity.z = 0;
+    ResetPositionD(-alt);
+    gcs().send_text(MAV_SEVERITY_EMERGENCY,"set alt to to %f",stateStruct.position.z);
+}
+
+// Zero the EKF height datum
+// Return true if the height datum reset has been performed
 bool NavEKF3_core::resetHeightDatum(void)
 {
     if (activeHgtSource == AP_NavEKF_Source::SourceZ::RANGEFINDER || !onGround) {

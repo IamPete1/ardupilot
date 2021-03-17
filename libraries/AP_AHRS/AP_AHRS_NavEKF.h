@@ -241,6 +241,7 @@ public:
     // Returns true if the height datum reset has been performed
     // If using a range finder for height no reset is performed and it returns false
     bool resetHeightDatum() override;
+    void resetHeightDatum(float alt) override;
 
     // send a EKF_STATUS_REPORT for current EKF
     void send_ekf_status_report(mavlink_channel_t chan) const;

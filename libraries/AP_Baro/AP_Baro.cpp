@@ -86,7 +86,7 @@ const AP_Param::GroupInfo AP_Baro::var_info[] = {
     // @ReadOnly: True
     // @Volatile: True
     // @User: Advanced
-    AP_GROUPINFO_FLAGS("1_GND_PRESS", 2, AP_Baro, sensors[0].ground_pressure, 0, AP_PARAM_FLAG_INTERNAL_USE_ONLY),
+    AP_GROUPINFO_FLAGS("1_GND_PRESS", 2, AP_Baro, sensors[0].ground_pressure, 0, 0),
 
     // @Param: _GND_TEMP
     // @DisplayName: ground temperature
@@ -336,6 +336,7 @@ void AP_Baro::calibrate(bool save)
 */
 void AP_Baro::update_calibration()
 {
+    _alt_offset.set(0);
     const uint32_t now = AP_HAL::millis();
     const bool do_notify = now - _last_notify_ms > 10000;
     if (do_notify) {
@@ -827,13 +828,12 @@ void AP_Baro::update(void)
 {
     WITH_SEMAPHORE(_rsem);
 
+    bool reset = false;
     if (fabsf(_alt_offset - _alt_offset_active) > 0.01f) {
-        // If there's more than 1cm difference then slowly slew to it via LPF.
-        // The EKF does not like step inputs so this keeps it happy.
-        _alt_offset_active = (0.95f*_alt_offset_active) + (0.05f*_alt_offset);
-    } else {
+        reset = true;
         _alt_offset_active = _alt_offset;
     }
+    _alt_offset_active = _alt_offset;
 
     if (!_hil_mode) {
         for (uint8_t i=0; i<_num_drivers; i++) {
@@ -898,6 +898,11 @@ void AP_Baro::update(void)
         Write_Baro();
     }
 #endif
+
+    if (reset) {
+        gcs().send_text(MAV_SEVERITY_EMERGENCY,"Reset alt to to %f",sensors[0].altitude);
+        AP::ahrs().resetHeightDatum(sensors[0].altitude);
+    }
 }
 
 /*

@@ -1234,6 +1234,17 @@ bool NavEKF3::resetHeightDatum(void)
     return status;
 }
 
+void NavEKF3::resetHeightDatum(float alt)
+{
+    AP::dal().log_event3(AP_DAL::Event::resetHeightDatum);
+
+    if (core) {
+        for (uint8_t i=0; i<num_cores; i++) {
+            core[i].resetHeightDatum(alt);
+        }
+    }
+}
+
 // return the horizontal speed limit in m/s set by optical flow sensor limits
 // return the scale factor to be applied to navigation velocity gains to compensate for increase in velocity noise with height when using optical flow
 void NavEKF3::getEkfControlLimits(float &ekfGndSpdLimit, float &ekfNavVelGainScaler) const

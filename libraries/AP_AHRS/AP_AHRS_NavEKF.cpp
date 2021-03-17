@@ -2272,6 +2272,47 @@ bool AP_AHRS_NavEKF::resetHeightDatum(void)
     return false;
 }
 
+void AP_AHRS_NavEKF::resetHeightDatum(float alt)
+{
+    // support locked access functions to AHRS data
+    WITH_SEMAPHORE(_rsem);
+    
+    switch (ekf_type()) {
+
+    case EKFType::NONE:
+#if HAL_NAVEKF3_AVAILABLE
+        EKF3.resetHeightDatum(alt);
+#endif
+#if HAL_NAVEKF2_AVAILABLE
+        //EKF2.resetHeightDatum_to_baro();
+#endif
+        return;
+
+#if HAL_NAVEKF2_AVAILABLE
+    case EKFType::TWO:
+#if HAL_NAVEKF3_AVAILABLE
+        EKF3.resetHeightDatum(alt);
+#endif
+        //EKF2.resetHeightDatum_to_baro();
+#endif
+        return;
+
+#if HAL_NAVEKF3_AVAILABLE
+    case EKFType::THREE:
+#if HAL_NAVEKF2_AVAILABLE
+        //EKF2.resetHeightDatum_to_baro();
+#endif
+        EKF3.resetHeightDatum(alt);
+#endif
+        return;
+
+    case EKFType::SITL:
+    case EKFType::EXTERNAL:
+        return;
+    }
+}
+
+
 // send a EKF_STATUS_REPORT for current EKF
 void AP_AHRS_NavEKF::send_ekf_status_report(mavlink_channel_t chan) const
 {
