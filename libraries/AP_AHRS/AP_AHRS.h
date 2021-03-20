@@ -537,6 +537,10 @@ public:
         return false;
     }
 
+    virtual uint8_t get_alt_source() const {
+        return 1; // AP_NavEKF_Source::SourceZ::BARO;
+    }
+
     // get the selected ekf type, for allocation decisions
     int8_t get_ekf_type(void) const {
         return _ekf_type;

@@ -376,6 +376,8 @@ public:
     // returns true when the yaw angle has been aligned
     bool yawAlignmentComplete(void) const;
 
+   AP_NavEKF_Source::SourceZ get_alt_source() const;
+
 private:
     uint8_t num_cores; // number of allocated cores
     uint8_t primary;   // current primary core

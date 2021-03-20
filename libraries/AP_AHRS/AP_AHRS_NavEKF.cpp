@@ -2586,6 +2586,37 @@ bool AP_AHRS_NavEKF::get_vel_innovations_and_variances_for_source(uint8_t source
     return false;
 }
 
+uint8_t AP_AHRS_NavEKF::get_alt_source() const
+{
+    switch (ekf_type()) {
+    case EKFType::NONE:
+        return uint8_t(AP_NavEKF_Source::SourceZ::NONE);
+
+#if HAL_NAVEKF2_AVAILABLE
+    case EKFType::TWO:
+        return uint8_t(AP_NavEKF_Source::SourceZ::NONE);
+#endif
+
+#if HAL_NAVEKF3_AVAILABLE
+    case EKFType::THREE:
+        return uint8_t(EKF3.get_alt_source());
+#endif
+
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    case EKFType::SITL:
+        return uint8_t(AP_NavEKF_Source::SourceZ::NONE);
+#endif
+
+#if HAL_EXTERNAL_AHRS_ENABLED
+    case EKFType::EXTERNAL:
+        return uint8_t(AP_NavEKF_Source::SourceZ::NONE);
+#endif
+    }
+
+    return uint8_t(AP_NavEKF_Source::SourceZ::NONE);
+}
+
+
 void AP_AHRS_NavEKF::setTakeoffExpected(bool val)
 {
     switch (takeoffExpectedState) {

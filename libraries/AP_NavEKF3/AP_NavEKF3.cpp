@@ -2031,3 +2031,11 @@ bool NavEKF3::yawAlignmentComplete(void) const
     }
     return core[primary].have_aligned_yaw();
 }
+
+AP_NavEKF_Source::SourceZ NavEKF3::get_alt_source(void) const
+{
+    if (!core) {
+        return AP_NavEKF_Source::SourceZ::NONE;
+    }
+    return core[primary].get_alt_source();
+}

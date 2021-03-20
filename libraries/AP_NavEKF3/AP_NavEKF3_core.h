@@ -400,6 +400,8 @@ public:
 
     void Log_Write(uint64_t time_us);
 
+    AP_NavEKF_Source::SourceZ get_alt_source() const {return activeHgtSource;}
+
 private:
     EKFGSF_yaw *yawEstimator;
     AP_DAL &dal;
