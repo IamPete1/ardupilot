@@ -180,7 +180,7 @@ public:
     void set_baro_drift_altitude(float alt) { _alt_offset = alt; }
 
     // get baro drift amount
-    float get_baro_drift_offset(void) const { return _alt_offset_active; }
+    float get_baro_drift_offset(void) const { return _alt_offset.get(); }
 
     // simple atmospheric model
     static void SimpleAtmosphere(const float alt, float &sigma, float &delta, float &theta);
@@ -281,7 +281,6 @@ private:
     } sensors[BARO_MAX_INSTANCES];
 
     AP_Float                            _alt_offset;
-    float                               _alt_offset_active;
     AP_Int8                             _primary_baro; // primary chosen by user
     AP_Int8                             _ext_bus; // bus number for external barometer
     float                               _last_altitude_EAS2TAS;

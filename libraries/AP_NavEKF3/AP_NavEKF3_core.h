@@ -513,6 +513,8 @@ private:
 
     struct baro_elements : EKF_obs_element_t {
         float       hgt;            // height of the pressure sensor in local NED earth frame (m)
+        uint8_t     sensor_idx;     // index number of baro sensor
+        float       offset;         // altitude offset
     };
 
     struct range_elements : EKF_obs_element_t {
@@ -1006,6 +1008,8 @@ private:
     uint32_t imuSampleTime_ms;      // time that the last IMU value was taken
     bool tasDataToFuse;             // true when new airspeed data is waiting to be fused
     uint32_t lastBaroReceived_ms;   // time last time we received baro height data
+    uint8_t lastBaroSelected;       // last baro used, to detect switch in parmary baro
+    float lastBaroOffset;           // last baro offset distance used
     uint16_t hgtRetryTime_ms;       // time allowed without use of height measurements before a height timeout is declared
     uint32_t lastVelPassTime_ms;    // time stamp when GPS velocity measurement last passed innovation consistency check (msec)
     uint32_t lastPosPassTime_ms;    // time stamp when GPS position measurement last passed innovation consistency check (msec)

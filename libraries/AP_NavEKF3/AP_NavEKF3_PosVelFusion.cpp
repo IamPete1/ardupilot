@@ -292,6 +292,10 @@ bool NavEKF3_core::resetHeightDatum(void)
     dal.baro().update_calibration();
     // reset the height state
     stateStruct.position.z = 0.0f;
+    if (activeHgtSource == AP_NavEKF_Source::SourceZ::BARO) {
+        // if useing baro it may have a offset
+        stateStruct.position.z -= lastBaroOffset;
+    }
     // adjust the height of the EKF origin so that the origin plus baro height before and after the reset is the same
     if (validOrigin) {
         if (!gpsGoodToAlign) {
@@ -525,6 +529,15 @@ void NavEKF3_core::SelectVelPosFusion()
 
         // If we are also using GPS as the height reference, reset the height
         if (activeHgtSource == AP_NavEKF_Source::SourceZ::GPS) {
+            ResetPositionD(-hgtMea);
+        }
+    }
+
+    // Change in primary baro or baro altitude offset
+    if ((lastBaroSelected != baroDataDelayed.sensor_idx) || !is_equal(baroDataDelayed.offset,lastBaroOffset)) {
+        lastBaroSelected =  baroDataDelayed.sensor_idx;
+        lastBaroOffset = baroDataDelayed.offset;
+        if (activeHgtSource == AP_NavEKF_Source::SourceZ::BARO) {
             ResetPositionD(-hgtMea);
         }
     }

@@ -827,14 +827,6 @@ void AP_Baro::update(void)
 {
     WITH_SEMAPHORE(_rsem);
 
-    if (fabsf(_alt_offset - _alt_offset_active) > 0.01f) {
-        // If there's more than 1cm difference then slowly slew to it via LPF.
-        // The EKF does not like step inputs so this keeps it happy.
-        _alt_offset_active = (0.95f*_alt_offset_active) + (0.05f*_alt_offset);
-    } else {
-        _alt_offset_active = _alt_offset;
-    }
-
     if (!_hil_mode) {
         for (uint8_t i=0; i<_num_drivers; i++) {
             drivers[i]->backend_update(i);
@@ -863,7 +855,7 @@ void AP_Baro::update(void)
             // sanity check altitude
             sensors[i].alt_ok = !(isnan(altitude) || isinf(altitude));
             if (sensors[i].alt_ok) {
-                sensors[i].altitude = altitude + _alt_offset_active;
+                sensors[i].altitude = altitude + get_baro_drift_offset();
             }
         }
         if (_hil.have_alt) {

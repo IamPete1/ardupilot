@@ -111,15 +111,6 @@ void Plane::update_home()
     if (hal.util->was_watchdog_armed()) {
         return;
     }
-    if ((g2.home_reset_threshold == -1) ||
-        ((g2.home_reset_threshold > 0) &&
-         (fabsf(barometer.get_altitude()) > g2.home_reset_threshold))) {
-        // don't auto-update if we have changed barometer altitude
-        // significantly. This allows us to cope with slow baro drift
-        // but not re-do home and the baro if we have changed height
-        // significantly
-        return;
-    }
     if (ahrs.home_is_set() && !ahrs.home_is_locked()) {
         Location loc;
         if(ahrs.get_position(loc) && gps.status() >= AP_GPS::GPS_OK_FIX_3D) {
@@ -129,6 +120,8 @@ void Plane::update_home()
             // altitude, as AHRS alt depends on home alt, which means
             // we would have a circular dependency
             loc.alt = gps.location().alt;
+            // should check that were actually using the baro
+            loc.alt += barometer.get_baro_drift_offset();
             if (!AP::ahrs().set_home(loc)) {
                 // silently fail
             }
