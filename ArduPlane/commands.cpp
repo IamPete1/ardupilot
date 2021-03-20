@@ -120,8 +120,11 @@ void Plane::update_home()
             // altitude, as AHRS alt depends on home alt, which means
             // we would have a circular dependency
             loc.alt = gps.location().alt;
-            // should check that were actually using the baro
-            loc.alt += barometer.get_baro_drift_offset();
+            if (ahrs.get_alt_source() == 1) { // check that were using the baro
+                // updating the baro calibration does not actually set it to zero if there is a active offset
+                // we must move home to account for this
+                loc.alt += barometer.get_baro_drift_offset() * 100; // m to cm
+            }
             if (!AP::ahrs().set_home(loc)) {
                 // silently fail
             }
