@@ -217,6 +217,22 @@ const AP_Param::GroupInfo AP_Baro::var_info[] = {
 #endif
 #endif
 
+    // @Param: _QNH
+    // @DisplayName: Pressure reference at sea level
+    // @Description: When set an altitude offset is applied to the barometer altitude reading so that absolute zero altitude reads zero at the QNH pressure provided.  This is useful when operating amongst manned aircraft.
+    // @Units: hPa
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("_QNH", 21, AP_Baro, _qnh_ref, 0),
+
+    // @Param: _QFE_RAD
+    // @DisplayName: Radius around home that QFE pressure will be used.
+    // @Description: If BARO_QNH is set, beyond the BARO_QFE_RAD from home, the QNH pressure setting will be used. This will force EKF altitude source to baro when operation on QNH and return to previously set alt source when inside QFE_RAD.
+    // @Units: m
+    // @Increment: 1
+    // @User: Standard
+    AP_GROUPINFO("_QFE_RAD", 22, AP_Baro, _qfe_rad, 500),
+
     AP_GROUPEND
 };
 
@@ -513,6 +529,7 @@ bool AP_Baro::_add_backend(AP_Baro_Backend *backend)
  */
 void AP_Baro::init(void)
 {
+    _qnh_ref.set(0);
     init_done = true;
 
     // ensure that there isn't a previous ground temperature saved
@@ -827,14 +844,7 @@ void AP_Baro::update(void)
 {
     WITH_SEMAPHORE(_rsem);
 
-    if (fabsf(_alt_offset - _alt_offset_active) > 0.01f) {
-        // If there's more than 1cm difference then slowly slew to it via LPF.
-        // The EKF does not like step inputs so this keeps it happy.
-        _alt_offset_active = (0.95f*_alt_offset_active) + (0.05f*_alt_offset);
-    } else {
-        _alt_offset_active = _alt_offset;
-    }
-
+    update_qnh_alt_offset();
     if (!_hil_mode) {
         for (uint8_t i=0; i<_num_drivers; i++) {
             drivers[i]->backend_update(i);
@@ -863,7 +873,7 @@ void AP_Baro::update(void)
             // sanity check altitude
             sensors[i].alt_ok = !(isnan(altitude) || isinf(altitude));
             if (sensors[i].alt_ok) {
-                sensors[i].altitude = altitude + _alt_offset_active;
+                sensors[i].altitude = altitude + _gnh_alt_offset;
             }
         }
         if (_hil.have_alt) {
@@ -942,6 +952,44 @@ void AP_Baro::set_pressure_correction(uint8_t instance, float p_correction)
     if (instance < _num_sensors) {
         sensors[instance].p_correction = p_correction;
     }
+}
+
+// get baro drift amount
+void AP_Baro::update_qnh_alt_offset(void) {
+
+    // Return early if set to non-active
+    if (_qnh_ref.get() < 1  || _remove_qnh_offset) {
+        AP::ahrs().set_using_qnh_flag(false);
+        _gnh_alt_offset = 0.0f;
+        return;
+    }
+
+    float min_dist_home = MAX(_qfe_rad.get(),100.0f);
+    Vector2f home_dist;
+    if (!AP::ahrs().get_relative_position_NE_home(home_dist) || (home_dist.length() < min_dist_home)) {
+        // Either we do not have a good position estimate or we should be using qfe
+        AP::ahrs().set_using_qnh_flag(false);
+        _gnh_alt_offset = 0.0f;
+        return;
+    }
+
+    // Ensure alt source is set to barometer if we are going to fly relative to a pressure reference.
+    AP::ahrs().set_using_qnh_flag(true);
+
+    // We need to find the altitude offset from MSL as defined by GPS and the altitude that
+    // we think sea level is based on our ground pressure and the provided sea level pressure (QNH).
+    // Home altitude which is set by GPS and home is where the ground pressure is set for the baro.
+    // Return delta in meters.  Home is in cm.  get_alt_difference is in m
+    _gnh_alt_offset = AP::ahrs().get_home().alt*0.01f - get_altitude_difference(_qnh_ref.get()*100.0f, get_ground_pressure());
+}
+
+void AP_Baro::remove_qnh_offset(bool flag)
+{
+    // if (flag) {
+    //     gcs().send_text(MAV_SEVERITY_INFO, "qnh force removed");
+    // }
+
+    _remove_qnh_offset = flag;
 }
 
 #if HAL_MSP_BARO_ENABLED

@@ -519,6 +519,14 @@ void Plane::update_alt()
                                                  tecs_hgt_afe(),
                                                  aerodynamic_load_factor);
     }
+
+    // Check if we need to force the qnh altitude offset to be removed
+    barometer.remove_qnh_offset((control_mode == &mode_rtl) || 
+                                (control_mode == &mode_qrtl) || 
+                                (control_mode == &mode_qland) || 
+                                landing.is_on_approach() || 
+                                landing.is_flaring() ||
+                                quadplane.in_vtol_land_sequence());
 }
 
 /*

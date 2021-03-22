@@ -971,6 +971,9 @@ void NavEKF2_core::selectHeightForFusion()
     if (extNavUsedForPos) {
         // always use external navigation as the height source if using for position.
         activeHgtSource = HGT_SOURCE_EXTNAV;
+    } else if (usingQNH){
+        // force alt source to baro as we are flying off of a pressure refernce
+        activeHgtSource = HGT_SOURCE_BARO;
     } else if ((frontend->_altSource == 1) && _rng && rangeFinderDataIsFresh) {
         // user has specified the range finder as a primary height source
         activeHgtSource = HGT_SOURCE_RNG;

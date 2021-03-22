@@ -311,6 +311,9 @@ public:
     // return true when external nav data is also being used as a yaw observation
     bool isExtNavUsedForYaw(void) const;
 
+    // set flag to force alt source to baro if we are using qnh pressure reference
+    void setUsingQnhFlag (bool on_qnh);
+
     // Writes the default equivalent airspeed in m/s to be used in forward flight if a measured airspeed is required and not available.
     void writeDefaultAirSpeed(float airspeed);
 
@@ -1061,6 +1064,7 @@ private:
 
     // height source selection logic
     uint8_t activeHgtSource;    // integer defining active height source
+    bool usingQNH;              // flag that forces activeHgtSource to baro when using pressure as sea level reference
 
     // Movement detector
     bool takeOffDetected;           // true when takeoff for optical flow navigation has been detected

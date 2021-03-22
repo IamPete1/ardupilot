@@ -176,11 +176,13 @@ public:
     // enable HIL mode
     void set_hil_mode(void) { _hil_mode = true; }
 
-    // set baro drift amount
-    void set_baro_drift_altitude(float alt) { _alt_offset = alt; }
+    // get the altitude difference between calculated altitude at QNH pressure and MSL from GPS
+    float get_qnh_alt_offset(void) const {return _gnh_alt_offset;}
 
-    // get baro drift amount
-    float get_baro_drift_offset(void) const { return _alt_offset_active; }
+    // remove the qnh altitude offset from the baro altitude output.
+    // this can be used from copter, plane, etc to remove the offset in
+    // certain conditions like when on approach to land etc
+    void remove_qnh_offset(bool flag);// { _remove_qnh_offset = flag; }
 
     // simple atmospheric model
     static void SimpleAtmosphere(const float alt, float &sigma, float &delta, float &theta);
@@ -281,7 +283,6 @@ private:
     } sensors[BARO_MAX_INSTANCES];
 
     AP_Float                            _alt_offset;
-    float                               _alt_offset_active;
     AP_Int8                             _primary_baro; // primary chosen by user
     AP_Int8                             _ext_bus; // bus number for external barometer
     float                               _last_altitude_EAS2TAS;
@@ -293,6 +294,9 @@ private:
     AP_Float                            _user_ground_temperature; // user override of the ground temperature used for EAS2TAS
     bool                                _hil_mode:1;
     float                               _guessed_ground_temperature; // currently ground temperature estimate using our best abailable source
+    AP_Int16                            _qnh_ref; // air pressure at sea level in hPa
+    AP_Int16                            _qfe_rad; // if the qnh is set and vehicle goes beyond this distance from home then an altitude offset will be applied to the barometer to fly on QNH reference pressure
+    bool                                _remove_qnh_offset; // flag that can be externally set to allow the use of the QNH alt offset
 
     // when did we last notify the GCS of new pressure reference?
     uint32_t                            _last_notify_ms;
@@ -311,6 +315,10 @@ private:
     */
     float wind_pressure_correction(uint8_t instance);
 #endif
+
+    // get the altitude difference between calculated altitude at QNH pressure and MSL from GPS
+    void update_qnh_alt_offset();
+    float _gnh_alt_offset;
 
     // Logging function
     void Write_Baro(void);
