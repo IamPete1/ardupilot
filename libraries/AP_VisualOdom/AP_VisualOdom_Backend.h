@@ -45,6 +45,9 @@ public:
     // arming check - by default no checks performed
     virtual bool pre_arm_check(char *failure_msg, uint8_t failure_msg_len) const { return true; }
 
+    // return true if confidence is higher than medium
+    virtual bool confidence_ok();
+
 protected:
 
     // returns the system time of the last reset if reset_counter has not changed
@@ -62,6 +65,8 @@ protected:
     // reset counter handling
     uint8_t _last_reset_counter;    // last sensor reset counter received
     uint32_t _reset_timestamp_ms;   // time reset counter was received
+
+    bool _confidence_ok = false;    // confidence higher than medium
 };
 
 #endif

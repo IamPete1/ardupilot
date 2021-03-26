@@ -1079,6 +1079,11 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_GROUPINFO("AUTOYAW_MIN_DIST", 47, ParametersG2, auto_yaw_min_dist, 0),
 #endif
 
+    // multinnov auto flight mode change parameters
+    AP_GROUPINFO("AUT_FT_CH_LOIT", 45, ParametersG2, auto_mode_switch_time_to_loiter, 200),
+    AP_GROUPINFO("AUT_FT_CH_ALTH", 46, ParametersG2, auto_mode_switch_time_to_alt_hold, 200),
+    AP_GROUPINFO("AUT_FT_CH_ENABLE", 47, ParametersG2, auto_mode_switch_enabled, 1),
+
     AP_GROUPEND
 };
 

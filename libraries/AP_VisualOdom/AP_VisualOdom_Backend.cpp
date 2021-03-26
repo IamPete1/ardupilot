@@ -55,6 +55,12 @@ void AP_VisualOdom_Backend::handle_vision_position_delta_msg(const mavlink_messa
     const uint32_t now_ms = AP_HAL::millis();
     _last_update_ms = now_ms;
 
+    if (packet.confidence > 70) { // 66.66 is medium, 100 is high
+        _confidence_ok = true;
+    } else {
+        _confidence_ok = false;
+    }
+
     // send to EKF
     const float time_delta_sec = packet.time_delta_usec / 1000000.0f;
     AP::ahrs_navekf().writeBodyFrameOdom(packet.confidence,
@@ -82,6 +88,11 @@ uint32_t AP_VisualOdom_Backend::get_reset_timestamp_ms(uint8_t reset_counter)
         _reset_timestamp_ms = AP_HAL::millis();
     }
     return _reset_timestamp_ms;
+}
+
+bool AP_VisualOdom_Backend::confidence_ok()
+{
+    return _confidence_ok;
 }
 
 #endif

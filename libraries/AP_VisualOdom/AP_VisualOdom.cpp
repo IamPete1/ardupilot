@@ -106,6 +106,10 @@ const AP_Param::GroupInfo AP_VisualOdom::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("_YAW_M_NSE", 7, AP_VisualOdom, _yaw_noise, 0.2f),
 
+    // t265 to mavlink thresholds
+    AP_GROUPINFO("_TH_POS", 8, AP_VisualOdom, _threshold_pos, 0.1f),
+    AP_GROUPINFO("_TH_VEL", 9, AP_VisualOdom, _threshold_vel, 20.0f),
+
     AP_GROUPEND
 };
 
@@ -154,6 +158,15 @@ bool AP_VisualOdom::healthy() const
         return false;
     }
     return _driver->healthy();
+}
+
+bool AP_VisualOdom::confidence_ok() const
+{
+    if (!healthy()) {
+        return false;
+    }
+
+    return _driver->confidence_ok();
 }
 
 // consume vision_position_delta mavlink messages

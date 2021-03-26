@@ -652,6 +652,9 @@ public:
     AP_Float auto_yaw_min_dist;
 #endif
 
+    AP_Float auto_mode_switch_time_to_loiter;
+    AP_Float auto_mode_switch_time_to_alt_hold;
+    AP_Int8  auto_mode_switch_enabled;
 };
 
 extern const AP_Param::Info        var_info[];
