@@ -1,3 +1,22 @@
+------- MN/uaviewStereo/v.2.0
+
+- auto flight mode change and automatic ekf source change enabled. 
+
+    if we click in loiter, it will switch automatically
+    between alt hold and loiter based on tracking quality.
+    if medium or lower will go to alt hold, if high to loiter.
+    
+    This will follow the transition times given by the parameters
+    aut_time, so brief changes don't actually change mode.
+    
+    Also, in this commit we change to src0 for loiter, and src1 for
+    all the rest of flight modes
+
+- max angle control
+
+- disable crash check
+
+
 ------- MN-Uaview-stereo-v2.0
 
 rebased to master on first week of February 2021. Finally we have it working with ekf src firmware. Also we have
