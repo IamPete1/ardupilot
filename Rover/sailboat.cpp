@@ -170,26 +170,29 @@ void Sailboat::init_rc_in()
 
 // decode pilot mainsail input and return in steer_out and throttle_out arguments
 // mainsail_out is in the range 0 to 100, defaults to 100 (fully relaxed) if no input configured
-void Sailboat::get_pilot_desired_mainsail(float &mainsail_out, float &wingsail_out)
+void Sailboat::get_pilot_desired_mainsail(float &mainsail_out, float &wingsail_out, float &mast_rotation_out)
 {
     // no RC input means mainsail is moved to trim
     if ((rover.failsafe.bits & FAILSAFE_EVENT_THROTTLE) || (channel_mainsail == nullptr)) {
         mainsail_out = 100.0f;
         wingsail_out = 0.0f;
+        mast_rotation_out = 0.0f;
         return;
     }
     mainsail_out = constrain_float(channel_mainsail->get_control_in(), 0.0f, 100.0f);
     wingsail_out = constrain_float(channel_mainsail->get_control_in(), -100.0f, 100.0f);
+    mast_rotation_out = constrain_float(channel_mainsail->get_control_in(), -100.0f, 100.0f);
 }
 
 // calculate throttle and mainsail angle required to attain desired speed (in m/s)
 // returns true if successful, false if sailboats not enabled
-void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttle_out, float &mainsail_out, float &wingsail_out)
+void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttle_out, float &mainsail_out, float &wingsail_out, float &mast_rotation_out)
 {
     if (!sail_enabled()) {
         throttle_out = 0.0f;
         mainsail_out = 0.0f;
         wingsail_out = 0.0f;
+        mast_rotation_out = 0.0f;
         return;
     }
 
@@ -212,6 +215,7 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
     if (motor_state == UseMotor::USE_MOTOR_ALWAYS) {
         mainsail_out = 100.0f;
         wingsail_out = 0.0f;
+        mast_rotation_out = 0.0f;
         return;
     }
 
@@ -258,6 +262,52 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
     // wing sails can be used to go backwards, probably not recommended though
     if (!is_positive(desired_speed)) {
         wingsail_out *= -1.0f;
+    }
+
+    //
+    // direct mast rotation control
+    // configure SERVOx_MAX/MIN such that the mast rotates +-90 degrees
+    //
+
+    if (!is_positive(desired_speed)) {
+        // rotating sails can be used to reverse, but not in this version
+        mast_rotation_out = 0.0f;
+    } else {
+        // + is wind over starboard side, - is wind over port side
+        float wind_dir_apparent_signed = degrees(rover.g2.windvane.get_apparent_wind_direction_rad());
+        float wind_dir_apparent_abs = fabsf(wind_dir_apparent_signed);
+        float wind_dir_apparent_sign = wind_dir_apparent_signed / wind_dir_apparent_abs;
+
+        // compute absolute sail rotation
+        float mast_rotation_angle = 0.0f;
+        if (wind_dir_apparent_abs < sail_angle_ideal) {
+            // in irons, center the sail.
+            mast_rotation_angle = 0.0f;
+        } else if (wind_dir_apparent_abs < (90.0f + sail_angle_ideal)) {
+            // use sail as a lift device, at ideal angle of attack
+            mast_rotation_angle = (wind_dir_apparent_abs - sail_angle_ideal);
+        } else {
+            // use sail as drag device
+            mast_rotation_angle = 90.0f;
+            // but avoid wagging the sail as the wind oscillates
+            // between 180 and -180 degrees
+            if (wind_dir_apparent_abs > 135.0f &&
+                is_equal(fabsf(SRV_Channels::get_output_norm(SRV_Channel::k_mast_rotation)), 1.0f)) {
+                // sail is already at either 90 or -90 degrees, leave
+                // it where it is; drag is identical both ways
+                mast_rotation_angle = NAN;
+            }
+        }
+
+        // if a change in mast rotation is necessary, restore sign and scale from degrees to [-100.0f..100.0f]
+        if (isnan(mast_rotation_angle)) {
+            // keeping previous command
+            mast_rotation_out = SRV_Channels::get_output_scaled(SRV_Channel::k_mast_rotation);
+        } else {
+            mast_rotation_angle *= wind_dir_apparent_sign;
+            float mast_rotation_base = linear_interpolate(-100.0f, 100.0f, mast_rotation_angle, -90.0f, 90.0f);
+            mast_rotation_out = constrain_float(mast_rotation_base, -100.0f ,100.0f);
+        }
     }
 
 }
