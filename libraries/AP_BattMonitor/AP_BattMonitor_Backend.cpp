@@ -159,11 +159,11 @@ bool AP_BattMonitor_Backend::arming_checks(char * buffer, size_t buflen) const
 
     bool below_arming_voltage = is_positive(_params._arming_minimum_voltage) &&
                                 (_state.voltage < _params._arming_minimum_voltage);
-    bool below_arming_capacity = (_params._arming_minimum_capacity > 0) &&
-                                 ((_params._pack_capacity - _state.consumed_mah) < _params._arming_minimum_capacity);
-    bool fs_capacity_inversion = is_positive(_params._critical_capacity) &&
-                                 is_positive(_params._low_capacity) &&
-                                 (_params._low_capacity < _params._critical_capacity);
+    bool below_arming_capacity = (_params._arming_minimum_percentage > 0) &&
+                                 (capacity_remaining_pct() < _params._arming_minimum_percentage);
+    bool fs_capacity_inversion = is_positive(_params._critical_percentage) &&
+                                 is_positive(_params._low_percentage) &&
+                                 (_params._low_percentage < _params._critical_percentage);
     bool fs_voltage_inversion = is_positive(_params._critical_voltage) &&
                                 is_positive(_params._low_voltage) &&
                                 (_params._low_voltage < _params._critical_voltage);
@@ -202,8 +202,8 @@ void AP_BattMonitor_Backend::check_failsafe_types(bool &low_voltage, bool &low_c
     }
 
     // check capacity failsafe if current monitoring is enabled
-    if (has_current() && (_params._critical_capacity > 0) &&
-        ((_params._pack_capacity - _state.consumed_mah) < _params._critical_capacity)) {
+    if (has_current() && (_params._critical_percentage > 0) &&
+        (capacity_remaining_pct() < _params._critical_percentage)) {
         critical_capacity = true;
     } else {
         critical_capacity = false;
@@ -216,8 +216,8 @@ void AP_BattMonitor_Backend::check_failsafe_types(bool &low_voltage, bool &low_c
     }
 
     // check capacity if current monitoring is enabled
-    if (has_current() && (_params._low_capacity > 0) &&
-        ((_params._pack_capacity - _state.consumed_mah) < _params._low_capacity)) {
+    if (has_current() && (_params._low_percentage > 0) &&
+        (capacity_remaining_pct() < _params._low_percentage)) {
         low_capacity = true;
     } else {
         low_capacity = false;
