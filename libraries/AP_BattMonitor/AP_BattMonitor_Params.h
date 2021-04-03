@@ -51,12 +51,12 @@ public:
     AP_Int8  _low_voltage_timeout;      /// timeout in seconds before a low voltage event will be triggered
     AP_Int8  _failsafe_voltage_source;  /// voltage type used for detection of low voltage event
     AP_Float _low_voltage;              /// voltage level used to trigger a low battery failsafe
-    AP_Float _low_capacity;             /// capacity level used to trigger a low battery failsafe
+    AP_Float _low_percentage;           /// percentage level used to trigger a low battery failsafe
     AP_Float _critical_voltage;         /// voltage level used to trigger a critical battery failsafe
-    AP_Float _critical_capacity;        /// capacity level used to trigger a critical battery failsafe
+    AP_Float _critical_percentage;      /// percentage level used to trigger a critical battery failsafe
     AP_Int8  _failsafe_low_action;      /// action to preform on a low battery failsafe
     AP_Int8  _failsafe_critical_action; /// action to preform on a critical battery failsafe
-    AP_Int32 _arming_minimum_capacity;  /// capacity level required to arm
+    AP_Int32 _arming_minimum_percentage;/// percentage level required to arm
     AP_Float _arming_minimum_voltage;   /// voltage level required to arm
     AP_Int8  _i2c_bus;                  /// I2C bus number
 };

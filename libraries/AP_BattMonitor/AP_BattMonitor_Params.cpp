@@ -100,13 +100,12 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("LOW_VOLT", 12, AP_BattMonitor_Params, _low_voltage, DEFAULT_LOW_BATTERY_VOLTAGE),
 
-    // @Param: LOW_MAH
-    // @DisplayName: Low battery capacity
-    // @Description: Battery capacity at which the low battery failsafe is triggered. Set to 0 to disable battery remaining failsafe. If the battery capacity drops below this level the vehicle will perform the failsafe specified by the @PREFIX@FS_LOW_ACT parameter.
-    // @Units: mAh
-    // @Increment: 50
+    // @Param: LOW_PCT
+    // @DisplayName: Low battery percentage
+    // @Description: Battery percentage at which the low battery failsafe is triggered. Set to 0 to disable battery remaining failsafe. If the battery percentage drops below this level the vehicle will perform the failsafe specified by the @PREFIX@FS_LOW_ACT parameter.
+    // @Range: 0 100
     // @User: Standard
-    AP_GROUPINFO("LOW_MAH", 13, AP_BattMonitor_Params, _low_capacity, 0),
+    AP_GROUPINFO("LOW_PCT", 13, AP_BattMonitor_Params, _low_percentage, 0),
 
     // @Param: CRT_VOLT
     // @DisplayName: Critical battery voltage
@@ -116,13 +115,12 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("CRT_VOLT", 14, AP_BattMonitor_Params, _critical_voltage, 0),
 
-    // @Param: CRT_MAH
-    // @DisplayName: Battery critical capacity
-    // @Description: Battery capacity at which the critical battery failsafe is triggered. Set to 0 to disable battery remaining failsafe. If the battery capacity drops below this level the vehicle will perform the failsafe specified by the @PREFIX@_FS_CRT_ACT parameter.
-    // @Units: mAh
-    // @Increment: 50
+    // @Param: CRT_PCT
+    // @DisplayName: Battery critical percentage
+    // @Description: Battery percentage at which the critical battery failsafe is triggered. Set to 0 to disable battery remaining failsafe. If the battery percentage drops below this level the vehicle will perform the failsafe specified by the @PREFIX@_FS_CRT_ACT parameter.
+    // @Range: 0 100
     // @User: Standard
-    AP_GROUPINFO("CRT_MAH", 15, AP_BattMonitor_Params, _critical_capacity, 0),
+    AP_GROUPINFO("CRT_PCT", 15, AP_BattMonitor_Params, _critical_percentage, 0),
 
     // @Param: FS_LOW_ACT
     // @DisplayName: Low battery failsafe action
@@ -154,13 +152,12 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("ARM_VOLT", 18, AP_BattMonitor_Params, _arming_minimum_voltage, 0),
 
-    // @Param: ARM_MAH
-    // @DisplayName: Required arming remaining capacity
-    // @Description: Battery capacity remaining which is required to arm the aircraft. Set to 0 to allow arming at any capacity. Note that execept for smart batteries rebooting the vehicle will always reset the remaining capacity estimate, which can lead to this check not providing sufficent protection, it is recommended to always use this in conjunction with the @PREFIX@_ARM_VOLT parameter.
-    // @Units: mAh
-    // @Increment: 50
+    // @Param: ARM_PCT
+    // @DisplayName: Required arming remaining percentage
+    // @Description: Battery percentage remaining which is required to arm the aircraft. Set to 0 to allow arming at any percentage. Note that execept for smart batteries rebooting the vehicle will always reset the remaining percentage estimate, which can lead to this check not providing sufficent protection, it is recommended to always use this in conjunction with the @PREFIX@_ARM_VOLT parameter.
+    // @Range: 0 100
     // @User: Advanced
-    AP_GROUPINFO("ARM_MAH", 19, AP_BattMonitor_Params, _arming_minimum_capacity, 0),
+    AP_GROUPINFO("ARM_PCT", 19, AP_BattMonitor_Params, _arming_minimum_percentage, 0),
 
     // @Param: BUS
     // @DisplayName: Battery monitor I2C bus number
