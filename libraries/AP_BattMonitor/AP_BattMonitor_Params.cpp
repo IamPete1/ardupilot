@@ -166,6 +166,14 @@ const AP_Param::GroupInfo AP_BattMonitor_Params::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("BUS", 20, AP_BattMonitor_Params, _i2c_bus, 0),
 
+    // @Param: CRT_RAW_VT
+    // @DisplayName: Critical battery voltage, always using raw voltage
+    // @Description: Battery voltage that triggers a critical battery failsafe. Set to 0 to disable. If the battery voltage drops below this voltage continuously for more then the period specified by the @PREFIX@LOW_TIMER parameter then the vehicle will perform the failsafe specified by the @PREFIX@FS_CRT_ACT parameter.
+    // @Units: V
+    // @Increment: 0.1
+    // @User: Standard
+    AP_GROUPINFO("CRT_RAW_VT", 21, AP_BattMonitor_Params, _critical_voltage_raw, 0),
+
     AP_GROUPEND
 
 };
