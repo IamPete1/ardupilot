@@ -120,17 +120,24 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
     thrust_vec.y = 0.0f;
     thrust_vec.z = throttle_thrust;
     thrust_vec = rot * thrust_vec;
+    float thrust[AP_MOTORS_MAX_NUM_MOTORS];
+    float thrust_max = 0;
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] =  thrust_vec.x * _forward_factor[i];
-            _thrust_rpyt_out[i] += thrust_vec.y * _right_factor[i];
-            _thrust_rpyt_out[i] += thrust_vec.z * _throttle_factor[i];
-
-            if (fabsf(_thrust_rpyt_out[i]) >= 1) {
-                // if we hit this the mixer is probably scaled incorrectly
-                limit.throttle_upper = true;
-            }
-            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i],-1.0f,1.0f);
+            thrust[i] =  thrust_vec.x * _forward_factor[i];
+            thrust[i] += thrust_vec.y * _right_factor[i];
+            thrust[i] += thrust_vec.z * _throttle_factor[i];
+            thrust_max = MAX(thrust_max,fabsf(thrust[i]));
+        }
+    }
+    float thrust_ratio = 1.0f; // scale factor, output will be scaled by this ratio so it can all fit evenly
+    if (thrust_max > 1.0f) {
+        limit.throttle_upper = true;
+        thrust_ratio = 1/thrust_max;
+    }
+    for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
+        if (motor_enabled[i]) {
+            _thrust_rpyt_out[i] = thrust[i] * thrust_ratio;
         }
     }
 
@@ -139,7 +146,6 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
         rotations: roll, pitch and yaw
     */
     float rpy_ratio = 1.0f;  // scale factor, output will be scaled by this ratio so it can all fit evenly
-    float thrust[AP_MOTORS_MAX_NUM_MOTORS];
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
             thrust[i] =  roll_thrust * _roll_factor[i];
@@ -156,7 +162,7 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
     }
 
     // set limit flags if output is being scaled
-    if (rpy_ratio < 1) {
+    if (rpy_ratio < 1.0f) {
         limit.roll = true;
         limit.pitch = true;
         limit.yaw = true;
@@ -165,7 +171,7 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
     // scale back rotations evenly so it will all fit
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * rpy_ratio,-1.0f,1.0f);
+            _thrust_rpyt_out[i] = _thrust_rpyt_out[i] + thrust[i] * rpy_ratio;
         }
     }
 
@@ -196,7 +202,7 @@ void AP_MotorsMatrix_6DoF_Scripting::output_armed_stabilizing()
     // scale back evenly so it will all fit
     for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
         if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] = constrain_float(_thrust_rpyt_out[i] + thrust[i] * horz_ratio,-1.0f,1.0f);
+            _thrust_rpyt_out[i] = _thrust_rpyt_out[i] + thrust[i] * horz_ratio;
         }
     }
 
