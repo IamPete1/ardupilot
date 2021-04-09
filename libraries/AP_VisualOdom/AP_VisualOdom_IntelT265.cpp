@@ -53,7 +53,7 @@ void AP_VisualOdom_IntelT265::handle_vision_position_estimate(uint64_t remote_ti
 
     // check for recent position reset
     bool consume = should_consume_sensor_data(true, reset_counter);
-    if (consume) {
+    if (consume && _confidence_ok) {
         // send attitude and position to EKF
         AP::ahrs().writeExtNavData(pos, att, posErr, angErr, time_ms, _frontend.get_delay_ms(), get_reset_timestamp_ms(reset_counter));
     }
@@ -83,7 +83,7 @@ void AP_VisualOdom_IntelT265::handle_vision_speed_estimate(uint64_t remote_time_
 
     // check for recent position reset
     bool consume = should_consume_sensor_data(false, reset_counter);
-    if (consume) {
+    if (consume && _confidence_ok) {
         // send velocity to EKF
         AP::ahrs().writeExtNavVelData(vel_corrected, _frontend.get_vel_noise(), time_ms, _frontend.get_delay_ms());
     }
