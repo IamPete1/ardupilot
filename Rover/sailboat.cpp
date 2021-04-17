@@ -280,6 +280,7 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
 
         // compute absolute sail rotation
         float mast_rotation_angle = 0.0f;
+        bool mast_rotation_necessary = true;
         if (wind_dir_apparent_abs < sail_angle_ideal) {
             // in irons, center the sail.
             mast_rotation_angle = 0.0f;
@@ -295,18 +296,18 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
                 is_equal(fabsf(SRV_Channels::get_output_norm(SRV_Channel::k_mast_rotation)), 1.0f)) {
                 // sail is already at either 90 or -90 degrees, leave
                 // it where it is; drag is identical both ways
-                mast_rotation_angle = NAN;
+                mast_rotation_necessary = false;
             }
         }
 
         // if a change in mast rotation is necessary, restore sign and scale from degrees to [-100.0f..100.0f]
-        if (isnan(mast_rotation_angle)) {
-            // keeping previous command
-            mast_rotation_out = SRV_Channels::get_output_scaled(SRV_Channel::k_mast_rotation);
-        } else {
+        if (mast_rotation_necessary) {
             mast_rotation_angle *= wind_dir_apparent_sign;
             float mast_rotation_base = linear_interpolate(-100.0f, 100.0f, mast_rotation_angle, -90.0f, 90.0f);
             mast_rotation_out = constrain_float(mast_rotation_base, -100.0f ,100.0f);
+        } else {
+            // keep previous command
+            mast_rotation_out = SRV_Channels::get_output_scaled(SRV_Channel::k_mast_rotation);
         }
     }
 
