@@ -41,7 +41,7 @@ const AP_Param::GroupInfo Sailboat::var_info[] = {
 
     // @Param: ANGLE_MAX
     // @DisplayName: Sail max angle
-    // @Description: Mainsheet loose, angle between centerline and boom
+    // @Description: Mainsheet loose, angle between centerline and boom. For direct-control rotating masts, the rotation angle at SERVOx_MAX/_MIN; for rotating masts, this value can exceed 90 degrees if the linkages can physically rotate the mast past that angle.
     // @Units: deg
     // @Range: 0 90
     // @Increment: 1
@@ -302,8 +302,12 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
 
         // if a change in mast rotation is necessary, restore sign and scale from degrees to [-100.0f..100.0f]
         if (mast_rotation_necessary) {
+            // restore sign
             mast_rotation_angle *= wind_dir_apparent_sign;
-            float mast_rotation_base = linear_interpolate(-100.0f, 100.0f, mast_rotation_angle, -90.0f, 90.0f);
+            // make sure between allowable range
+            mast_rotation_angle = constrain_float(mast_rotation_angle, -sail_angle_max, sail_angle_max);
+            // linear interpolate mainsail value (0 to 100) from wind angle mainsail_angle
+            float mast_rotation_base = linear_interpolate(-100.0f, 100.0f, mast_rotation_angle, -sail_angle_max, sail_angle_max);
             mast_rotation_out = constrain_float(mast_rotation_base, -100.0f ,100.0f);
         } else {
             // keep previous command
