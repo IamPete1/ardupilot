@@ -266,7 +266,6 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
 
     //
     // direct mast rotation control
-    // configure SERVOx_MAX/MIN such that the mast rotates +-90 degrees
     //
 
     if (!is_positive(desired_speed)) {
