@@ -170,7 +170,7 @@ void ModeAutoTune::save_tuning_gains()
     copter.autotune.save_tuning_gains();
 }
 
-void ModeAutoTune::stop()
+void ModeAutoTune::exit()
 {
     copter.autotune.stop();
 }
