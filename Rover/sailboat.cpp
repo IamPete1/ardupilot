@@ -275,7 +275,7 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
         // + is wind over starboard side, - is wind over port side
         float wind_dir_apparent_signed = degrees(rover.g2.windvane.get_apparent_wind_direction_rad());
         float wind_dir_apparent_abs = fabsf(wind_dir_apparent_signed);
-        float wind_dir_apparent_sign = wind_dir_apparent_signed / wind_dir_apparent_abs;
+        float wind_dir_apparent_sign = is_equal(wind_dir_apparent_abs, 0.0f) ? 0.0f : wind_dir_apparent_signed / wind_dir_apparent_abs;
 
         // compute absolute sail rotation
         float mast_rotation_angle = 0.0f;
