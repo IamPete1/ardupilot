@@ -285,7 +285,9 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
             mast_rotation_angle = 0.0f;
         } else if (wind_dir_apparent_abs < (90.0f + sail_angle_ideal)) {
             // use sail as a lift device, at ideal angle of attack
-            mast_rotation_angle = (wind_dir_apparent_abs - sail_angle_ideal);
+            // (but depower to prevent excessive heel)
+            float power_coefficient = 1.0f - pid_offset/100.0f;  // pid_offset==0.0f: no restrictions on power; ==100.0f: depower entirely
+            mast_rotation_angle = wind_dir_apparent_abs - sail_angle_ideal*power_coefficient;
         } else {
             // use sail as drag device
             mast_rotation_angle = 90.0f;
