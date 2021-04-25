@@ -307,7 +307,7 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
             mast_rotation_angle *= wind_dir_apparent_sign;
             // make sure between allowable range
             mast_rotation_angle = constrain_float(mast_rotation_angle, -sail_angle_max, sail_angle_max);
-            // linear interpolate mainsail value (0 to 100) from wind angle mainsail_angle
+            // linear interpolate servo displacement (-100 to 100) from mast rotation angle
             float mast_rotation_base = linear_interpolate(-100.0f, 100.0f, mast_rotation_angle, -sail_angle_max, sail_angle_max);
             mast_rotation_out = constrain_float(mast_rotation_base, -100.0f ,100.0f);
         } else {
