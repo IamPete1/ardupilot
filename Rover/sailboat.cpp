@@ -219,9 +219,13 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
         return;
     }
 
-    // use PID controller to sheet out
-    float pid_offset = rover.g2.attitude_control.get_sail_out_from_heel(radians(sail_heel_angle_max), rover.G_Dt) * 100.0f;
-    pid_offset = constrain_float(pid_offset, 0.0f, 100.0f);
+    // use PID controller to sheet out, this number is expected approximately in the 0 to 100 range (with default PIDs)
+    const float pid_offset = rover.g2.attitude_control.get_sail_out_from_heel(radians(sail_heel_angle_max), rover.G_Dt) * 100.0f;
+
+    // get apparent wind, + is wind over starboard side, - is wind over port side
+    const float wind_dir_apparent = degrees(rover.g2.windvane.get_apparent_wind_direction_rad());
+    const float wind_dir_apparent_abs = fabsf(wind_dir_apparent);
+    const float wind_dir_apparent_sign = is_negative(wind_dir_apparent) ? -1.0f : 1.0f;
 
     //
     // mainsail control
@@ -231,12 +235,10 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
     if (!is_positive(desired_speed)) {
         mainsail_out = 100.0f;
     } else {
-        // + is wind over starboard side, - is wind over port side, but as the sails are sheeted the same on each side it makes no difference so take abs
-        float wind_dir_apparent = fabsf(rover.g2.windvane.get_apparent_wind_direction_rad());
-        wind_dir_apparent = degrees(wind_dir_apparent);
+        // Sails are sheeted the same on each side use abs wind direction
 
         // set the main sail to the ideal angle to the wind
-        float mainsail_angle = wind_dir_apparent -sail_angle_ideal;
+        float mainsail_angle = wind_dir_apparent_abs - sail_angle_ideal;
 
         // make sure between allowable range
         mainsail_angle = constrain_float(mainsail_angle,sail_angle_min, sail_angle_max);
@@ -251,16 +253,12 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
     // wingsail control
     //
 
-    // wing sails auto trim, we only need to reduce power if we are tipping over
-    wingsail_out = 100.0f - pid_offset;
-
-    // wing sails must be trimmed for the correct tack
-    if (rover.g2.windvane.get_current_tack() == AP_WindVane::Sailboat_Tack::TACK_PORT) {
-        wingsail_out *= -1.0f;
-    }
+    // wing sails auto trim, we only need to reduce power if we are tipping over, must also be trimmed for correct tack
+    // dont allow to reduce power to less than 0, ie not backwinding the sail to self-right
+    wingsail_out = (100.0f - MIN(pid_offset,100.0f)) * wind_dir_apparent_sign;
 
     // wing sails can be used to go backwards, probably not recommended though
-    if (!is_positive(desired_speed)) {
+    if (is_negative(desired_speed)) {
         wingsail_out *= -1.0f;
     }
 
@@ -272,47 +270,40 @@ void Sailboat::get_throttle_and_mainsail_out(float desired_speed, float &throttl
         // rotating sails can be used to reverse, but not in this version
         mast_rotation_out = 0.0f;
     } else {
-        // + is wind over starboard side, - is wind over port side
-        float wind_dir_apparent_signed = degrees(rover.g2.windvane.get_apparent_wind_direction_rad());
-        float wind_dir_apparent_abs = fabsf(wind_dir_apparent_signed);
-        float wind_dir_apparent_sign = is_equal(wind_dir_apparent_abs, 0.0f) ? 0.0f : wind_dir_apparent_signed / wind_dir_apparent_abs;
 
-        // compute absolute sail rotation
-        float mast_rotation_angle = 0.0f;
-        bool mast_rotation_necessary = true;
         if (wind_dir_apparent_abs < sail_angle_ideal) {
             // in irons, center the sail.
-            mast_rotation_angle = 0.0f;
-        } else if (wind_dir_apparent_abs < (90.0f + sail_angle_ideal)) {
-            // use sail as a lift device, at ideal angle of attack
-            // (but depower to prevent excessive heel)
-            float power_coefficient = 1.0f - pid_offset/100.0f;  // pid_offset==0.0f: no restrictions on power; ==100.0f: depower entirely
-            mast_rotation_angle = wind_dir_apparent_abs - sail_angle_ideal*power_coefficient;
-        } else {
-            // use sail as drag device
-            mast_rotation_angle = 90.0f;
-            // but avoid wagging the sail as the wind oscillates
-            // between 180 and -180 degrees
-            if (wind_dir_apparent_abs > 135.0f &&
-                is_equal(fabsf(SRV_Channels::get_output_norm(SRV_Channel::k_mast_rotation)), 1.0f)) {
-                // sail is already at either 90 or -90 degrees, leave
-                // it where it is; drag is identical both ways
-                mast_rotation_necessary = false;
-            }
-        }
+            mast_rotation_out = 0.0f;
 
-        // if a change in mast rotation is necessary, restore sign and scale from degrees to [-100.0f..100.0f]
-        if (mast_rotation_necessary) {
-            // restore sign
-            mast_rotation_angle *= wind_dir_apparent_sign;
-            // make sure between allowable range
-            mast_rotation_angle = constrain_float(mast_rotation_angle, -sail_angle_max, sail_angle_max);
-            // linear interpolate servo displacement (-100 to 100) from mast rotation angle
-            float mast_rotation_base = linear_interpolate(-100.0f, 100.0f, mast_rotation_angle, -sail_angle_max, sail_angle_max);
-            mast_rotation_out = constrain_float(mast_rotation_base, -100.0f ,100.0f);
         } else {
-            // keep previous command
-            mast_rotation_out = SRV_Channels::get_output_scaled(SRV_Channel::k_mast_rotation);
+
+            float mast_rotation_angle;
+            if (wind_dir_apparent_abs < (90.0f + sail_angle_ideal)) {
+                // use sail as a lift device, at ideal angle of attack, but depower to prevent excessive heel
+                // multiply pid_offset by 0.01 to keep the scaling in the same range as the other sail outputs
+                // this means the default PIDs should apply reasonably well to all sail types
+                mast_rotation_angle = wind_dir_apparent_abs - sail_angle_ideal * MAX(1.0f - pid_offset*0.01f,0.0f);
+
+                // restore sign
+                mast_rotation_angle *= wind_dir_apparent_sign;
+
+            } else {
+                // use sail as drag device, but avoid wagging the sail as the wind oscillates
+                // between 180 and -180 degrees
+                mast_rotation_angle = 90.0f;
+                if (wind_dir_apparent_abs > 135.0f) {
+                    // wind is almost directly behind, keep wing on current tack
+                    if (SRV_Channels::get_output_scaled(SRV_Channel::k_mast_rotation) < 0) {
+                        mast_rotation_angle *= -1.0f;
+                    }
+                } else {
+                    // set the wing on the correct tack, so that is can be sheeted in if required
+                    mast_rotation_angle *= wind_dir_apparent_sign;
+                }
+            }
+
+            // linear interpolate servo displacement (-100 to 100) from mast rotation angle and restore sign
+            mast_rotation_out = linear_interpolate(-100.0f, 100.0f, mast_rotation_angle, -sail_angle_max, sail_angle_max);
         }
     }
 
