@@ -1,5 +1,7 @@
 #include "Plane.h"
 #include "AC_AttitudeControl/AC_AttitudeControl_TS.h"
+#include <AC_AttitudeControl/AC_AttitudeControl_Multi_rotate.h>
+
 
 const AP_Param::GroupInfo QuadPlane::var_info[] = {
 
@@ -776,7 +778,7 @@ bool QuadPlane::setup(void)
         AP_BoardConfig::config_error("Unable to allocate %s", "ahrs_view");
     }
 
-    attitude_control = new AC_AttitudeControl_TS(*ahrs_view, aparm, *motors, loop_delta_t);
+    attitude_control = new AC_AttitudeControl_Multi_rotate(*ahrs_view, aparm, *motors, loop_delta_t);
     if (!attitude_control) {
         AP_BoardConfig::config_error("Unable to allocate %s", "attitude_control");
     }
