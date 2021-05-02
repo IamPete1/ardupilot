@@ -379,3 +379,8 @@ singleton AP_MotorsMatrix_Scripting_interp alias Motors_interp
 singleton AP_MotorsMatrix_Scripting_interp method init boolean uint8_t 0 (AP_MOTORS_MAX_NUM_MOTORS-1)
 singleton AP_MotorsMatrix_Scripting_interp method add_motor void int8_t 0 (AP_MOTORS_MAX_NUM_MOTORS-1) uint8_t 0 (AP_MOTORS_MAX_NUM_MOTORS-1)
 singleton AP_MotorsMatrix_Scripting_interp method set_interpolation_point void float -FLT_MAX FLT_MAX
+
+include AC_AttitudeControl/AC_AttitudeControl_Multi_rotate.h depends APM_BUILD_TYPE(APM_BUILD_ArduPlane)
+singleton AC_AttitudeControl_Multi_rotate depends APM_BUILD_TYPE(APM_BUILD_ArduPlane)
+singleton AC_AttitudeControl_Multi_rotate alias attitude_control_rotate
+singleton AC_AttitudeControl_Multi_rotate method set_offset_roll_pitch void float -FLT_MAX FLT_MAX float -FLT_MAX FLT_MAX
