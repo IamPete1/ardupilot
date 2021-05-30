@@ -172,6 +172,13 @@ public:
     bool reset_remaining_mask(uint16_t battery_mask, float percentage);
     bool reset_remaining(uint8_t instance, float percentage) { return reset_remaining_mask(1U<<instance, percentage);}
 
+    /// get_serial_number - returns battery serial number
+    int32_t get_serial_number() const { return get_serial_number(AP_BATT_PRIMARY_INSTANCE); }
+    int32_t get_serial_number(uint8_t instance) const {
+        return _params[instance]._serial_number;
+    }
+
+
     static const struct AP_Param::GroupInfo var_info[];
 
 protected:
