@@ -1000,6 +1000,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Path: ../libraries/AC_AttitudeControl/AC_WeatherVane.cpp
     AP_SUBGROUPINFO(weathervane, "WVANE_", 45, ParametersG2, AC_WeatherVane),
 
+    // @Param: MOT_KILL_BITMASK
+    // @DisplayName: Bitmask of motors to kill
+    AP_GROUPINFO("MOT_KILL_BITMASK", 46, ParametersG2, mot_kill_bitmask, 0),
+
     AP_GROUPEND
 };
 
