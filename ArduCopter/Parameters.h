@@ -663,6 +663,8 @@ public:
     AP_Float guided_timeout;
 #endif
 
+    AP_Int32 mot_kill_bitmask;
+
     AP_Int8                 surftrak_mode;
     AP_Int8                 failsafe_dr_enable;
     AP_Int16                failsafe_dr_timeout;

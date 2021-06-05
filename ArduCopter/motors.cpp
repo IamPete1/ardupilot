@@ -179,6 +179,18 @@ void Copter::motors_output()
         flightmode->output_to_motors();
     }
 
+    // implement motor kill for testing
+    RC_Channel *rc_ptr = rc().find_channel_for_option(RC_Channel::AUX_FUNC::MOTOR_KILL);
+    if (rc_ptr != nullptr) {
+        if (rc_ptr->get_aux_switch_pos() ==  RC_Channel::AuxSwitchPos::HIGH) {
+            for (uint8_t i=0; i<AP_MOTORS_MAX_NUM_MOTORS; i++) {
+                if ((g2.mot_kill_bitmask & (1U << i)) != 0) {
+                    hal.rcout->write(i, motors->get_pwm_output_min());
+                }
+            }
+        }
+    }
+
     // push all channels
     SRV_Channels::push();
 }

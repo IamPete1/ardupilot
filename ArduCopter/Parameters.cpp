@@ -1143,6 +1143,10 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Standard
     AP_SUBGROUPINFO(command_model_pilot, "PILOT_Y_", 56, ParametersG2, AC_CommandModel),
 
+    // @Param: MOT_KILL_BITMASK
+    // @DisplayName: Bitmask of motors to kill
+    AP_GROUPINFO("MOT_KILL_BITMASK", 57, ParametersG2, mot_kill_bitmask, 0),
+
     AP_GROUPEND
 };
 
