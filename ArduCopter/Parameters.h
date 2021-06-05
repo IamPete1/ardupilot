@@ -635,6 +635,9 @@ public:
     AP_Int32 rtl_options;
 #endif
 
+    AP_Int32 mot_kill_bitmask;
+
+
     AC_WeatherVane weathervane;
 
 #if MODE_AUTO_ENABLED == ENABLED

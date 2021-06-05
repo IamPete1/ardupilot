@@ -177,6 +177,19 @@ void Copter::motors_output()
         motors->output();
     }
 
+    // implement motor kill for parachute testing
+    RC_Channel *rc_ptr = rc().find_channel_for_option(RC_Channel::AUX_FUNC::MOTOR_KILL);
+    RC_Channel::aux_switch_pos_t ret;
+    if (rc_ptr != nullptr && rc_ptr->read_3pos_switch(ret)) {
+        if (ret ==  RC_Channel::aux_switch_pos_t::HIGH) {
+            for (uint8_t i=0; i<AP_MOTORS_MAX_NUM_MOTORS; i++) {
+                if ((g2.mot_kill_bitmask & (1U << i)) != 0) {
+                    hal.rcout->write(i, motors->get_pwm_output_min());
+                }
+            }
+        }
+    }
+
     // push all channels
     SRV_Channels::push();
 }
