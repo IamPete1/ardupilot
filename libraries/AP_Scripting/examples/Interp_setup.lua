@@ -4,64 +4,64 @@
 -- Tilt angles used for following interpolations (hover -> forward flight)
 local interpolation_points = {0.000000, 9.000000, 18.000000, 27.000000, 36.000000, 45.000000, 54.000000, 63.000000, 72.000000, 81.000000, 90.000000}
 
--- Mechanical gain scaling, interpolated at `interpolation_points`: Per motor: Roll, Pitch, Yaw
+-- Mechanical gain scaling, interpolated at `interpolation_points`: Per motor: Roll, Pitch, Yaw, throttle
 local mechanical_gain_scaling = {}
 -- hover
-mechanical_gain_scaling[1] = {{-0.500000, 0.500000, 0.500000},
-                              {0.499999, -0.250459, 0.306012},
-                              {0.500000, 0.500000, -0.500000},
-                              {-0.499999, -0.250459, -0.306012}}
+mechanical_gain_scaling[1] = {{-0.500000, 0.500000, 0.500000, 1.000000},
+                              {0.499999, -0.250459, 0.306012, 0.500918},
+                              {0.500000, 0.500000, -0.500000, 1.000000},
+                              {-0.499999, -0.250459, -0.306012, 0.500918}}
 
-mechanical_gain_scaling[2] = {{-0.499898, 0.514665, 0.389858},
-                              {0.395665, -0.253968, 0.226701},
-                              {0.499898, 0.514665, -0.389858},
-                              {-0.395665, -0.253968, -0.226701}}
+mechanical_gain_scaling[2] = {{-0.499898, 0.514665, 0.389858, 1.000000},
+                              {0.395665, -0.253968, 0.226701, 0.493463},
+                              {0.499898, 0.514665, -0.389858, 1.000000},
+                              {-0.395665, -0.253968, -0.226701, 0.493463}}
 
-mechanical_gain_scaling[3] = {{-0.504949, 0.544114, 0.339880},
-                              {0.320929, -0.264124, 0.192179},
-                              {0.504949, 0.544114, -0.339880},
-                              {-0.320929, -0.264124, -0.192179}}
+mechanical_gain_scaling[3] = {{-0.504949, 0.544114, 0.339880, 1.000000},
+                              {0.320929, -0.264124, 0.192179, 0.485421},
+                              {0.504949, 0.544114, -0.339880, 1.000000},
+                              {-0.320929, -0.264124, -0.192179, 0.485421}}
 
-mechanical_gain_scaling[4] = {{-0.514273, 0.597126, 0.327628},
-                              {0.267929, -0.284468, 0.182473},
-                              {0.514273, 0.597126, -0.327628},
-                              {-0.267929, -0.284468, -0.182473}}
+mechanical_gain_scaling[4] = {{-0.514273, 0.597126, 0.327628, 1.000000},
+                              {0.267929, -0.284468, 0.182473, 0.476396},
+                              {0.514273, 0.597126, -0.327628, 1.000000},
+                              {-0.267929, -0.284468, -0.182473, 0.476396}}
 
-mechanical_gain_scaling[5] = {{-0.523734, 0.688088, 0.349329},
-                              {0.231537, -0.320505, 0.193704},
-                              {0.523734, 0.688088, -0.349329},
-                              {-0.231537, -0.320505, -0.193704}}
+mechanical_gain_scaling[5] = {{-0.523734, 0.688088, 0.349329, 1.000000},
+                              {0.231537, -0.320505, 0.193704, 0.465791},
+                              {0.523734, 0.688088, -0.349329, 1.000000},
+                              {-0.231537, -0.320505, -0.193704, 0.465791}}
 
-mechanical_gain_scaling[6] = {{-0.527820, 0.842441, 0.411708},
-                              {0.207807, -0.381288, 0.230259},
-                              {0.527820, 0.842441, -0.411708},
-                              {-0.207807, -0.381288, -0.230259}}
+mechanical_gain_scaling[6] = {{-0.527820, 0.842441, 0.411708, 1.000000},
+                              {0.207807, -0.381288, 0.230259, 0.452599},
+                              {0.527820, 0.842441, -0.411708, 1.000000},
+                              {-0.207807, -0.381288, -0.230259, 0.452599}}
 
-mechanical_gain_scaling[7] = {{-0.523949, 1.111749, 0.531412},
-                              {0.193401, -0.483516, 0.305937},
-                              {0.523949, 1.111749, -0.531412},
-                              {-0.193401, -0.483516, -0.305937}}
+mechanical_gain_scaling[7] = {{-0.523949, 1.111749, 0.531412, 1.000000},
+                              {0.193401, -0.483516, 0.305937, 0.434915},
+                              {0.523949, 1.111749, -0.531412, 1.000000},
+                              {-0.193401, -0.483516, -0.305937, 0.434915}}
 
-mechanical_gain_scaling[8] = {{-0.514827, 1.624802, 0.733449},
-                              {0.185531, -0.663765, 0.450602},
-                              {0.514827, 1.624802, -0.733449},
-                              {-0.185531, -0.663765, -0.450602}}
+mechanical_gain_scaling[8] = {{-0.514827, 1.624802, 0.733449, 1.000000},
+                              {0.185531, -0.663765, 0.450602, 0.408520},
+                              {0.514827, 1.624802, -0.733449, 1.000000},
+                              {-0.185531, -0.663765, -0.450602, 0.408520}}
 
-mechanical_gain_scaling[9] = {{-0.506211, 2.832834, 1.029646},
-                              {0.182044, -1.024499, 0.717791},
-                              {0.506211, 2.832834, -1.029646},
-                              {-0.182044, -1.024499, -0.717791}}
+mechanical_gain_scaling[9] = {{-0.506211, 2.832834, 1.029646, 0.999999},
+                              {0.182044, -1.024499, 0.717791, 0.361651},
+                              {0.506211, 2.832834, -1.029646, 1.000000},
+                              {-0.182044, -1.024499, -0.717791, 0.361651}}
 
-mechanical_gain_scaling[10] = {{-0.503686, 8.248986, 1.340039},
-                               {0.181420, -2.009697, 1.136927},
-                               {0.503686, 8.248986, -1.340039},
-                               {-0.181420, -2.009697, -1.136927}}
+mechanical_gain_scaling[10] = {{-0.503686, 8.248986, 1.340039, 1.000000},
+                               {0.181420, -2.009697, 1.136927, 0.243630},
+                               {0.503686, 8.248986, -1.340039, 1.000000},
+                               {-0.181420, -2.009697, -1.136927, 0.243630}}
 
 -- forward flight
-mechanical_gain_scaling[11] = {{-0.511821, 0.000000, 1.444169},
-                               {0.182644, 0.000000, 1.444169},
-                               {0.511821, 0.000000, -1.444169},
-                               {-0.182644, 0.000000, -1.444169}}
+mechanical_gain_scaling[11] = {{-0.511821, 0.000000, 1.444169, 1.000000},
+                               {0.182644, 0.000000, 1.444169, 1.000000},
+                               {0.511821, 0.000000, -1.444169, 1.000000},
+                               {-0.182644, 0.000000, -1.444169, 1.000000}}
 
 -- Inertia gain scaling, interpolated at `interpolation_points`: Roll, Pitch, Yaw
 local inertia_gain_scaling = {}
@@ -163,10 +163,10 @@ end
 local factors = factor_table()
 -- populate factors table and load
 for j = 1, 4 do
-    factors:roll(j-1,mechanical_gain_scaling[1][j][1])
-    factors:pitch(j-1,mechanical_gain_scaling[1][j][2])
-    factors:yaw(j-1,mechanical_gain_scaling[1][j][3])
-    factors:throttle(j-1,1)
+    factors:roll(j-1,     mechanical_gain_scaling[1][j][1])
+    factors:pitch(j-1,    mechanical_gain_scaling[1][j][2])
+    factors:yaw(j-1,      mechanical_gain_scaling[1][j][3])
+    factors:throttle(j-1, mechanical_gain_scaling[1][j][4])
 end
 Motors_dynamic:load_factors(factors)
 
@@ -252,25 +252,25 @@ local function update_interpolation()
         -- check extremes
         if current_tilt <= interpolation_points[1] then
             -- tilt lower than min value in table
-            factors:roll(k-1,  mechanical_gain_scaling[1][k][1])
-            factors:pitch(k-1, mechanical_gain_scaling[1][k][2])
-            factors:yaw(k-1,   mechanical_gain_scaling[1][k][3])
-            factors:throttle(k-1,1)
+            factors:roll(k-1,     mechanical_gain_scaling[1][k][1])
+            factors:pitch(k-1,    mechanical_gain_scaling[1][k][2])
+            factors:yaw(k-1,      mechanical_gain_scaling[1][k][3])
+            factors:throttle(k-1, mechanical_gain_scaling[1][k][4])
 
         elseif current_tilt >= interpolation_points[#interpolation_points] then
             -- tilt higher than max value
-            factors:roll(k-1,  mechanical_gain_scaling[#interpolation_points][k][1])
-            factors:pitch(k-1, mechanical_gain_scaling[#interpolation_points][k][2])
-            factors:yaw(k-1,   mechanical_gain_scaling[#interpolation_points][k][3])
-            factors:throttle(k-1,1)
+            factors:roll(k-1,     mechanical_gain_scaling[#interpolation_points][k][1])
+            factors:pitch(k-1,    mechanical_gain_scaling[#interpolation_points][k][2])
+            factors:yaw(k-1,      mechanical_gain_scaling[#interpolation_points][k][3])
+            factors:throttle(k-1, mechanical_gain_scaling[#interpolation_points][k][4])
 
         else
             for i = 1, #interpolation_points-1 do
                 if current_tilt >= interpolation_points[i] and current_tilt < interpolation_points[i+1] then
-                    factors:roll(k-1,  linear_interpolate(mechanical_gain_scaling[i][k][1], mechanical_gain_scaling[i+1][k][1], current_tilt, interpolation_points[i], interpolation_points[i+1]))
-                    factors:pitch(k-1, linear_interpolate(mechanical_gain_scaling[i][k][2], mechanical_gain_scaling[i+1][k][2], current_tilt, interpolation_points[i], interpolation_points[i+1]))
-                    factors:yaw(k-1,   linear_interpolate(mechanical_gain_scaling[i][k][3], mechanical_gain_scaling[i+1][k][3], current_tilt, interpolation_points[i], interpolation_points[i+1]))
-                    factors:throttle(k-1,1)
+                    factors:roll(k-1,     linear_interpolate(mechanical_gain_scaling[i][k][1], mechanical_gain_scaling[i+1][k][1], current_tilt, interpolation_points[i], interpolation_points[i+1]))
+                    factors:pitch(k-1,    linear_interpolate(mechanical_gain_scaling[i][k][2], mechanical_gain_scaling[i+1][k][2], current_tilt, interpolation_points[i], interpolation_points[i+1]))
+                    factors:yaw(k-1,      linear_interpolate(mechanical_gain_scaling[i][k][3], mechanical_gain_scaling[i+1][k][3], current_tilt, interpolation_points[i], interpolation_points[i+1]))
+                    factors:throttle(k-1, linear_interpolate(mechanical_gain_scaling[i][k][4], mechanical_gain_scaling[i+1][k][4], current_tilt, interpolation_points[i], interpolation_points[i+1]))
                     break
                 end
             end
