@@ -398,6 +398,9 @@ private:
                   "_failsafe_priorities is missing the sentinel");
 
 
+    // Attitude view for reversing
+    AP_AHRS_View *ahrs_view;
+
 public:
     void failsafe_check();
     // Motor test

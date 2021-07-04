@@ -154,6 +154,13 @@ void Rover::init_ardupilot()
         rover.g2.mis_done_behave.set_default(ModeAuto::Mis_Done_Behave::MIS_DONE_BEHAVE_LOITER);
     }
 
+    // create the attitude view used by the VTOL code
+    ahrs_view = ahrs.create_view(ROTATION_YAW_180);
+    if (ahrs_view == nullptr) {
+        AP_BoardConfig::config_error("Unable to allocate ahrs_view");
+    }
+
+
     // flag that initialisation has completed
     initialised = true;
 }

@@ -403,6 +403,30 @@ void GCS_MAVLINK_Rover::packetReceived(const mavlink_status_t &status, const mav
     GCS_MAVLINK::packetReceived(status, msg);
 }
 
+void GCS_MAVLINK_Rover::send_attitude() const
+{
+    float r = rover.ahrs.roll;
+    float p = rover.ahrs.pitch;
+    float y = rover.ahrs.yaw;
+
+    if (rover.g2.wp_nav.get_reversed()) {
+        r = rover.ahrs_view->roll;
+        p = rover.ahrs_view->pitch;
+        y = rover.ahrs_view->yaw;
+    }
+
+    const Vector3f &omega = rover.ahrs.get_gyro();
+    mavlink_msg_attitude_send(
+        chan,
+        millis(),
+        r,
+        p,
+        y,
+        omega.x,
+        omega.y,
+        omega.z);
+}
+
 /*
   default stream rates to 1Hz
  */

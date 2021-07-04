@@ -55,6 +55,9 @@ void RC_Channel_Rover::init_aux_function(const aux_func_t ch_option, const AuxSw
     case AUX_FUNC::SAILBOAT_MOTOR_3POS:
         do_aux_function_sailboat_motor_3pos(ch_flag);
         break;
+    case AUX_FUNC::REVERSE_THROTTLE:
+        do_aux_function(ch_option, ch_flag);
+        break;
     default:
         RC_Channel::init_aux_function(ch_option, ch_flag);
         break;
@@ -238,6 +241,10 @@ bool RC_Channel_Rover::do_aux_function(const aux_func_t ch_option, const AuxSwit
             SRV_Channels::set_trim_to_servo_out_for(SRV_Channel::k_steering);
             gcs().send_text(MAV_SEVERITY_CRITICAL, "Steering trim saved!");
         }
+        break;
+
+    case AUX_FUNC::REVERSE_THROTTLE:
+        rover.control_mode->set_reversed(ch_flag == AuxSwitchPos::HIGH);
         break;
 
     // manual input, nothing to do

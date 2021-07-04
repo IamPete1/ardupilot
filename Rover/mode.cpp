@@ -44,8 +44,6 @@ bool Mode::enter()
 
     // initialisation common to all modes
     if (ret) {
-        set_reversed(false);
-
         // clear sailboat tacking flags
         rover.g2.sailboat.clear_tack();
     }
@@ -107,6 +105,10 @@ void Mode::get_pilot_desired_steering_and_throttle(float &steering_out, float &t
     // do basic conversion
     get_pilot_input(steering_out, throttle_out);
 
+    if (rover.g2.wp_nav.get_reversed()) {
+        throttle_out *= -1.0;
+    }
+
     // for skid steering vehicles, if pilot commands would lead to saturation
     // we proportionally reduce steering and throttle
     if (g2.motors.have_skid_steering()) {
@@ -134,6 +136,9 @@ void Mode::get_pilot_desired_steering_and_speed(float &steering_out, float &spee
 {
     float desired_throttle;
     get_pilot_input(steering_out, desired_throttle);
+    if (rover.g2.wp_nav.get_reversed()) {
+        desired_throttle *= -1.0;
+    }
     speed_out = desired_throttle * 0.01f * calc_speed_max(g.speed_cruise, g.throttle_cruise * 0.01f);
     // check for special case of input and output throttle being in opposite directions
     float speed_out_limited = g2.attitude_control.get_desired_speed_accel_limited(speed_out, rover.G_Dt);
