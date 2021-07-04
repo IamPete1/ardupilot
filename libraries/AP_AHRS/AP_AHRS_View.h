@@ -219,5 +219,6 @@ private:
     } trig;
 
     float y_angle;
+    float z_angle;
     float _pitch_trim_deg;
 };

@@ -35,13 +35,17 @@ AP_AHRS_View::AP_AHRS_View(AP_AHRS &_ahrs, enum Rotation _rotation, float pitch_
     case ROTATION_PITCH_270:
         y_angle =  270;
         break;
+    case ROTATION_YAW_180:
+        y_angle = 0;
+        z_angle = 180;
+        break;
     default:
         AP_HAL::panic("Unsupported AHRS view %u\n", (unsigned)rotation);
     }
 
     _pitch_trim_deg = pitch_trim_deg;
     // Add pitch trim
-    rot_view.from_euler(0, radians(wrap_360(y_angle + pitch_trim_deg)), 0);
+    rot_view.from_euler(0, radians(wrap_360(y_angle + pitch_trim_deg)), radians(z_angle));
     rot_view_T = rot_view;
     rot_view_T.transpose();
 
@@ -52,7 +56,7 @@ AP_AHRS_View::AP_AHRS_View(AP_AHRS &_ahrs, enum Rotation _rotation, float pitch_
 // apply pitch trim
 void AP_AHRS_View::set_pitch_trim(float trim_deg) {
     _pitch_trim_deg = trim_deg; 
-    rot_view.from_euler(0, radians(wrap_360(y_angle + _pitch_trim_deg)), 0);
+    rot_view.from_euler(0, radians(wrap_360(y_angle + _pitch_trim_deg)), z_angle);
     rot_view_T = rot_view;
     rot_view_T.transpose();
 };
@@ -63,7 +67,7 @@ void AP_AHRS_View::update()
     rot_body_to_ned = ahrs.get_rotation_body_to_ned();
     gyro = ahrs.get_gyro();
 
-    if (!is_zero(y_angle + _pitch_trim_deg)) {
+    if (!is_zero(y_angle + _pitch_trim_deg) || !is_zero(z_angle)) {
         rot_body_to_ned = rot_body_to_ned * rot_view_T;
         gyro = rot_view * gyro;
     }
