@@ -30,6 +30,7 @@ protected:
 
     void send_nav_controller_output() const override;
     void send_pid_tuning() override;
+    void send_attitude() const override;
 
 private:
 
