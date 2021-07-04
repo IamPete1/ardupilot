@@ -576,6 +576,7 @@ const RC_Channel::LookupTable RC_Channel::lookuptable[] = {
     { AUX_FUNC::CAM_MODE_TOGGLE,"CamModeToggle"},
     { AUX_FUNC::GENERATOR,"Generator"},
     { AUX_FUNC::ARSPD_CALIBRATE,"Calibrate Airspeed"},
+    { AUX_FUNC::REVERSE_THROTTLE,"Reverse"},
 };
 
 /* lookup the announcement for switch change */
