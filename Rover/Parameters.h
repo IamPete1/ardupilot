@@ -436,6 +436,10 @@ public:
 
     // FS GCS timeout trigger time
     AP_Float fs_gcs_timeout;
+
+    // pilot inputs expo
+    AP_Float thr_expo;
+    AP_Float str_expo;
 };
 
 extern const AP_Param::Info var_info[];

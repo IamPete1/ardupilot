@@ -692,6 +692,16 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("FS_GCS_TIMEOUT", 56, ParametersG2, fs_gcs_timeout, 5),
 
+    // @Param: THROTTLE_EXPO
+    // @DisplayName: Pilot throttle expo
+    // @Range: -0.5 1.0
+    AP_GROUPINFO("THROTTLE_EXPO", 57, ParametersG2, thr_expo, 0),
+
+    // @Param: STEERING_EXPO
+    // @DisplayName: Pilot steering expo
+    // @Range: -0.5 1.0
+    AP_GROUPINFO("STEERING_EXPO", 58, ParametersG2, str_expo, 0),
+
     AP_GROUPEND
 };
 

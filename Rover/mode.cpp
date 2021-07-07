@@ -95,6 +95,19 @@ void Mode::get_pilot_input(float &steering_out, float &throttle_out)
             break;
         }
     }
+
+    // Apply expos
+    if (!is_zero(g2.thr_expo)) {
+        const float expo = constrain_float(g2.thr_expo, -0.5, 1.0);
+        const float in = throttle_out/100.0;
+        throttle_out = ((expo * in * in * in) + ((1.0 - expo) * in)) * 100.0;
+    }
+    if (!is_zero(g2.str_expo)) {
+        const float expo = constrain_float(g2.str_expo, -0.5, 1.0);
+        const float in = steering_out/4500.0;
+        steering_out = ((expo * in * in * in) + ((1.0 - expo) * in)) * 4500.0;
+    }
+
 }
 
 // decode pilot steering and throttle inputs and return in steer_out and throttle_out arguments
