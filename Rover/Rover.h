@@ -433,6 +433,8 @@ public:
 
     // Simple mode
     float simple_sin_yaw;
+
+    bool get_reversed() const override { return g2.wp_nav.get_reversed(); }
 };
 
 extern Rover rover;

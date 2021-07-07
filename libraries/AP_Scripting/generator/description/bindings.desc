@@ -199,6 +199,7 @@ singleton AP_Vehicle method set_steering_and_throttle boolean float -1 1 float -
 singleton AP_Vehicle method get_wp_distance_m boolean float'Null
 singleton AP_Vehicle method get_wp_bearing_deg boolean float'Null
 singleton AP_Vehicle method get_wp_crosstrack_error_m boolean float'Null
+singleton AP_Vehicle method get_reversed boolean
 
 include AP_SerialLED/AP_SerialLED.h
 singleton AP_SerialLED alias serialLED
