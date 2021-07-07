@@ -236,6 +236,8 @@ public:
      */
     virtual bool get_wp_crosstrack_error_m(float &xtrack_error) const { return false; }
 
+    virtual bool get_reversed() const { return false; }
+
 #if HAL_WITH_FRSKY_TELEM_BIDIRECTIONAL
     AP_Frsky_Parameters frsky_parameters;
 #endif
