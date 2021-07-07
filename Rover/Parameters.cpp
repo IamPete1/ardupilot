@@ -650,6 +650,16 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("FS_OPTIONS", 48, ParametersG2, fs_options, 0),
 
+    // @Param: THROTTLE_EXPO
+    // @DisplayName: Pilot throttle expo
+    // @Range: -0.5 1.0
+    AP_GROUPINFO("THROTTLE_EXPO", 49, ParametersG2, thr_expo, 0),
+
+    // @Param: STEERING_EXPO
+    // @DisplayName: Pilot steering expo
+    // @Range: -0.5 1.0
+    AP_GROUPINFO("STEERING_EXPO", 50, ParametersG2, str_expo, 0),
+
     AP_GROUPEND
 };
 
