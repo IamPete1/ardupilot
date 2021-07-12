@@ -809,6 +809,13 @@ private:
     static const TerrainLookupTable Terrain_lookup[];
 #endif
 
+    enum class RTL_AutoLand {
+        NONE,
+        HOME_THEN_LANDING_SEQUENCE,
+        CLOSEST_LANDING_SEQUENCE,
+        SHORTEST_LANDING_SEQUENCE,
+    };
+
     // Attitude.cpp
     void adjust_nav_pitch_throttle(void);
     void update_load_factor(void);

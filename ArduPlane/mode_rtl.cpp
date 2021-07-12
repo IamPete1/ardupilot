@@ -69,33 +69,29 @@ void ModeRTL::navigate()
         }
     }
 
-    if (plane.g.rtl_autoland == 1 &&
-        !plane.auto_state.checked_for_autoland &&
-        plane.reached_loiter_target() && 
-        labs(plane.altitude_error_cm) < 1000) {
-        // we've reached the RTL point, see if we have a landing sequence
-        if (plane.mission.jump_to_landing_sequence()) {
-            // switch from RTL -> AUTO
-            plane.mission.set_force_resume(true);
-            plane.set_mode(plane.mode_auto, ModeReason::RTL_COMPLETE_SWITCHING_TO_FIXEDWING_AUTOLAND);
-        }
+    if (!plane.auto_state.checked_for_autoland) {
+        if ((Plane::RTL_AutoLand)plane.g.rtl_autoland.get() == Plane::RTL_AutoLand::HOME_THEN_LANDING_SEQUENCE &&
+            !plane.auto_state.checked_for_autoland &&
+            plane.reached_loiter_target() && 
+            labs(plane.altitude_error_cm) < 1000) {
+            // we've reached the RTL point, see if we have a landing sequence
+            if (plane.mission.jump_to_landing_sequence()) {
+                // switch from RTL -> AUTO
+                plane.mission.set_force_resume(true);
+                plane.set_mode(plane.mode_auto, ModeReason::RTL_COMPLETE_SWITCHING_TO_AUTOLAND);
 
-        // prevent running the expensive jump_to_landing_sequence
-        // on every loop
-        plane.auto_state.checked_for_autoland = true;
-    }
-    else if (plane.g.rtl_autoland == 2 &&
-        !plane.auto_state.checked_for_autoland) {
-        // Go directly to the landing sequence
-        if (plane.mission.jump_to_landing_sequence()) {
-            // switch from RTL -> AUTO
+            }
+            // prevent running the expensive jump_to_landing_sequence on every loop
+            plane.auto_state.checked_for_autoland = true;
+        } else if ((((Plane::RTL_AutoLand)plane.g.rtl_autoland.get() == Plane::RTL_AutoLand::CLOSEST_LANDING_SEQUENCE) && plane.mission.jump_to_landing_sequence()) ||
+                   (((Plane::RTL_AutoLand)plane.g.rtl_autoland.get() == Plane::RTL_AutoLand::SHORTEST_LANDING_SEQUENCE) && plane.mission.jump_to_shortest_landing_sequence())) {
+            // Go directly to the landing sequence in auto
             plane.mission.set_force_resume(true);
-            plane.set_mode(plane.mode_auto, ModeReason::RTL_COMPLETE_SWITCHING_TO_FIXEDWING_AUTOLAND);
-        }
+            plane.set_mode(plane.mode_auto, ModeReason::RTL_DO_LAND_START);
 
-        // prevent running the expensive jump_to_landing_sequence
-        // on every loop
-        plane.auto_state.checked_for_autoland = true;
+            // prevent running the expensive jump_to_landing_sequence on every loop
+            plane.auto_state.checked_for_autoland = true;
+        }
     }
     uint16_t radius = abs(plane.g.rtl_radius);
     if (radius > 0) {

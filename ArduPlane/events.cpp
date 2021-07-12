@@ -194,7 +194,7 @@ void Plane::handle_battery_failsafe(const char *type_str, const int8_t action)
         case Failsafe_Action_RTL:
             if (flight_stage != AP_Vehicle::FixedWing::FLIGHT_LAND && control_mode != &mode_qland && !quadplane.in_vtol_land_sequence()) {
                 // never stop a landing if we were already committed
-                if (g.rtl_autoland == 2 && plane.mission.is_best_land_sequence()) {
+                if (((RTL_AutoLand)g.rtl_autoland.get() >= RTL_AutoLand::CLOSEST_LANDING_SEQUENCE) && plane.mission.is_best_land_sequence()) {
                     // continue mission as it will reach a landing in less distance
                     plane.mission.set_in_landing_sequence_flag(true);
                     break;
