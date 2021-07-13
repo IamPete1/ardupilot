@@ -479,6 +479,12 @@ public:
     // find the landing sequence starting point (DO_LAND_START) that will result in the shortest distance to a landing
     bool jump_to_shortest_landing_sequence(void);
 
+    // find the closest point on the mission after a DO_LAND_START and before the final DO_LAND_START
+    bool jump_to_closest_mission_leg(void);
+
+    // pick the shortest distance to landing not the shortest distance to rejoin mission
+    bool jump_to_shortest_mission_leg(void);
+
     // jumps the mission to the closest landing abort that is planned, returns false if unable to find a valid abort
     bool jump_to_abort_landing_sequence(void);
 
@@ -577,6 +583,10 @@ private:
 
     // approximate the distance travelled to get to a landing.  DO_JUMP commands are observed in look forward.
     bool distance_to_landing(uint16_t index, float &tot_distance,Location current_loc);
+
+    // Approximate the distance travelled to return to the mission path. DO_JUMP commands are observed in look forward.
+    // Stop searching once reaching a landing or do-land-start
+    bool distance_to_mission_leg(uint16_t index, float &rejoin_distance, uint16_t &rejoin_index, Location current_loc);
 
     /// sanity checks that the masked fields are not NaN's or infinite
     static MAV_MISSION_RESULT sanity_check_params(const mavlink_mission_item_int_t& packet);
