@@ -1093,7 +1093,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Param: MISSION_RTL
     // @DisplayName: Enable Mission RTL mode
     // @Description: Mission RTL mode Automatically begin landing sequence in RTL. This requires the addition of DO_LAND_START mission item or items, which acts as a marker for the start of a landing sequence.
-    // @Values: 0:Disable, 1:Enabled - go HOME then closest landing sequence, 2:Enabled - go directly to closest landing sequence start, 3:Enabled - go directly to shortest landing sequence if no landing is found defualt to closest landing start
+    // @Values: 0:Disable, 1:Enabled - go HOME then closest landing sequence, 2:Enabled - go directly to closest landing sequence start, 3:Enabled - go directly to shortest landing sequence if no landing is found defualt to closest landing start, 4:Enabled - jump to closest mission leg after a DO_LAND_REJOIN waypoint, 5:Enabled - jump to mission after a DO_LAND_REJOIN resulting in the shortest distance to landing
     // @User: Standard
     AP_GROUPINFO("MISSION_RTL", 48, ParametersG2, mission_RTL_type, 0),
 #endif
