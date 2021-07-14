@@ -65,6 +65,15 @@ void ModeRTL::run(bool disarm_on_land)
             return_start();
             break;
         case SubMode::RETURN_HOME:
+#if MODE_AUTO_ENABLED == ENABLED
+            // Check if we should start a landing sequence
+            if ((Mission_RTL::Type)g2.mission_RTL_type.get() == Mission_RTL::Type::HOME_THEN_LANDING_SEQUENCE) {
+                copter.mode_mission_rtl.switching_from_RTL = true;
+                copter.set_mode(Mode::Number::MISSION_RTL, ModeReason::RTL_COMPLETE_SWITCHING_TO_AUTOLAND);
+                _state_complete = false;
+                break;
+            }
+#endif
             loiterathome_start();
             break;
         case SubMode::LOITER_AT_HOME:
