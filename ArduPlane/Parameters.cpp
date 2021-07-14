@@ -742,7 +742,7 @@ const AP_Param::Info Plane::var_info[] = {
     // @Param: RTL_AUTOLAND
     // @DisplayName: RTL auto land
     // @Description: Automatically begin landing sequence after arriving at RTL location. This requires the addition of a DO_LAND_START mission item, which acts as a marker for the start of a landing sequence. The closest landing sequence will be chosen to the current location. 
-    // @Values: 0:Disable, 1:Enabled - go HOME then closest landing sequence, 2:Enabled - go directly to closest landing sequence start, 3:Enabled - go directly to shortest landing sequence if no landing is found defualt to closest landing start
+    // @Values: 0:Disable, 1:Enabled - go HOME then closest landing sequence, 2:Enabled - go directly to closest landing sequence start, 3:Enabled - go directly to shortest landing sequence if no landing is found defualt to closest landing start, 4:Enabled - jump to closest mission leg after a DO_LAND_REJOIN waypoint, 5:Enabled - jump to mission after a DO_LAND_REJOIN resulting in the shortest distance to landing
     // @User: Standard
     GSCALAR(rtl_autoland,         "RTL_AUTOLAND",   0),
 

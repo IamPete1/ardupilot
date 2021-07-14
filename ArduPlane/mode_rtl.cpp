@@ -83,8 +83,10 @@ void ModeRTL::navigate()
             }
             // prevent running the expensive jump_to_landing_sequence on every loop
             plane.auto_state.checked_for_autoland = true;
-        } else if ((((Plane::RTL_AutoLand)plane.g.rtl_autoland.get() == Plane::RTL_AutoLand::CLOSEST_LANDING_SEQUENCE) && plane.mission.jump_to_landing_sequence()) ||
-                   (((Plane::RTL_AutoLand)plane.g.rtl_autoland.get() == Plane::RTL_AutoLand::SHORTEST_LANDING_SEQUENCE) && plane.mission.jump_to_shortest_landing_sequence())) {
+        } else if ((((Plane::RTL_AutoLand)plane.g.rtl_autoland.get() == Plane::RTL_AutoLand::CLOSEST_LANDING_SEQUENCE)  && plane.mission.jump_to_landing_sequence()) ||
+                   (((Plane::RTL_AutoLand)plane.g.rtl_autoland.get() == Plane::RTL_AutoLand::SHORTEST_LANDING_SEQUENCE) && plane.mission.jump_to_shortest_landing_sequence()) ||
+                   (((Plane::RTL_AutoLand)plane.g.rtl_autoland.get() == Plane::RTL_AutoLand::CLOSEST_MISSION_LEG)       && plane.mission.jump_to_closest_mission_leg()) ||
+                   (((Plane::RTL_AutoLand)plane.g.rtl_autoland.get() == Plane::RTL_AutoLand::SHORTEST_MISSION_LEG)      && plane.mission.jump_to_shortest_mission_leg()) ) {
             // Go directly to the landing sequence in auto
             plane.mission.set_force_resume(true);
             plane.set_mode(plane.mode_auto, ModeReason::RTL_DO_LAND_START);

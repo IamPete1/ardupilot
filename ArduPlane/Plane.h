@@ -814,6 +814,8 @@ private:
         HOME_THEN_LANDING_SEQUENCE,
         CLOSEST_LANDING_SEQUENCE,
         SHORTEST_LANDING_SEQUENCE,
+        CLOSEST_MISSION_LEG,
+        SHORTEST_MISSION_LEG,
     };
 
     // Attitude.cpp
