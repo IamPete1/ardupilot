@@ -30,11 +30,28 @@ bool Mission_RTL::init(bool ignore_checks)
             return copter.mode_auto.init(ignore_checks);
         }
         // no need to set mode back to RTL if comming from it, just refuse change
+        gcs().send_text(MAV_SEVERITY_WARNING, "MRTL mission not configured correclty");
         return false;
     }
 
-    copter.set_mode(Mode::Number::RTL, ((Type)g2.mission_RTL_type.get() == Type::HOME_THEN_LANDING_SEQUENCE) ? ModeReason::MISSION_RTL_HOME_FIRST : ModeReason::MISSION_RTL_FAILED );
-    return false;
+    bool ret = false;
+    ModeReason rsn = ModeReason::MISSION_RTL_FAILED;
+
+    if ((Type)g2.mission_RTL_type.get() == Type::HOME_THEN_LANDING_SEQUENCE) {
+        gcs().send_text(MAV_SEVERITY_INFO, "RTL then DO_LAND_START");
+        rsn = ModeReason::MISSION_RTL_HOME_FIRST;
+        ret = true;
+    }
+
+    copter.set_mode(Mode::Number::RTL, rsn);
+
+    if ((Type)g2.mission_RTL_type.get() == Type::NONE) {
+        gcs().send_text(MAV_SEVERITY_WARNING, "MRTL not enabled");
+    } else {
+        gcs().send_text(MAV_SEVERITY_WARNING, "MRTL mission not configured correclty");
+    }
+
+    return ret;
 }
 
 void Mission_RTL::run()
