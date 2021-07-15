@@ -15,6 +15,9 @@ bool Mission_RTL::init(bool ignore_checks)
     const bool tmp_switching_from_RTL = switching_from_RTL;
     switching_from_RTL = false;
 
+    // back up Auto mode state
+    copter.mode_auto.mission.backup_mission(backup);
+
     if ((((Type)g2.mission_RTL_type.get() == Type::CLOSEST_LANDING_SEQUENCE)  && copter.mode_auto.mission.jump_to_landing_sequence()) ||
         (((Type)g2.mission_RTL_type.get() == Type::SHORTEST_LANDING_SEQUENCE) && copter.mode_auto.mission.jump_to_shortest_landing_sequence()) ||
         (((Type)g2.mission_RTL_type.get() == Type::CLOSEST_MISSION_LEG)       && copter.mode_auto.mission.jump_to_closest_mission_leg()) ||
@@ -62,6 +65,9 @@ void Mission_RTL::run()
 void Mission_RTL::exit()
 {
     copter.mode_auto.exit();
+
+    // restore mission state back to where it was when we entered
+    copter.mode_auto.mission.restore_mission(backup);
 }
 
 bool Mission_RTL::requires_GPS() const

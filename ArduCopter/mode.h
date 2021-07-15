@@ -602,6 +602,9 @@ protected:
     };
 
     bool switching_from_RTL;
+
+private:
+    AP_Mission::Mission_Backup backup;
 };
 #endif
 
