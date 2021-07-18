@@ -817,6 +817,43 @@ void AP_Vehicle::check_motor_noise()
 #endif
 }
 
+#ifdef AP_SCRIPTING_ENABLED
+MAV_RESULT AP_Vehicle::command_long(const mavlink_command_long_t &cmd)
+{
+    hal.util->persistent_data.last_mavlink_cmd = cmd.command;
+
+    MAV_RESULT result = MAV_RESULT_FAILED;
+    if (gcs().chan(0) != nullptr) {
+        result = gcs().chan(0)->handle_command_long_packet(cmd);
+    }
+
+    // log the packet:
+    mavlink_command_int_t packet_int;
+    GCS_MAVLINK::convert_COMMAND_LONG_to_COMMAND_INT(cmd, packet_int);
+    AP::logger().Write_Command(packet_int, -1, -1, result, true);
+
+    hal.util->persistent_data.last_mavlink_cmd = 0;
+
+    return result;
+};
+
+MAV_RESULT AP_Vehicle::command_int(const mavlink_command_int_t &cmd)
+{
+    hal.util->persistent_data.last_mavlink_cmd = cmd.command;
+
+    MAV_RESULT result = MAV_RESULT_FAILED;
+    if (gcs().chan(0) != nullptr) {
+        result = gcs().chan(0)->handle_command_int_packet(cmd);
+    }
+
+    AP::logger().Write_Command(cmd, -1, -1, result);
+
+    hal.util->persistent_data.last_mavlink_cmd = 0;
+
+    return result;
+}
+#endif // AP_SCRIPTING_ENABLED
+
 AP_Vehicle *AP_Vehicle::_singleton = nullptr;
 
 AP_Vehicle *AP_Vehicle::get_singleton()

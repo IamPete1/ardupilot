@@ -428,6 +428,7 @@ userdata mavlink_command_long_t field param7 float read write -FLT_MAX FLT_MAX
 userdata mavlink_command_long_t field command uint16_t read write 0 UINT16_MAX
 userdata mavlink_command_long_t field target_system uint8_t read write 0 UINT8_MAX
 userdata mavlink_command_long_t field target_component uint8_t read write 0 UINT8_MAX
+userdata mavlink_command_long_t rename command_long
 
 userdata mavlink_command_int_t field param1 float read write -FLT_MAX FLT_MAX
 userdata mavlink_command_int_t field param2 float read write -FLT_MAX FLT_MAX
@@ -440,6 +441,7 @@ userdata mavlink_command_int_t field command uint16_t read write 0 UINT16_MAX
 userdata mavlink_command_int_t field target_system uint8_t read write 0 UINT8_MAX
 userdata mavlink_command_int_t field target_component uint8_t read write 0 UINT8_MAX
 userdata mavlink_command_int_t field frame uint8_t read write  0 UINT8_MAX
+userdata mavlink_command_int_t rename command_int
 
 
 include AP_RPM/AP_RPM.h

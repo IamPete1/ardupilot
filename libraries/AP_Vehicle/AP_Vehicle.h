@@ -173,6 +173,10 @@ public:
     // set steering and throttle (-1 to +1) (for use by scripting with Rover)
     virtual bool set_steering_and_throttle(float steering, float throttle) { return false; }
 
+    // Command long and int access
+    MAV_RESULT command_long(const mavlink_command_long_t &cmd);
+    MAV_RESULT command_int(const mavlink_command_int_t &cmd);
+
     // set turn rate in deg/sec and speed in meters/sec (for use by scripting with Rover)
     virtual bool set_desired_turn_rate_and_speed(float turn_rate, float speed) { return false; }
 
