@@ -308,7 +308,7 @@ public:
     void Write_Mode(uint8_t mode, const ModeReason reason);
 
     void Write_EntireMission();
-    void Write_Command(const mavlink_command_int_t &packet, MAV_RESULT result, bool was_command_long=false);
+    void Write_Command(const mavlink_command_int_t &packet, const MAV_RESULT result, const uint8_t chan, bool was_command_long=false);
     void Write_Mission_Cmd(const AP_Mission &mission,
                                const AP_Mission::Mission_Command &cmd);
     void Write_RPM(const AP_RPM &rpm_sensor);
