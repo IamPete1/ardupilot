@@ -4309,7 +4309,7 @@ void GCS_MAVLINK::handle_command_long(const mavlink_message_t &msg)
     // log the packet:
     mavlink_command_int_t packet_int;
     convert_COMMAND_LONG_to_COMMAND_INT(packet, packet_int);
-    AP::logger().Write_Command(packet_int, result, true);
+    AP::logger().Write_Command(packet_int, result, chan, true);
 
     hal.util->persistent_data.last_mavlink_cmd = 0;
 }
@@ -4493,7 +4493,7 @@ void GCS_MAVLINK::handle_command_int(const mavlink_message_t &msg)
     // send ACK or NAK
     mavlink_msg_command_ack_send(chan, packet.command, result);
 
-    AP::logger().Write_Command(packet, result);
+    AP::logger().Write_Command(packet, result, chan);
 
     hal.util->persistent_data.last_mavlink_cmd = 0;
 }
