@@ -405,6 +405,43 @@ void AP_Vehicle::publish_osd_info()
 }
 #endif
 
+#ifdef ENABLE_SCRIPTING
+MAV_RESULT AP_Vehicle::command_long(const mavlink_command_long_t &cmd)
+{
+    hal.util->persistent_data.last_mavlink_cmd = cmd.command;
+
+    MAV_RESULT result = MAV_RESULT_FAILED;
+    if (gcs().chan(0) != nullptr) {
+        result = gcs().chan(0)->handle_command_long_packet(cmd);
+    }
+
+    // log the packet:
+    mavlink_command_int_t packet_int;
+    GCS_MAVLINK::convert_COMMAND_LONG_to_COMMAND_INT(cmd, packet_int);
+    AP::logger().Write_Command(packet_int, result, -1, true);
+
+    hal.util->persistent_data.last_mavlink_cmd = 0;
+
+    return result;
+};
+
+MAV_RESULT AP_Vehicle::command_int(const mavlink_command_int_t &cmd)
+{
+    hal.util->persistent_data.last_mavlink_cmd = cmd.command;
+
+    MAV_RESULT result = MAV_RESULT_FAILED;
+    if (gcs().chan(0) != nullptr) {
+        result = gcs().chan(0)->handle_command_int_packet(cmd);
+    }
+
+    AP::logger().Write_Command(cmd, result, -1);
+
+    hal.util->persistent_data.last_mavlink_cmd = 0;
+
+    return result;
+}
+#endif // ENABLE_SCRIPTING
+
 AP_Vehicle *AP_Vehicle::_singleton = nullptr;
 
 AP_Vehicle *AP_Vehicle::get_singleton()
