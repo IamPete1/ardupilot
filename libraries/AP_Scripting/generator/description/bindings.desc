@@ -277,6 +277,8 @@ singleton AP_Vehicle method set_velocity_match boolean Vector2f
 singleton AP_Vehicle method set_land_descent_rate boolean float'skip_check
 singleton AP_Vehicle method has_ekf_failsafed boolean
 singleton AP_Vehicle method get_reversed boolean
+singleton AP_Vehicle method command_long uint8_t mavlink_command_long_t
+singleton AP_Vehicle method command_int uint8_t mavlink_command_int_t
 
 include AP_SerialLED/AP_SerialLED.h
 singleton AP_SerialLED rename serialLED
@@ -415,6 +417,29 @@ userdata mavlink_mission_item_int_t field command uint16_t'skip_check read write
 userdata mavlink_mission_item_int_t field frame uint8_t'skip_check read write
 userdata mavlink_mission_item_int_t field current uint8_t'skip_check read write
 -- userdata mavlink_mission_item_int_t field autocontinue uint8_t'skip_check read write
+
+userdata mavlink_command_long_t field param1 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_long_t field param2 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_long_t field param3 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_long_t field param4 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_long_t field param5 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_long_t field param6 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_long_t field param7 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_long_t field command uint16_t read write 0 UINT16_MAX
+userdata mavlink_command_long_t field target_system uint8_t read write 0 UINT8_MAX
+userdata mavlink_command_long_t field target_component uint8_t read write 0 UINT8_MAX
+
+userdata mavlink_command_int_t field param1 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_int_t field param2 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_int_t field param3 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_int_t field param4 float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_int_t field x int32_t read write -INT32_MAX INT32_MAX
+userdata mavlink_command_int_t field y int32_t read write -INT32_MAX INT32_MAX
+userdata mavlink_command_int_t field z float read write -FLT_MAX FLT_MAX
+userdata mavlink_command_int_t field command uint16_t read write 0 UINT16_MAX
+userdata mavlink_command_int_t field target_system uint8_t read write 0 UINT8_MAX
+userdata mavlink_command_int_t field target_component uint8_t read write 0 UINT8_MAX
+userdata mavlink_command_int_t field frame uint8_t read write  0 UINT8_MAX
 
 
 include AP_RPM/AP_RPM.h
