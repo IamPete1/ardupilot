@@ -533,6 +533,64 @@ int lua_dirlist(lua_State *L) {
     return 1;  /* table is already on top */
 }
 
+int lua_mavlink_register_command_long(lua_State *L) {
+    binding_argcheck(L, 2);
+
+    const int command_in = luaL_checkinteger(L, 1);
+    luaL_argcheck(L, ((command_in >= 0) && (command_in < INT16_MAX)), 1, "command out of range");
+    const int16_t command = static_cast<int16_t>(command_in);
+
+    const int buffer_size_in = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((buffer_size_in > 0) && (buffer_size_in < 25)), 2, "buffer size out of range");
+    const uint8_t buffer_size = static_cast<uint8_t>(buffer_size_in);
+
+    command_long_buffer* new_buffer = new command_long_buffer(buffer_size,command);
+    if (new_buffer  == nullptr) {
+        return luaL_error(L, "Unable to allocate Command int buffer");
+    }
+
+    struct AP_Scripting::mavlink &data = AP::scripting()->mavlink_data;
+    WITH_SEMAPHORE(data.sem);
+
+    if (data.long_buffer == nullptr) {
+        data.long_buffer = new_buffer;
+    } else {
+        data.long_buffer->add_buffer(new_buffer);
+    }
+    new_command_long_buffer(L);
+    *((command_long_buffer**)luaL_checkudata(L, -1, "command_long_buffer")) = new_buffer;
+    return 1;
+}
+
+int lua_mavlink_register_command_int(lua_State *L) {
+    binding_argcheck(L, 2);
+
+    const int command_in = luaL_checkinteger(L, 1);
+    luaL_argcheck(L, ((command_in >= 0) && (command_in < INT16_MAX)), 1, "command out of range");
+    const int16_t command = static_cast<int16_t>(command_in);
+
+    const int buffer_size_in = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((buffer_size_in > 0) && (buffer_size_in < 25)), 2, "buffer size out of range");
+    const uint8_t buffer_size = static_cast<uint8_t>(buffer_size_in);
+
+    command_int_buffer* new_buffer = new command_int_buffer(buffer_size,command);
+    if (new_buffer  == nullptr) {
+        return luaL_error(L, "Unable to allocate Command int buffer");
+    }
+
+    struct AP_Scripting::mavlink &data = AP::scripting()->mavlink_data;
+    WITH_SEMAPHORE(data.sem);
+
+    if (data.int_buffer == nullptr) {
+        data.int_buffer = new_buffer;
+    } else {
+        data.int_buffer->add_buffer(new_buffer);
+    }
+    new_command_int_buffer(L);
+    *((command_int_buffer**)luaL_checkudata(L, -1, "command_int_buffer")) = new_buffer;
+    return 1;
+}
+
 /*
   remove a file
  */

@@ -14,3 +14,5 @@ int lua_dirlist(lua_State *L);
 int lua_removefile(lua_State *L);
 int SRV_Channels_get_safety_state(lua_State *L);
 int lua_get_PWMSource(lua_State *L);
+int lua_mavlink_register_command_long(lua_State *L);
+int lua_mavlink_register_command_int(lua_State *L);

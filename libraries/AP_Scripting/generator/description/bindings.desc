@@ -720,3 +720,7 @@ include AP_WheelEncoder/AP_WheelEncoder.h  depends APM_BUILD_TYPE(APM_BUILD_Rove
 singleton AP_WheelEncoder depends APM_BUILD_TYPE(APM_BUILD_Rover)
 singleton AP_WheelEncoder alias wheelencoder
 singleton AP_WheelEncoder method get_distance float uint8_t 0 WHEELENCODER_MAX_INSTANCES
+
+singleton Logging rename mavlink
+singleton Logging manual register_command_long lua_mavlink_register_command_long 2
+singleton Logging manual register_command_int lua_mavlink_register_command_int 2
