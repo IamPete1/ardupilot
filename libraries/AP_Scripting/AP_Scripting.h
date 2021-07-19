@@ -23,6 +23,7 @@
 #include <AP_Filesystem/AP_Filesystem.h>
 #include <AP_HAL/I2CDevice.h>
 #include "AP_Scripting_CANSensor.h"
+#include "AP_Scripting_MAVLink_buffer.h"
 
 #ifndef SCRIPTING_MAX_NUM_I2C_DEVICE
   #define SCRIPTING_MAX_NUM_I2C_DEVICE 4
@@ -54,6 +55,9 @@ public:
     bool arming_checks(size_t buflen, char *buffer) const;
     
     void restart_all(void);
+
+    bool handle_command_long(const mavlink_command_long_t& cmd, const mavlink_channel_t chan);
+    bool handle_command_int(const mavlink_command_int_t& cmd, const mavlink_channel_t chan);
 
    // User parameters for inputs into scripts 
    AP_Float _user[6];
@@ -94,6 +98,12 @@ public:
     // PWMSource storage
     uint8_t num_pwm_source;
     AP_HAL::PWMSource *_pwm_source[SCRIPTING_MAX_NUM_PWM_SOURCE];
+
+    struct mavlink {
+        command_long_buffer * long_buffer;
+        command_int_buffer * int_buffer;
+        HAL_Semaphore sem;
+    } mavlink_data;
 
 private:
 
