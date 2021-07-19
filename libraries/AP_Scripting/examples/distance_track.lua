@@ -4,6 +4,10 @@ local total_dist = 0
 local origin = 0
 local reversed = vehicle:get_reversed()
 
+-- register for command long user 1 (31010) with buffer size of 5
+local CMD_USER_1 = mavlink.register_command_long(31010, 5)
+local MAV_RESULT_ACCEPTED = 0
+
 -- switch to zero distance measurement, RC option 300
 local switch = rc:find_channel_for_option(300)
 
@@ -28,8 +32,17 @@ function update()
     local sw_pos = switch:get_aux_switch_pos()
     if sw_pos == 2 and last_sw_pos ~= 2 then
       origin = return_dist
+      gcs:send_text(6,string.format("Measurement reset to %0.1fm", return_dist - origin))
     end
     last_sw_pos = sw_pos
+  end
+
+  -- check for reset message
+  local cmd = CMD_USER_1:receive()
+  if cmd then
+    CMD_USER_1:send_ack(MAV_RESULT_ACCEPTED)
+    origin = return_dist - cmd:param1()
+    gcs:send_text(6,string.format("Measurement reset to %0.1fm", return_dist - origin))
   end
 
   gcs:send_named_float('WheelDist',return_dist - origin)
