@@ -10,6 +10,8 @@
 
 #include <AP_Scripting/AP_Scripting.h>
 
+#include "AP_Scripting_MAVLink_buffer.h"
+
 extern const AP_HAL::HAL& hal;
 
 int check_arguments(lua_State *L, int expected_arguments, const char *fn_name);
@@ -340,6 +342,71 @@ const luaL_Reg i2c_functions[] = {
     {NULL, NULL}
 };
 
+static int lua_mavlink_register_command_long(lua_State *L) {
+    check_arguments(L, 2, "register_command_long");
+
+    const int command_in = luaL_checkinteger(L, 1);
+    luaL_argcheck(L, ((command_in >= 0) && (command_in < INT16_MAX)), 1, "command out of range");
+    const int16_t command = static_cast<int16_t>(command_in);
+
+    const int buffer_size_in = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((buffer_size_in > 0) && (buffer_size_in < 25)), 2, "buffer size out of range");
+    const uint8_t buffer_size = static_cast<uint8_t>(buffer_size_in);
+
+    command_long_buffer* new_buffer = new command_long_buffer(buffer_size,command);
+    if (new_buffer  == nullptr) {
+        return luaL_error(L, "Unable to allocate Command int buffer");
+    }
+
+    struct AP_Scripting::mavlink &data = AP::scripting()->mavlink_data;
+    WITH_SEMAPHORE(data.sem);
+
+    if (data.long_buffer == nullptr) {
+        data.long_buffer = new_buffer;
+    } else {
+        data.long_buffer->add_buffer(new_buffer);
+    }
+    new_command_long_buffer(L);
+    *check_command_long_buffer(L, -1) = new_buffer;
+    return 1;
+}
+
+static int lua_mavlink_register_command_int(lua_State *L) {
+    check_arguments(L, 2, "register_command_int");
+
+    const int command_in = luaL_checkinteger(L, 1);
+    luaL_argcheck(L, ((command_in >= 0) && (command_in < INT16_MAX)), 1, "command out of range");
+    const int16_t command = static_cast<int16_t>(command_in);
+
+    const int buffer_size_in = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((buffer_size_in > 0) && (buffer_size_in < 25)), 2, "buffer size out of range");
+    const uint8_t buffer_size = static_cast<uint8_t>(buffer_size_in);
+
+    command_int_buffer* new_buffer = new command_int_buffer(buffer_size,command);
+    if (new_buffer  == nullptr) {
+        return luaL_error(L, "Unable to allocate Command int buffer");
+    }
+
+    struct AP_Scripting::mavlink &data = AP::scripting()->mavlink_data;
+    WITH_SEMAPHORE(data.sem);
+
+    if (data.int_buffer == nullptr) {
+        data.int_buffer = new_buffer;
+    } else {
+        data.int_buffer->add_buffer(new_buffer);
+    }
+    new_command_int_buffer(L);
+    *check_command_int_buffer(L, -1) = new_buffer;
+    return 1;}
+
+static const luaL_Reg mavlink_functions[] =
+{
+    {"register_command_long", lua_mavlink_register_command_long},
+    {"register_command_int", lua_mavlink_register_command_int},
+
+    {NULL, NULL}
+};
+
 void load_lua_bindings(lua_State *L) {
     lua_pushstring(L, "logger");
     luaL_newlib(L, AP_Logger_functions);
@@ -347,6 +414,10 @@ void load_lua_bindings(lua_State *L) {
 
     lua_pushstring(L, "i2c");
     luaL_newlib(L, i2c_functions);
+    lua_settable(L, -3);
+
+    lua_pushstring(L, "mavlink");
+    luaL_newlib(L, mavlink_functions);
     lua_settable(L, -3);
 
     luaL_setfuncs(L, global_functions, 0);
