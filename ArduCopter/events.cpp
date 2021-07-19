@@ -10,9 +10,11 @@ bool Copter::failsafe_option(FailsafeOption opt) const
     return (g2.fs_options & (uint32_t)opt);
 }
 
-void Copter::failsafe_radio_on_event()
+void Copter::failsafe_radio_on_event(bool report)
 {
-    AP::logger().Write_Error(LogErrorSubsystem::FAILSAFE_RADIO, LogErrorCode::FAILSAFE_OCCURRED);
+    if (report) {
+        AP::logger().Write_Error(LogErrorSubsystem::FAILSAFE_RADIO, LogErrorCode::FAILSAFE_OCCURRED);
+    }
 
     // set desired action based on FS_THR_ENABLE parameter
     Failsafe_Action desired_action;
@@ -65,7 +67,7 @@ void Copter::failsafe_radio_on_event()
         gcs().send_text(MAV_SEVERITY_WARNING, "Radio Failsafe - Continuing Guided Mode");
         desired_action = Failsafe_Action_None;
 
-    } else {
+    } else if (report) {
         gcs().send_text(MAV_SEVERITY_WARNING, "Radio Failsafe");
     }
 
@@ -146,9 +148,11 @@ void Copter::failsafe_gcs_check()
 }
 
 // failsafe_gcs_on_event - actions to take when GCS contact is lost
-void Copter::failsafe_gcs_on_event(void)
+void Copter::failsafe_gcs_on_event(bool report)
 {
-    AP::logger().Write_Error(LogErrorSubsystem::FAILSAFE_GCS, LogErrorCode::FAILSAFE_OCCURRED);
+    if (report) {
+        AP::logger().Write_Error(LogErrorSubsystem::FAILSAFE_GCS, LogErrorCode::FAILSAFE_OCCURRED);
+    }
     RC_Channels::clear_overrides();
 
     // convert the desired failsafe response to the Failsafe_Action enum
@@ -204,7 +208,7 @@ void Copter::failsafe_gcs_on_event(void)
         // should continue when in a pilot controlled mode because FS_OPTIONS is set to continue in pilot controlled modes
         gcs().send_text(MAV_SEVERITY_WARNING, "GCS Failsafe - Continuing Pilot Control");
         desired_action = Failsafe_Action_None;
-    } else {
+    } else if (report) {
         gcs().send_text(MAV_SEVERITY_WARNING, "GCS Failsafe");
     }
 

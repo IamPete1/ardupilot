@@ -718,11 +718,11 @@ private:
 
     // events.cpp
     bool failsafe_option(FailsafeOption opt) const;
-    void failsafe_radio_on_event();
+    void failsafe_radio_on_event(bool report = true);
     void failsafe_radio_off_event();
     void handle_battery_failsafe(const char* type_str, const int8_t action);
     void failsafe_gcs_check();
-    void failsafe_gcs_on_event(void);
+    void failsafe_gcs_on_event(bool report = true);
     void failsafe_gcs_off_event(void);
     void failsafe_terrain_check();
     void failsafe_terrain_set_status(bool data_ok);
