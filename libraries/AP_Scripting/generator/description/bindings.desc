@@ -443,6 +443,13 @@ userdata mavlink_command_int_t field target_component uint8_t read write 0 UINT8
 userdata mavlink_command_int_t field frame uint8_t read write  0 UINT8_MAX
 userdata mavlink_command_int_t rename command_int
 
+include AP_Scripting/AP_Scripting_MAVLink_buffer.h
+ap_object command_long_buffer method receive boolean mavlink_command_long_t'Null uint8_t'Null
+ap_object command_long_buffer method send_ack void MAV_RESULT'enum 0 MAV_RESULT_ENUM_END-1
+ap_object command_long_buffer method send_chan_ack void MAV_RESULT'enum 0 MAV_RESULT_ENUM_END-1 mavlink_channel_t'enum 0  mavlink_channel_t::MAVLINK_COMM_3
+ap_object command_int_buffer method receive boolean mavlink_command_int_t'Null uint8_t'Null
+ap_object command_int_buffer method send_ack void MAV_RESULT'enum 0 MAV_RESULT_ENUM_END-1
+ap_object command_int_buffer method send_chan_ack void MAV_RESULT'enum 0 MAV_RESULT_ENUM_END-1 mavlink_channel_t'enum 0  mavlink_channel_t::MAVLINK_COMM_3
 
 include AP_RPM/AP_RPM.h
 singleton AP_RPM rename RPM
