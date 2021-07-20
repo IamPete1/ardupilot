@@ -656,6 +656,9 @@ public:
 #if AP_TERRAIN_AVAILABLE
     AP_Float terrain_margin;
 #endif
+
+    AP_Int8 auto_rtl_type;
+
 };
 
 extern const AP_Param::Info        var_info[];

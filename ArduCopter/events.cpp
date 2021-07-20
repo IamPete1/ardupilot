@@ -33,6 +33,9 @@ void Copter::failsafe_radio_on_event()
         case FS_THR_ENABLED_ALWAYS_LAND:
             desired_action = Failsafe_Action_Land;
             break;
+        case FS_THR_ENABLED_AUTO_RTL_OR_RTL:
+            desired_action = Failsafe_Action_Auto_DO_lAND_START;
+            break;
         default:
             desired_action = Failsafe_Action_Land;
     }
@@ -169,6 +172,9 @@ void Copter::failsafe_gcs_on_event(void)
             break;
         case FS_GCS_ENABLED_ALWAYS_LAND:
             desired_action = Failsafe_Action_Land;
+            break;
+        case FS_THR_ENABLED_AUTO_RTL_OR_RTL:
+            desired_action = Failsafe_Action_Auto_DO_lAND_START;
             break;
         default: // if an invalid parameter value is set, the fallback is RTL
             desired_action = Failsafe_Action_RTL;
@@ -336,6 +342,24 @@ void Copter::set_mode_SmartRTL_or_RTL(ModeReason reason)
     }
 }
 
+// Sets mode to Auto and jumps to DO_LAND_START, as set with AUTO_RTL param
+// This can come from failsafe or RC option
+void Copter::set_mode_auto_do_land_start_or_RTL(ModeReason reason)
+{
+    // Go straight to landing sequence in auto
+    if (((AutoRTLType)g2.auto_rtl_type.get() == AutoRTLType::CLOSEST_LANDING_SEQUENCE) && copter.mode_auto.mission.jump_to_landing_sequence()) {
+        copter.mode_auto.mission.set_force_resume(true);
+        if (set_mode(Mode::Number::AUTO, reason)) {
+            return;
+        }
+        // mode change failed, revert force resume flag
+        copter.mode_auto.mission.set_force_resume(false);
+    }
+
+    gcs().send_text(MAV_SEVERITY_WARNING, "AUTO RTL Unavailable, Trying RTL Mode");
+    set_mode_RTL_or_land_with_pause(reason);
+}
+
 bool Copter::should_disarm_on_failsafe() {
     if (ap.in_arming_delay) {
         return true;
@@ -383,6 +407,10 @@ void Copter::do_failsafe_action(Failsafe_Action action, ModeReason reason){
 #endif
         }
         break;
+        case Failsafe_Action_Auto_DO_lAND_START:
+            set_mode_auto_do_land_start_or_RTL(reason);
+            AP_Notify::events.failsafe_mode_change = 1;
+            break;
     }
 
 #if GRIPPER_ENABLED == ENABLED
