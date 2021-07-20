@@ -98,6 +98,7 @@ void RC_Channel_Copter::init_aux_function(const aux_func_t ch_option, const AuxS
     case AUX_FUNC::ZIGZAG_Auto:
     case AUX_FUNC::ZIGZAG_SaveWP:
     case AUX_FUNC::ACRO:
+    case AUX_FUNC::AUTO_RTL:
         break;
     case AUX_FUNC::ACRO_TRAINER:
     case AUX_FUNC::ATTCON_ACCEL_LIM:
@@ -577,6 +578,11 @@ bool RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const AuxSwi
             copter.mode_acro.air_mode_aux_changed();
 #endif
             break;
+
+        case AUX_FUNC::AUTO_RTL:
+            copter.set_mode_auto_do_land_start_or_RTL(ModeReason::RC_COMMAND);
+            break;
+
 
     default:
         return RC_Channel::do_aux_function(ch_option, ch_flag);
