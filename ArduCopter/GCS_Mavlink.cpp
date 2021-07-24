@@ -639,6 +639,14 @@ MAV_RESULT GCS_MAVLINK_Copter::handle_command_long_packet(const mavlink_command_
         return MAV_RESULT_ACCEPTED;
     }
 
+#if MODE_AUTO_ENABLED == ENABLED
+    case MAV_CMD_DO_LAND_START:
+        if (copter.mode_auto.jump_to_landing_sequence_auto_RTL(ModeReason::GCS_COMMAND)) {
+            return MAV_RESULT_ACCEPTED;
+        }
+        return MAV_RESULT_FAILED;
+#endif
+
     case MAV_CMD_NAV_LOITER_UNLIM:
         if (!copter.set_mode(Mode::Number::LOITER, ModeReason::GCS_COMMAND)) {
             return MAV_RESULT_FAILED;
