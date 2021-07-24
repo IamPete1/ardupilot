@@ -36,6 +36,7 @@ public:
         ZIGZAG    =    24,  // ZIGZAG mode is able to fly in a zigzag manner with predefined point A and point B
         SYSTEMID  =    25,  // System ID mode produces automated system identification signals in the controllers
         AUTOROTATE =   26,  // Autonomous autorotation
+        AUTO_RTL =     27,  // Auto RTL, this is not a true mode, AUTO will report as this mode if entered to perform a DO_LAND_START Landing sequence
     };
 
     // constructor
@@ -335,7 +336,7 @@ class ModeAuto : public Mode {
 public:
     // inherit constructor
     using Mode::Mode;
-    Number mode_number() const override { return Number::AUTO; }
+    Number mode_number() const override { return auto_RTL? Number::AUTO_RTL : Number::AUTO; }
 
     bool init(bool ignore_checks) override;
     void exit() override;
@@ -376,6 +377,9 @@ public:
     // for GCS_MAVLink to call:
     bool do_guided(const AP_Mission::Mission_Command& cmd);
 
+    // Go straight to landing sequence via DO_LAND_START, if succeeds pretend to be Auto RTL mode
+    bool jump_to_landing_sequence_auto_RTL(ModeReason reason);
+
     AP_Mission mission{
         FUNCTOR_BIND_MEMBER(&ModeAuto::start_command, bool, const AP_Mission::Mission_Command &),
         FUNCTOR_BIND_MEMBER(&ModeAuto::verify_command, bool, const AP_Mission::Mission_Command &),
@@ -383,8 +387,8 @@ public:
 
 protected:
 
-    const char *name() const override { return "AUTO"; }
-    const char *name4() const override { return "AUTO"; }
+    const char *name() const override { return auto_RTL? "AUTO RTL" : "AUTO"; }
+    const char *name4() const override { return auto_RTL? "ARTL" : "AUTO"; }
 
     uint32_t wp_distance() const override;
     int32_t wp_bearing() const override;
@@ -513,6 +517,9 @@ private:
     } nav_payload_place;
 
     bool waiting_for_origin;    // true if waiting for origin before starting mission
+
+    // True if we have entered AUTO to perform a DO_LAND_START landing sequence and we should report as AUTO RTL mode
+    bool auto_RTL;
 };
 
 #if AUTOTUNE_ENABLED == ENABLED

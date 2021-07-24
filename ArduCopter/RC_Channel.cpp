@@ -110,6 +110,7 @@ void RC_Channel_Copter::init_aux_function(const aux_func_t ch_option, const aux_
     case AUX_FUNC::FLOWHOLD:
     case AUX_FUNC::CIRCLE:
     case AUX_FUNC::DRIFT:
+    case AUX_FUNC::AUTO_RTL:
         break;
     default:
         RC_Channel::init_aux_function(ch_option, ch_flag);
@@ -575,6 +576,12 @@ void RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const aux_sw
                 copter.surface_tracking.set_surface(Copter::SurfaceTracking::Surface::CEILING);
                 break;
             }
+            break;
+
+        case AUX_FUNC::AUTO_RTL:
+#if MODE_AUTO_ENABLED == ENABLED
+            do_aux_function_change_mode(Mode::Number::AUTO_RTL, ch_flag);
+#endif
             break;
 
     default:
