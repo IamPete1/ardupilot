@@ -210,6 +210,7 @@ enum HarmonicNotchDynamicMode {
 #define FS_THR_ENABLED_ALWAYS_LAND                 3
 #define FS_THR_ENABLED_ALWAYS_SMARTRTL_OR_RTL      4
 #define FS_THR_ENABLED_ALWAYS_SMARTRTL_OR_LAND     5
+#define FS_THR_ENABLED_AUTO_RTL_OR_RTL             6
 
 // GCS failsafe definitions (FS_GCS_ENABLE parameter)
 #define FS_GCS_DISABLED                        0
@@ -218,6 +219,7 @@ enum HarmonicNotchDynamicMode {
 #define FS_GCS_ENABLED_ALWAYS_SMARTRTL_OR_RTL  3
 #define FS_GCS_ENABLED_ALWAYS_SMARTRTL_OR_LAND 4
 #define FS_GCS_ENABLED_ALWAYS_LAND             5
+#define FS_THR_ENABLED_AUTO_RTL_OR_RTL         6
 
 // EKF failsafe definitions (FS_EKF_ACTION parameter)
 #define FS_EKF_ACTION_LAND                  1       // switch to LAND mode on EKF failsafe
