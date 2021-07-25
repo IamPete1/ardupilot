@@ -396,7 +396,7 @@ private:
     // There are multiple states defined such as STABILIZE, ACRO,
     Mode *flightmode;
     Mode::Number prev_control_mode;
-    ModeReason prev_control_mode_reason = ModeReason::UNKNOWN;
+    ModeReason control_mode_reason = ModeReason::UNKNOWN;
 
     RCMapper rcmap;
 

@@ -218,10 +218,10 @@ void Copter::failsafe_gcs_off_event(void)
 void Copter::failsafe_terrain_check()
 {
     // trigger with 5 seconds of failures while in AUTO mode
-    bool valid_mode = (control_mode == Mode::Number::AUTO ||
-                       control_mode == Mode::Number::GUIDED ||
-                       control_mode == Mode::Number::GUIDED_NOGPS ||
-                       control_mode == Mode::Number::RTL);
+    bool valid_mode = (copter.flightmode->mode_number() == Mode::Number::AUTO ||
+                       copter.flightmode->mode_number() == Mode::Number::GUIDED ||
+                       copter.flightmode->mode_number() == Mode::Number::GUIDED_NOGPS ||
+                       copter.flightmode->mode_number() == Mode::Number::RTL);
     bool timeout = (failsafe.terrain_last_failure_ms - failsafe.terrain_first_failure_ms) > FS_TERRAIN_TIMEOUT_MS;
     bool trigger_event = valid_mode && timeout;
 

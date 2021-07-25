@@ -172,7 +172,7 @@ void RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const aux_sw
             break;
 
         case AUX_FUNC::SAVE_TRIM:
-            if ((ch_flag == AuxSwitchPos::HIGH) &&
+            if ((ch_flag == aux_switch_pos_t::HIGH) &&
                 (copter.flightmode->mode_number() <= Mode::Number::ACRO) &&
                 (copter.channel_throttle->get_control_in() == 0)) {
                 copter.save_trim();
