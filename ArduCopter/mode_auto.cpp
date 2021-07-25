@@ -554,6 +554,7 @@ bool ModeAuto::start_command(const AP_Mission::Mission_Command& cmd)
 #endif
 
     case MAV_CMD_DO_LAND_START:
+    case MAV_CMD_DO_LAND_REJOIN:
         break;
 
     default:
@@ -795,6 +796,7 @@ bool ModeAuto::verify_command(const AP_Mission::Mission_Command& cmd)
     case MAV_CMD_DO_FENCE_ENABLE:
     case MAV_CMD_DO_WINCH:
     case MAV_CMD_DO_LAND_START:
+    case MAV_CMD_DO_LAND_REJOIN:
         cmd_complete = true;
         break;
 
