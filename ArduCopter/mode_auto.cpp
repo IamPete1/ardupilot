@@ -84,6 +84,12 @@ void ModeAuto::run()
 
             // initialise mission change check (ignore results)
             check_for_mission_change();
+
+            // One time set of landing sequence flag if in AUTO RTL
+            if (auto_RTL) {
+                mission.set_in_landing_sequence_flag(true);
+            }
+
         }
     } else {
         // check for mission changes
@@ -159,7 +165,11 @@ bool ModeAuto::allows_arming(AP_Arming::Method method) const
 // Go straight to landing sequence via DO_LAND_START, if succeeds pretend to be Auto RTL mode
 bool ModeAuto::jump_to_landing_sequence_auto_RTL(ModeReason reason)
 {
-    if (mission.jump_to_landing_sequence()) {
+    if ( ((g2.auto_rtl_type == 3) && mission.jump_to_shortest_landing_sequence()) ||
+         ((g2.auto_rtl_type == 4) && mission.jump_to_closest_mission_leg()) ||
+         ((g2.auto_rtl_type == 5) && mission.jump_to_shortest_mission_leg()) || 
+            mission.jump_to_landing_sequence()) {
+
         mission.set_force_resume(true);
         if (set_mode(Mode::Number::AUTO, reason)) {
             auto_RTL = true;
