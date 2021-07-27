@@ -78,10 +78,16 @@ public:
     // sanity check parameters.  should be called once before take-off
     void parameter_sanity_check() override;
 
+    float get_rate_pitch_target() { return _current_target.y; }
+    float get_rate_roll_target() { return _current_target.x; }
+
     // user settable parameters
     static const struct AP_Param::GroupInfo var_info[];
 
 protected:
+
+    Vector3f _current_target;
+
 
     // update_throttle_rpy_mix - updates thr_low_comp value towards the target
     void update_throttle_rpy_mix();

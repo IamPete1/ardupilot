@@ -331,6 +331,7 @@ void AC_AttitudeControl_Multi::rate_controller_run()
     update_throttle_rpy_mix();
 
     _ang_vel_body += _sysid_ang_vel_body;
+    _current_target = _ang_vel_body;
 
     Vector3f gyro_latest = _ahrs.get_gyro_latest();
 
