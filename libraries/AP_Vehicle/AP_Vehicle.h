@@ -249,6 +249,11 @@ public:
      */
     virtual bool get_pan_tilt_norm(float &pan_norm, float &tilt_norm) const { return false; }
 
+#if OSD_ENABLED
+    // Returns roll and pitch, allows quadplane view and forward flight pitch trim
+    virtual void get_osd_roll_pitch_rad(float &roll, float &pitch) const;
+#endif
+
 protected:
 
     virtual void init_ardupilot() = 0;
