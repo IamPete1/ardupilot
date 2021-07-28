@@ -690,4 +690,20 @@ bool Plane::get_target_location(Location& target_loc)
     return false;
 }
 
+#if OSD_ENABLED
+// Get the roll and pitch using the correct view for FW vs VTOL flight
+void Plane::get_osd_roll_pitch_rad(float &roll, float &pitch) const
+{
+   if (quadplane.show_vtol_view()) {
+       // VTOL view
+       roll = quadplane.ahrs_view->roll;
+       pitch = quadplane.ahrs_view->pitch;
+       return;
+   }
+   // Forward flight with pitch trim
+   roll = ahrs.roll;
+   pitch = ahrs.pitch - (g.pitch_trim_cd * 0.01 * DEG_TO_RAD);
+}
+#endif
+
 AP_HAL_MAIN_CALLBACKS(&plane);
