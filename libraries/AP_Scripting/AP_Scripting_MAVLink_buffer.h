@@ -15,8 +15,7 @@ public:
     bool write(const mavlink_command_int_t &cmd, const uint32_t time_ms, const mavlink_channel_t chan);
 
     // pop command from buffer, save last channel for ack
-    bool receive(mavlink_command_long_t &cmd, uint32_t &time_ms, uint8_t &chan);
-    bool receive(mavlink_command_int_t &cmd, uint32_t &time_ms, uint8_t &chan);
+    uint8_t receive(mavlink_command_long_t &LONG, mavlink_command_int_t &INT, uint32_t &time_ms, uint8_t &chan);
 
     // send ack back to the last channel
     void send_ack(MAV_RESULT result);
@@ -27,8 +26,8 @@ public:
 private:
 
     // struct for object buffer
-    struct scripting_cmd_long {
-        union {
+    struct scripting_cmd {
+        union cmd_union {
             mavlink_command_long_t LONG;
             mavlink_command_int_t INT;
         } cmd;
@@ -43,7 +42,7 @@ private:
     // last channel popped
     int8_t _last_chan = -1;
 
-    ObjectBuffer<scripting_cmd_long> buffer;
+    ObjectBuffer<scripting_cmd> buffer;
 
     command_buffer * next;
 

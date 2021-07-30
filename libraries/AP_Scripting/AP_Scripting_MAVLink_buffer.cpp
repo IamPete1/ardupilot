@@ -16,7 +16,7 @@ bool command_buffer::write(const mavlink_command_long_t &cmd, const uint32_t tim
     WITH_SEMAPHORE(sem);
     bool ret = false;
     if ((watch_msgid == MAVLINK_MSG_ID_COMMAND_LONG) && (cmd.command == watch_CMD)) {
-        struct scripting_cmd_long data {{.LONG = cmd}, time_ms, chan};
+        struct scripting_cmd data {{.LONG = cmd}, time_ms, chan};
         buffer.push(data);
         ret = true;
     }
@@ -31,7 +31,7 @@ bool command_buffer::write(const mavlink_command_int_t& cmd, const uint32_t time
     WITH_SEMAPHORE(sem);
     bool ret = false;
     if ((watch_msgid == MAVLINK_MSG_ID_COMMAND_INT) && (cmd.command == watch_CMD)) {
-        struct scripting_cmd_long data {{.INT = cmd}, time_ms, chan};
+        struct scripting_cmd data {{.INT = cmd}, time_ms, chan};
         buffer.push(data);
         ret = true;
     }
@@ -42,31 +42,29 @@ bool command_buffer::write(const mavlink_command_int_t& cmd, const uint32_t time
 }
 
 // pop command from buffer, save last channel for ack
-bool command_buffer::receive(mavlink_command_long_t &cmd, uint32_t &time_ms, uint8_t &chan) {
+uint8_t command_buffer::receive(mavlink_command_long_t &LONG, mavlink_command_int_t &INT, uint32_t &time_ms, uint8_t &chan) {
     WITH_SEMAPHORE(sem);
-    scripting_cmd_long command;
+    scripting_cmd command;
     if (buffer.pop(command)) {
-        cmd = command.cmd.LONG;
-        time_ms = command.time_ms;
-        chan = command.chan;
-        _last_chan = chan;
-        return true;
-    }
-    return false;
-}
+        u_int8_t ret;
+        if (watch_msgid == MAVLINK_MSG_ID_COMMAND_LONG) {
+            LONG = command.cmd.LONG;
+            // tell scripting the first, third and fourth returns are valid
+            ret = 0b1101;
 
-// pop command from buffer, save last channel for ack
-bool command_buffer::receive(mavlink_command_int_t & cmd, uint32_t &time_ms, uint8_t &chan) {
-    WITH_SEMAPHORE(sem);
-    scripting_cmd_long command;
-    if (buffer.pop(command)) {
-        cmd = command.cmd.INT;
+        } else if (watch_msgid == MAVLINK_MSG_ID_COMMAND_INT) {
+            INT = command.cmd.INT;
+            ret = 0b1110;
+
+        } else {
+            return 0;
+        }
         time_ms = command.time_ms;
         chan = command.chan;
         _last_chan = chan;
-        return true;
+        return ret;
     }
-    return false;
+    return 0;
 }
 
 // send ack back to the last channel
