@@ -1718,6 +1718,7 @@ void emit_userdata_method(const struct userdata *data, const struct method *meth
     return_count += emit_references(arg,"    ");
   }
 
+  int add_return = TRUE;
   switch (method->return_type.type) {
     case TYPE_BOOLEAN:
       if (method->flags & TYPE_FLAGS_NULLABLE) {
@@ -1729,20 +1730,17 @@ void emit_userdata_method(const struct userdata *data, const struct method *meth
         fprintf(source, "    } else {\n");
         fprintf(source, "        return 0;\n");
         fprintf(source, "    }\n");
+        add_return = FALSE;
       } else {
         fprintf(source, "    lua_pushboolean(L, data);\n");
       }
       break;
     case TYPE_UINT8_T:
       if (method->flags & TYPE_FLAGS_NULLABLE) {
-        fprintf(source, "    if (data > 0) {\n");
-        // we need to emit out nullable arguments, iterate the args again, creating and copying objects, while keeping a new count
         arg = method->arguments;
-        emit_references_mask(arg,"        ");
-        fprintf(source, "        return __builtin_popcountll(data);\n");
-        fprintf(source, "    } else {\n");
-        fprintf(source, "        return 0;\n");
-        fprintf(source, "    }\n");
+        emit_references_mask(arg,"    ");
+        fprintf(source, "    return __builtin_popcountll(data);\n");
+        add_return = FALSE;
       } else {
         fprintf(source, "    lua_pushinteger(L, data);\n");
       }
@@ -1783,7 +1781,7 @@ void emit_userdata_method(const struct userdata *data, const struct method *meth
       break;
   }
 
-  if ((method->return_type.type != TYPE_BOOLEAN) || ((method->flags & TYPE_FLAGS_NULLABLE) == 0)) {
+  if (add_return) {
       fprintf(source, "    return %d;\n", return_count);
   }
 
