@@ -740,6 +740,8 @@ void ModeGuided::posvelaccel_control_run()
     if (tnow - update_time_ms > get_timeout_ms()) {
         guided_vel_target_cms.zero();
         guided_accel_target_cmss.zero();
+        pos_control->get_stopping_point_xy_cm(guided_pos_target_cm.xy());
+        pos_control->get_stopping_point_z_cm(guided_pos_target_cm.z);
         if ((auto_yaw.mode() == AUTO_YAW_RATE) || (auto_yaw.mode() == AUTO_YAW_ANGLE_RATE)) {
             auto_yaw.set_rate(0.0f);
         }
