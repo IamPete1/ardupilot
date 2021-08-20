@@ -1001,8 +1001,13 @@ void QuadPlane::run_z_controller(void)
         if (!tailsitter.enabled()) {
             pos_control->init_z_controller();
         } else {
-            // initialise the vertical position controller with no descent
-            pos_control->init_z_controller_no_descent();
+            if (!is_negative(inertial_nav.get_velocity().z)) {
+                // Climbing, init the vertical position controller to stopping point
+                pos_control->init_z_controller_stopping_point();
+            } else {
+                // Init to current alt and try not to decend too much
+                pos_control->init_z_controller_no_descent();
+            }
         }
     }
     last_pidz_active_ms = now;
