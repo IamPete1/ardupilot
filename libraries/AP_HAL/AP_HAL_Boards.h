@@ -264,6 +264,17 @@
 #define AP_TEST_DRONECAN_DRIVERS 0
 #endif
 
+#ifndef HAL_POWEROFF_ENABLED
+#ifdef HAL_POWER_CONTROL_GPIO
+#define HAL_POWEROFF_ENABLED 1
+#else
+#define HAL_POWEROFF_ENABLED 0
+#endif
+#ifndef HAL_POWEROFF_DELAY_MS
+#define HAL_POWEROFF_DELAY_MS 5000
+#endif
+#endif
+
 #ifdef HAVE_LIBDL
 #define AP_MODULE_SUPPORTED 1
 #else
