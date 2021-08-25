@@ -127,9 +127,9 @@ void ModeAuto::run()
     }
 
     // only pretend to be in auto RTL so long as mission still thinks its in a landing sequence or the mission has completed
-    //if (!(mission.get_in_landing_sequence_flag() || mission.state() == AP_Mission::mission_state::MISSION_COMPLETE)) {
-    //    auto_RTL = false;
-    //}
+    if (!(mission.get_in_landing_sequence_flag() || mission.state() == AP_Mission::mission_state::MISSION_COMPLETE)) {
+        auto_RTL = false;
+    }
 }
 
 bool ModeAuto::allows_arming(bool from_gcs) const
