@@ -4,8 +4,14 @@
 VEHICLE="ArduCopter"
 LOCATION="ParkDavis"
 
-x-terminal-emulator -e "sleep 5; ./Tools/autotest/sim_vehicle.py -w -v $VEHICLE -L $LOCATION -f json:0.0.0.0 -I1"
+mkdir -p 1
+cd 1
+x-terminal-emulator -e "sleep 5; ../Tools/autotest/sim_vehicle.py -v $VEHICLE -L $LOCATION -f json:0.0.0.0 -I1; $SHELL"
+cd ..
 
-x-terminal-emulator -e "sleep 2; ./Tools/autotest/sim_vehicle.py -w -v $VEHICLE -L $LOCATION -f json:0.0.0.0 -I2"
+mkdir -p 2
+cd 2
+x-terminal-emulator -e "sleep 2; ../Tools/autotest/sim_vehicle.py -v $VEHICLE -L $LOCATION -f json:0.0.0.0 -I2; $SHELL"
+cd ..
 
-./Tools/autotest/sim_vehicle.py -v $VEHICLE -L $LOCATION -w --console --map --slave 2
+./Tools/autotest/sim_vehicle.py -v $VEHICLE -L $LOCATION --console --map --slave 2
