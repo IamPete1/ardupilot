@@ -22,6 +22,7 @@
 // auto_init - initialise auto controller
 bool ModeAuto::init(bool ignore_checks)
 {
+    auto_RTL = false;
     if (mission.num_commands() > 1 || ignore_checks) {
         _mode = Auto_Loiter;
 
@@ -51,10 +52,6 @@ bool ModeAuto::init(bool ignore_checks)
             waiting_for_origin = false;
         } else {
             waiting_for_origin = true;
-        }
-
-        if (auto_RTL) {
-            mission.set_in_landing_sequence_flag(true);
         }
 
         return true;
@@ -151,7 +148,8 @@ bool ModeAuto::jump_to_landing_sequence_auto_RTL(ModeReason reason)
             mission.jump_to_landing_sequence()) {
 
         mission.set_force_resume(true);
-        if (set_mode(Mode::Number::AUTO, reason)) {
+        // if not already in auto then switch to auto
+        if ((copter.flightmode == &copter.mode_auto) || set_mode(Mode::Number::AUTO, reason)) {
             auto_RTL = true;
             return true;
         }
