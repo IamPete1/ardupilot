@@ -444,18 +444,6 @@ int8_t Tailsitter::get_transition_angle_vtol() const
     return transition_angle_vtol;
 }
 
-// constrain to roll limit if set, return true if constrained
-bool Tailsitter::constrain_roll_cd(int32_t &roll_cd) const
-{
-    if (quadplane.tailsitter.enabled() && is_positive(quadplane.tailsitter.max_roll_angle)) {
-        const float roll_limit_cd = quadplane.tailsitter.max_roll_angle * 100;
-        if (labs(roll_cd) > roll_limit_cd) {
-            roll_cd = constrain_int32(roll_cd, -roll_limit_cd, roll_limit_cd);
-            return true;
-        }
-    }
-    return false;
-}
 
 /*
   account for speed scaling of control surfaces in VTOL modes
