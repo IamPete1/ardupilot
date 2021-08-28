@@ -57,6 +57,8 @@ public:
     // return the transition_angle_vtol value
     int8_t get_transition_angle_vtol() const;
 
+    // constrain to roll limit if set, return true if constrained
+    bool constrain_roll_cd(int32_t &roll_cd) const;
 
     // true when flying a tilt-vectored tailsitter
     bool _is_vectored;

@@ -2570,6 +2570,10 @@ void QuadPlane::vtol_position_controller(void)
             pos_control->set_externally_limited_xy();
         }
 
+        if (tailsitter.constrain_roll_cd(plane.nav_roll_cd)) {
+            pos_control->set_externally_limited_xy();
+        }
+
         // call attitude controller
         attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
                                                                       plane.nav_pitch_cd,
@@ -2620,6 +2624,10 @@ void QuadPlane::vtol_position_controller(void)
         plane.nav_roll_cd = pos_control->get_roll_cd();
         plane.nav_pitch_cd = pos_control->get_pitch_cd();
 
+        if (tailsitter.constrain_roll_cd(plane.nav_roll_cd)) {
+            pos_control->set_externally_limited_xy();
+        }
+
         // call attitude controller
         attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
                                                                       plane.nav_pitch_cd,
@@ -2644,6 +2652,10 @@ void QuadPlane::vtol_position_controller(void)
         // nav roll and pitch are controller by position controller
         plane.nav_roll_cd = pos_control->get_roll_cd();
         plane.nav_pitch_cd = pos_control->get_pitch_cd();
+
+        if (tailsitter.constrain_roll_cd(plane.nav_roll_cd)) {
+            pos_control->set_externally_limited_xy();
+        }
 
         // call attitude controller
         attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
@@ -2833,6 +2845,10 @@ void QuadPlane::takeoff_controller(void)
     plane.nav_roll_cd = pos_control->get_roll_cd();
     plane.nav_pitch_cd = pos_control->get_pitch_cd();
 
+    if (tailsitter.constrain_roll_cd(plane.nav_roll_cd)) {
+        pos_control->set_externally_limited_xy();
+    }
+
     attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(plane.nav_roll_cd,
                                                                   plane.nav_pitch_cd,
                                                                   get_pilot_input_yaw_rate_cds() + get_weathervane_yaw_rate_cds());
@@ -2855,15 +2871,21 @@ void QuadPlane::waypoint_controller(void)
     */
     // run wpnav controller
     wp_nav->update_wpnav();
-    
-    // call attitude controller
-    attitude_control->input_euler_angle_roll_pitch_yaw(wp_nav->get_roll(),
-                                                       wp_nav->get_pitch(),
-                                                       wp_nav->get_yaw(),
-                                                       true);
+
     // nav roll and pitch are controller by loiter controller
     plane.nav_roll_cd = wp_nav->get_roll();
     plane.nav_pitch_cd = wp_nav->get_pitch();
+
+    if (tailsitter.constrain_roll_cd(plane.nav_roll_cd)) {
+        pos_control->set_externally_limited_xy();
+    }
+
+    // call attitude controller
+    attitude_control->input_euler_angle_roll_pitch_yaw(plane.nav_roll_cd,
+                                                       plane.nav_pitch_cd ,
+                                                       wp_nav->get_yaw(),
+                                                       true);
+
     
     // climb based on altitude error
     set_climb_rate_cms(assist_climb_rate_cms(), false);
