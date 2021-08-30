@@ -1292,10 +1292,12 @@ bool AP_Arming::arm(AP_Arming::Method method, const bool do_arming_checks)
         return false;
     }
 
-    if ((!do_arming_checks && mandatory_checks(true)) || (pre_arm_checks(true) && arm_checks(method))) {
+    const bool _do_arming_checks = do_arming_checks && (checks_to_perform > 0);
+
+    if ((!_do_arming_checks && mandatory_checks(true)) || (_do_arming_checks && pre_arm_checks(true) && arm_checks(method))) {
         armed = true;
 
-        Log_Write_Arm(!do_arming_checks, method); // note Log_Write_Armed takes forced not do_arming_checks
+        Log_Write_Arm(!_do_arming_checks, method); // note Log_Write_Armed takes forced not do_arming_checks
 
     } else {
         AP::logger().arming_failure();
