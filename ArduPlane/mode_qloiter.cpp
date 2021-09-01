@@ -80,11 +80,16 @@ void ModeQLoiter::run()
     plane.nav_roll_cd = loiter_nav->get_roll();
     plane.nav_pitch_cd = loiter_nav->get_pitch();
 
-    if (now - quadplane.last_pidz_init_ms < (uint32_t)quadplane.transition_time_ms*2 && !quadplane.tailsitter.enabled()) {
+
+    float pitch_lim_time_ms = quadplane.transition_time_ms * 2.0;
+    if ((quadplane.tilt.tilt_mask > 0) && (quadplane.tilt.tilt_type != QuadPlane::TILT_TYPE_BINARY)) {
+        pitch_lim_time_ms = MAX(pitch_lim_time_ms , (90.0 / quadplane.tilt.max_rate_up_dps) * 2.0);
+    }
+    if (now - quadplane.last_pidz_init_ms < pitch_lim_time_ms && !quadplane.tailsitter.enabled()) {
         // we limit pitch during initial transition
         float pitch_limit_cd = linear_interpolate(quadplane.loiter_initial_pitch_cd, quadplane.aparm.angle_max,
                                                   now,
-                                                  quadplane.last_pidz_init_ms, quadplane.last_pidz_init_ms+quadplane.transition_time_ms*2);
+                                                  quadplane.last_pidz_init_ms, quadplane.last_pidz_init_ms+pitch_lim_time_ms);
         if (plane.nav_pitch_cd > pitch_limit_cd) {
             plane.nav_pitch_cd = pitch_limit_cd;
             pos_control->set_externally_limited_xy();
