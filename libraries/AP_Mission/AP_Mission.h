@@ -505,6 +505,11 @@ public:
         return _flags.in_landing_sequence;
     }
 
+    // get in_rejoin_sequence flag
+    bool get_in_rejoin_sequence_flag() const {
+        return _flags.in_rejoin_sequence;
+    }
+
     // get a reference to the AP_Mission semaphore, allowing an external caller to lock the
     // storage while working with multiple waypoints
     HAL_Semaphore_Recursive &get_semaphore(void) {
@@ -533,6 +538,7 @@ private:
         uint8_t do_cmd_loaded   : 1; // true if a "do"/"conditional" command has been loaded into _do_cmd
         uint8_t do_cmd_all_done : 1; // true if all "do"/"conditional" commands have been completed (stops unnecessary searching through eeprom for do commands)
         bool in_landing_sequence  : 1; // true if the mission has jumped to a landing
+        bool in_rejoin_sequence : 1; // true if the misison has passed a rejoin, or rejoined
     } _flags;
 
     ///

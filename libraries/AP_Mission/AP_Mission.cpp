@@ -178,6 +178,7 @@ void AP_Mission::reset()
     _flags.do_cmd_loaded   = false;
     _flags.do_cmd_all_done = false;
     _flags.in_landing_sequence = false;
+    _flags.in_rejoin_sequence = false;
     _nav_cmd.index         = AP_MISSION_CMD_INDEX_NONE;
     _do_cmd.index          = AP_MISSION_CMD_INDEX_NONE;
     _prev_nav_cmd_index    = AP_MISSION_CMD_INDEX_NONE;
@@ -287,6 +288,8 @@ bool AP_Mission::start_command(const Mission_Command& cmd)
     // check for landing related commands and set in_landing_sequence flag
     if (is_landing_type_cmd(cmd.id) || cmd.id == MAV_CMD_DO_LAND_START) {
         set_in_landing_sequence_flag(true);
+    } else if (cmd.id == MAV_CMD_DO_LAND_REJOIN) {
+        _flags.in_rejoin_sequence = true;
     }
 
     gcs().send_text(MAV_SEVERITY_INFO, "Mission: %u %s", cmd.index, cmd.type());
@@ -398,10 +401,16 @@ int32_t AP_Mission::get_next_ground_course_cd(int32_t default_angle)
 // set_current_cmd - jumps to command specified by index
 bool AP_Mission::set_current_cmd(uint16_t index)
 {
+    _flags.in_landing_sequence = false;
+    _flags.in_rejoin_sequence = false;
+
     // read command to check for DO_LAND_START
     Mission_Command cmd;
-    if (!read_cmd_from_storage(index, cmd) || (cmd.id != MAV_CMD_DO_LAND_START)) {
-        _flags.in_landing_sequence = false;
+    read_cmd_from_storage(index, cmd);
+    if (cmd.id == MAV_CMD_DO_LAND_START) {
+        _flags.in_landing_sequence = true;
+    } else if (cmd.id == MAV_CMD_DO_LAND_REJOIN) {
+        _flags.in_rejoin_sequence = true;
     }
 
     // sanity check index and that we have a mission
@@ -1473,6 +1482,7 @@ void AP_Mission::complete()
     // flag mission as complete
     _flags.state = MISSION_COMPLETE;
     _flags.in_landing_sequence = false;
+    _flags.in_rejoin_sequence = false;
 
     // callback to main program's mission complete function
     _mission_complete_fn();
@@ -1837,7 +1847,6 @@ bool AP_Mission::jump_to_landing_sequence(void)
         }
 
         gcs().send_text(MAV_SEVERITY_INFO, "Landing sequence start");
-        _flags.in_landing_sequence = true;
         return true;
     }
 
@@ -1896,7 +1905,6 @@ bool AP_Mission::jump_to_shortest_landing_sequence(void)
         }
 
         gcs().send_text(MAV_SEVERITY_INFO, "Shortest Landing sequence start");
-        _flags.in_landing_sequence = true;
         return true;
     }
 
@@ -1905,11 +1913,22 @@ bool AP_Mission::jump_to_shortest_landing_sequence(void)
 }
 
 /*
-   find the closest point on the mission after a DO_LAND_START and before the final DO_LAND_START
+   find the closest point on the mission after a DO_LAND_REJOIN and before the final DO_LAND_START
    defaults to closest if distance to mission calculation fails
  */
 bool AP_Mission::jump_to_closest_mission_leg(void)
 {
+    if (_flags.state == MISSION_RUNNING) {
+        // if mission is already running don't switch away from a active landing or rejoin
+        if (_flags.in_landing_sequence) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Landing sequence active");
+            return true;
+        } else if (_flags.in_rejoin_sequence) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Rejoin Landing sequence active");
+            return true;
+        }
+    }
+
     struct Location current_loc;
     if (!AP::ahrs().get_position(current_loc)) {
         return 0;
@@ -1939,7 +1958,7 @@ bool AP_Mission::jump_to_closest_mission_leg(void)
         }
 
         gcs().send_text(MAV_SEVERITY_INFO, "Rejoin Landing sequence start");
-        _flags.in_landing_sequence = true;
+        _flags.in_rejoin_sequence = true;
         return true;
     }
 
@@ -1948,12 +1967,23 @@ bool AP_Mission::jump_to_closest_mission_leg(void)
 }
 
 /*
-   find the closest point on the mission after a DO_LAND_START and before the final DO_LAND_START
+   find the closest point on the mission after a DO_LAND_REJOIN and before the final DO_LAND_START
    pick the shortest distance to landing not the shortest distance to rejoin mission
    defaults to closest if distance to landing calculation fails
  */
 bool AP_Mission::jump_to_shortest_mission_leg(void)
 {
+    if (_flags.state == MISSION_RUNNING) {
+        // if mission is already running don't switch away from a active landing or rejoin
+        if (_flags.in_landing_sequence) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Landing sequence active");
+            return true;
+        } else if (_flags.in_rejoin_sequence) {
+            gcs().send_text(MAV_SEVERITY_INFO, "Rejoin Landing sequence active");
+            return true;
+        }
+    }
+
     struct Location current_loc;
     if (!AP::ahrs().get_position(current_loc)) {
         return 0;
@@ -1983,7 +2013,7 @@ bool AP_Mission::jump_to_shortest_mission_leg(void)
         }
 
         gcs().send_text(MAV_SEVERITY_INFO, "Rejoin shortest Landing sequence start");
-        _flags.in_landing_sequence = true;
+        _flags.in_rejoin_sequence = true;
         return true;
     }
 
@@ -2024,6 +2054,7 @@ bool AP_Mission::jump_to_abort_landing_sequence(void)
         }
 
         _flags.in_landing_sequence = false;
+        _flags.in_rejoin_sequence = false;
 
         gcs().send_text(MAV_SEVERITY_INFO, "Landing abort sequence start");
         return true;
