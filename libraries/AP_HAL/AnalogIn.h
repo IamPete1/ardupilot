@@ -22,6 +22,10 @@ public:
     // return a voltage from 0.0 to 5.0V, assuming a ratiometric
     // sensor
     virtual float voltage_average_ratiometric() = 0;
+
+    // min and max voltage if available
+    virtual bool voltage_min_max(float &min, float &max) { return false; } WARN_IF_UNUSED;
+
 };
 
 class AP_HAL::AnalogIn {
