@@ -21,6 +21,7 @@
 #if HAL_USE_ADC == TRUE && !defined(HAL_DISABLE_ADC_DRIVER)
 
 #include "AnalogIn.h"
+#include <AP_Math/AP_Math.h>
 
 #if HAL_WITH_IO_MCU
 #include <AP_IOMCU/AP_IOMCU.h>
@@ -89,9 +90,13 @@ float AnalogSource::read_average()
     }
     _value = _sum_value / _sum_count;
     _value_ratiometric = _sum_ratiometric / _sum_count;
+    _value_min = _running_min;
+    _value_max = _running_max;
     _sum_value = 0;
     _sum_ratiometric = 0;
     _sum_count = 0;
+    _running_min = 0;
+    _running_max = 0;
 
     return _value;
 }
@@ -99,6 +104,13 @@ float AnalogSource::read_average()
 float AnalogSource::read_latest()
 {
     return _latest_value;
+}
+
+bool AnalogSource::voltage_min_max(float &min, float &max)
+{
+    min = _value_min;
+    max = _value_max;
+    return true;
 }
 
 /*
@@ -155,12 +167,16 @@ void AnalogSource::set_pin(uint8_t pin)
     _latest_value = 0;
     _value = 0;
     _value_ratiometric = 0;
+    _running_min = 0;
+    _running_max = 0;
+    _value_min = 0;
+    _value_max = 0;
 }
 
 /*
   apply a reading in ADC counts
  */
-void AnalogSource::_add_value(float v, float vcc5V)
+void AnalogSource::_add_value(float v, float vcc5V, float min, float max)
 {
     WITH_SEMAPHORE(_semaphore);
 
@@ -178,6 +194,12 @@ void AnalogSource::_add_value(float v, float vcc5V)
         _sum_value /= 2;
         _sum_ratiometric /= 2;
         _sum_count /= 2;
+    }
+    if ((min < _running_min) || is_zero(_running_min)) {
+        _running_min = min;
+    }
+    if ((max > _running_max) || is_zero(_running_max)) {
+        _running_max = max;
     }
 }
 

@@ -36,17 +36,22 @@ public:
     float voltage_average() override;
     float voltage_latest() override;
     float voltage_average_ratiometric() override;
+    bool voltage_min_max(float &min, float &max) override WARN_IF_UNUSED;
 
 private:
     // what value it has
     int16_t _pin;
     float _value;
     float _value_ratiometric;
+    float _value_min;
+    float _value_max;
     float _latest_value;
     uint8_t _sum_count;
     float _sum_value;
     float _sum_ratiometric;
-    void _add_value(float v, float vcc5V);
+    float _running_min;
+    float _running_max;
+    void _add_value(float v, float vcc5V, float min, float max);
     float _pin_scaler();
     HAL_Semaphore _semaphore;
 };
