@@ -109,6 +109,9 @@ public:
     /// returns true if battery monitor provides current info
     virtual bool has_current() const override;
 
+    /// returns true if battery monitor provides min and max voltage
+    virtual bool has_min_max() const override { return _has_min_max; } 
+
     virtual void init(void) override {}
 
     static const struct AP_Param::GroupInfo var_info[];
@@ -124,4 +127,7 @@ protected:
     AP_Float _curr_amp_offset;          /// offset voltage that is subtracted from current pin before conversion to amps
     AP_Int8  _volt_pin;                 /// board pin used to measure battery voltage
     AP_Int8  _curr_pin;                 /// board pin used to measure battery current
+
+private:
+    bool _has_min_max; // true if battery monitor provides min and max voltage
 };

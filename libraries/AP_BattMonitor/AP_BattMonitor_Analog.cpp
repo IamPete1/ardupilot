@@ -72,6 +72,14 @@ AP_BattMonitor_Analog::read()
     // get voltage
     _state.voltage = _volt_pin_analog_source->voltage_average() * _volt_multiplier;
 
+    // min and max
+    float min_volt, max_volt;
+    _has_min_max = _volt_pin_analog_source->voltage_min_max(min_volt, max_volt);
+    if (_has_min_max) {
+        _state.min_voltage = min_volt * _volt_multiplier;
+        _state.max_voltage = max_volt * _volt_multiplier;
+    }
+
     // read current
     if (has_current()) {
         // calculate time since last current read
