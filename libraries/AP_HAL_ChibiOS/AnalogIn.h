@@ -71,7 +71,7 @@ public:
 #endif
 
 private:
-    void read_adc(uint32_t *val);
+    void read_adc(uint16_t *val, uint16_t *min, uint16_t *max);
     void update_power_flags(void);
     static void adccallback(ADCDriver *adcp);
 
@@ -94,6 +94,8 @@ private:
 
     static adcsample_t *samples;
     static uint32_t sample_sum[];
+    static uint16_t sample_min[];
+    static uint16_t sample_max[];
     static uint32_t sample_count;
 
     HAL_Semaphore _semaphore;
@@ -101,7 +103,7 @@ private:
 #if HAL_WITH_MCU_MONITORING
     // use ADC3 for MCU temperature and voltage monitoring
     void setup_adc3();
-    void read_adc3(uint32_t *val, uint16_t *min, uint16_t *max);
+    void read_adc3(uint16_t *val, uint16_t *min, uint16_t *max);
     ADCConversionGroup adc3grpcfg;
     static void adc3callback(ADCDriver *adcp);
     static adcsample_t *samples_adc3;

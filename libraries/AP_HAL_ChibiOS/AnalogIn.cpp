@@ -70,6 +70,8 @@ const AnalogIn::pin_info AnalogIn::pin_config[] = HAL_ANALOG_PINS;
 // samples filled in by ADC DMA engine
 adcsample_t *AnalogIn::samples;
 uint32_t AnalogIn::sample_sum[ADC_GRP1_NUM_CHANNELS];
+uint16_t AnalogIn::sample_max[ADC_GRP1_NUM_CHANNELS];
+uint16_t AnalogIn::sample_min[ADC_GRP1_NUM_CHANNELS];
 uint32_t AnalogIn::sample_count;
 
 AnalogSource::AnalogSource(int16_t pin) :
@@ -190,7 +192,15 @@ void AnalogIn::adccallback(ADCDriver *adcp)
     stm32_cacheBufferInvalidate(buffer, sizeof(adcsample_t)*ADC_DMA_BUF_DEPTH*ADC_GRP1_NUM_CHANNELS);
     for (uint8_t i = 0; i < ADC_DMA_BUF_DEPTH; i++) {
         for (uint8_t j = 0; j < ADC_GRP1_NUM_CHANNELS; j++) {
-            sample_sum[j] += *buffer++;
+            const uint16_t v = *buffer++;
+            sample_sum[j] += v;
+            if (sample_min[j] == 0 ||
+                sample_min[j] > v) {
+                sample_min[j] = v;
+            }
+            if (sample_max[j] < v) {
+                sample_max[j] = v;
+            }
         }
     }
     sample_count += ADC_DMA_BUF_DEPTH;
@@ -279,13 +289,17 @@ void AnalogIn::init()
 /*
   calculate average sample since last read for all channels
  */
-void AnalogIn::read_adc(uint32_t *val)
+void AnalogIn::read_adc(uint16_t *val, uint16_t *min, uint16_t *max)
 {
     chSysLock();
     for (uint8_t i = 0; i < ADC_GRP1_NUM_CHANNELS; i++) {
         val[i] = sample_sum[i] / sample_count;
+        min[i] = sample_min[i];
+        max[i] = sample_max[i];
     }
     memset(sample_sum, 0, sizeof(sample_sum));
+    memset(sample_min, 0, sizeof(sample_min));
+    memset(sample_max, 0, sizeof(sample_max));
     sample_count = 0;
     chSysUnlock();
 }
@@ -327,8 +341,7 @@ void AnalogIn::adc3callback(ADCDriver *adcp)
                 sample_adc3_min[j] > v) {
                 sample_adc3_min[j] = v;
             }
-            if (sample_adc3_max[j] == 0 ||
-                sample_adc3_max[j] < v) {
+            if (sample_adc3_max[j] < v) {
                 sample_adc3_max[j] = v;
             }
         }
@@ -390,7 +403,7 @@ void AnalogIn::setup_adc3(void)
 /*
   calculate average sample since last read for all channels
  */
-void AnalogIn::read_adc3(uint32_t *val, uint16_t *min, uint16_t *max)
+void AnalogIn::read_adc3(uint16_t *val, uint16_t *min, uint16_t *max)
 {
     chSysLock();
     for (uint8_t i = 0; i < ADC3_GRP1_NUM_CHANNELS; i++) {
@@ -420,10 +433,12 @@ void AnalogIn::_timer_tick(void)
     }
     _last_run = now;
 
-    uint32_t buf_adc[ADC_GRP1_NUM_CHANNELS];
+    uint16_t buf_adc[ADC_GRP1_NUM_CHANNELS];
+    uint16_t buf_adc_min[ADC_GRP1_NUM_CHANNELS];
+    uint16_t buf_adc_max[ADC_GRP1_NUM_CHANNELS];
 
     /* read all channels available */
-    read_adc(buf_adc);
+    read_adc(buf_adc, buf_adc_min, buf_adc_max);
 
     // update power status flags
     update_power_flags();
@@ -437,11 +452,13 @@ void AnalogIn::_timer_tick(void)
             _board_voltage = buf_adc[i] * pin_config[i].scaling * ADC_BOARD_SCALING;
         }
 #endif
+#if !HAL_WITH_IO_MCU
 #ifdef FMU_SERVORAIL_ADC_CHAN
         if (pin_config[i].channel == FMU_SERVORAIL_ADC_CHAN) {
            _servorail_voltage = buf_adc[i] * pin_config[i].scaling * ADC_BOARD_SCALING;
         }
 #endif
+#endif // !HAL_WITH_IO_MCU
     }
 
 #if HAL_WITH_IO_MCU
@@ -459,9 +476,9 @@ void AnalogIn::_timer_tick(void)
             if (c != nullptr) {
                 if (pin_config[i].channel == c->_pin) {
                     // add a value
-                    c->_add_value(buf_adc[i] * ADC_BOARD_SCALING, _board_voltage);
+                    c->_add_value(buf_adc[i] * ADC_BOARD_SCALING, _board_voltage, buf_adc_min[i] * ADC_BOARD_SCALING,  buf_adc_max[i] * ADC_BOARD_SCALING);
                 } else if (c->_pin == ANALOG_SERVO_VRSSI_PIN) {
-                    c->_add_value(_rssi_voltage / VOLTAGE_SCALING, 0);
+                    c->_add_value(_rssi_voltage / VOLTAGE_SCALING, 0, 0, 0);
                 }
             }
         }
@@ -474,7 +491,7 @@ void AnalogIn::_timer_tick(void)
         hal.scheduler->is_system_initialized()) {
         last_mcu_temp_us = now;
 
-        uint32_t buf_adc3[ADC3_GRP1_NUM_CHANNELS];
+        uint16_t buf_adc3[ADC3_GRP1_NUM_CHANNELS];
         uint16_t min_adc3[ADC3_GRP1_NUM_CHANNELS];
         uint16_t max_adc3[ADC3_GRP1_NUM_CHANNELS];
 
