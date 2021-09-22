@@ -9,7 +9,7 @@
 // @LoggerMessage: BAT
 // @Description: Gathered battery data
 // @Field: TimeUS: Time since system startup
-// @Field: Instance: battery instance number
+// @Field: i: battery instance number
 // @Field: Volt: measured voltage
 // @Field: VoltR: estimated resting voltage
 // @Field: Curr: measured current
@@ -18,6 +18,8 @@
 // @Field: Temp: measured temperature
 // @Field: Res: estimated battery resistance
 // @Field: RemPct: remaining percentage
+// @Field: min: min voltage seen since last read
+// @Field: max: max voltage seen since last read
 struct PACKED log_BAT {
     LOG_PACKET_HEADER;
     uint64_t time_us;
@@ -30,6 +32,8 @@ struct PACKED log_BAT {
     int16_t  temperature; // degrees C * 100
     float    resistance;
     uint8_t  rem_percent;
+    float    min_voltage;
+    float    max_voltage;
 };
 
 // @LoggerMessage: BCL
@@ -59,6 +63,6 @@ struct PACKED log_BCL {
 
 #define LOG_STRUCTURE_FROM_BATTMONITOR        \
     { LOG_BAT_MSG, sizeof(log_BAT), \
-        "BAT", "QBfffffcfB", "TimeUS,Instance,Volt,VoltR,Curr,CurrTot,EnrgTot,Temp,Res,RemPct", "s#vvAaXOw%", "F-000C0?00" , true },  \
+        "BAT", "QBfffffcfBff", "TimeUS,i,Volt,VoltR,Curr,CurrTot,EnrgTot,Temp,Res,RemPct,min,max", "s#vvAaXOw%vv", "F-000C0?0000" , true },  \
     { LOG_BCL_MSG, sizeof(log_BCL), \
         "BCL", "QBfHHHHHHHHHHHH", "TimeUS,Instance,Volt,V1,V2,V3,V4,V5,V6,V7,V8,V9,V10,V11,V12", "s#vvvvvvvvvvvvv", "F-0CCCCCCCCCCCC" , true },

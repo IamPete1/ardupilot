@@ -6,7 +6,8 @@ extern const AP_HAL::HAL& hal;
 // Write BAT data packet(s)
 void AP_BattMonitor_Backend::Log_Write_BAT(const uint8_t instance, const uint64_t time_us) const
 {
-    bool has_curr = has_current();
+    const bool has_curr = has_current();
+    const bool _has_min_max = has_min_max();
     uint8_t percent = -1;
     IGNORE_RETURN(capacity_remaining_pct(percent));
 
@@ -22,6 +23,8 @@ void AP_BattMonitor_Backend::Log_Write_BAT(const uint8_t instance, const uint64_
         temperature         : (int16_t) ( has_temperature() ? _state.temperature * 100 : 0),
         resistance          : _state.resistance,
         rem_percent         : percent,
+        min_voltage         : _has_min_max ? _state.min_voltage : AP::logger().quiet_nanf(),
+        max_voltage         : _has_min_max ? _state.max_voltage : AP::logger().quiet_nanf(),
     };
     AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }

@@ -46,6 +46,9 @@ public:
     // returns true if battery monitor provides temperature
     virtual bool has_temperature() const { return false; }
 
+    // returns true if battery monitor provides min and max voltage
+    virtual bool has_min_max() const { return false; }
+
     /// capacity_remaining_pct - returns true if the percentage is valid and writes to percentage argument
     virtual bool capacity_remaining_pct(uint8_t &percentage) const WARN_IF_UNUSED;
 

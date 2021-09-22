@@ -130,6 +130,8 @@ public:
         bool        healthy;                   // battery monitor is communicating correctly
         bool        is_powering_off;           // true when power button commands power off
         bool        powerOffNotified;          // only send powering off notification once
+        float       min_voltage;               // min voltage seen in last loop, a measure of ripple
+        float       max_voltage;               // max voltage seen in last loop, a measure of ripple
         const struct AP_Param::GroupInfo *var_info;
     };
 
