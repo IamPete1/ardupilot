@@ -86,6 +86,8 @@ public:
     // update state of all proximity sensors. Should be called at high rate from main loop
     void update(void);
 
+    uint8_t get_rate() { return constrain_int16(_rate,1,8); }
+
     // return sensor orientation and yaw correction
     uint8_t get_orientation(uint8_t instance) const;
     int16_t get_yaw_correction(uint8_t instance) const;
@@ -190,6 +192,7 @@ private:
     AP_Int8 _raw_log_enable;                            // enable logging raw distances
     AP_Int8 _ign_gnd_enable;                           // true if land detection should be enabled
     AP_Float _filt_freq;                               // cutoff frequency for low pass filter
+    AP_Int8 _rate;                               // cutoff frequency for low pass filter
 
     void detect_instance(uint8_t instance);
 };

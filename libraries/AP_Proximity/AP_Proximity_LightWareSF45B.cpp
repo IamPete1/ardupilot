@@ -23,13 +23,15 @@
 #include <AP_HAL/AP_HAL.h>
 #include <AP_HAL/utility/sparse-endian.h>
 
+#include <AP_Logger/AP_Logger.h>
+
 extern const AP_HAL::HAL& hal;
 
 static const uint32_t PROXIMITY_SF45B_TIMEOUT_MS = 200;
 static const uint32_t PROXIMITY_SF45B_REINIT_INTERVAL_MS = 5000;    // re-initialise sensor after this many milliseconds
 static const float PROXIMITY_SF45B_COMBINE_READINGS_DEG = 5.0f;     // combine readings from within this many degrees to improve efficiency
 static const uint32_t PROXIMITY_SF45B_STREAM_DISTANCE_DATA_CM = 5;
-static const uint8_t PROXIMITY_SF45B_DESIRED_UPDATE_RATE = 8;       // 1:48hz, 2:55hz, 3:64hz, 4:77hz, 5:97hz, 6:129hz, 7:194hz, 8:388hz
+//static const uint8_t PROXIMITY_SF45B_DESIRED_UPDATE_RATE = 8;       // 1:48hz, 2:55hz, 3:64hz, 4:77hz, 5:97hz, 6:129hz, 7:194hz, 8:388hz
 static const uint32_t PROXIMITY_SF45B_DESIRED_FIELDS = ((uint32_t)1 << 0 | (uint32_t)1 << 8);   // first return (unfiltered), yaw angle
 static const uint16_t PROXIMITY_SF45B_DESIRED_FIELD_COUNT = 2;      // DISTANCE_DATA_CM message should contain two fields
 
@@ -59,7 +61,7 @@ void AP_Proximity_LightWareSF45B::initialise()
 {
     // check sensor is configured correctly
     _init_complete = (_sensor_state.stream_data_type == PROXIMITY_SF45B_STREAM_DISTANCE_DATA_CM) &&
-                     (_sensor_state.update_rate == PROXIMITY_SF45B_DESIRED_UPDATE_RATE) &&
+                     (_sensor_state.update_rate == frontend.get_rate()) &&
                      (_sensor_state.streaming_fields == PROXIMITY_SF45B_DESIRED_FIELDS);
 
     // exit if initialisation requests have been sent within the last few seconds
@@ -77,7 +79,8 @@ void AP_Proximity_LightWareSF45B::initialise()
 void AP_Proximity_LightWareSF45B::request_stream_start()
 {
     // request output rate
-    send_message((uint8_t)MessageID::UPDATE_RATE, true, &PROXIMITY_SF45B_DESIRED_UPDATE_RATE, sizeof(PROXIMITY_SF45B_DESIRED_UPDATE_RATE));
+    uint8_t rate = frontend.get_rate();
+    send_message((uint8_t)MessageID::UPDATE_RATE, true, &rate, sizeof(rate));
 
     // request first return (unfiltered), and yaw angle
     send_message((uint8_t)MessageID::DISTANCE_OUTPUT, true, (const uint8_t*)&PROXIMITY_SF45B_DESIRED_FIELDS, sizeof(PROXIMITY_SF45B_DESIRED_FIELDS));
@@ -138,6 +141,12 @@ void AP_Proximity_LightWareSF45B::process_message()
         _last_distance_received_ms = AP_HAL::millis();
         const float distance_m = _distance_filt.apply((int16_t)UINT16_VALUE(_msg.payload[1], _msg.payload[0])) * 0.01f;
         const float angle_deg = correct_angle_for_orientation((int16_t)UINT16_VALUE(_msg.payload[3], _msg.payload[2]) * 0.01f);
+
+        AP::logger().Write("SF45", "TimeUS,dist,angle,rate", "QffB",
+                                            AP_HAL::micros64(),
+                                            distance_m,
+                                            angle_deg, 
+                                            _sensor_state.update_rate);
 
         // if distance is from a new face then update distance, angle and boundary for previous face
         // get face from 3D boundary based on yaw angle to the object

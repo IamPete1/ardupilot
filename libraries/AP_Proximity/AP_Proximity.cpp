@@ -174,6 +174,8 @@ const AP_Param::GroupInfo AP_Proximity::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("_FILT", 18, AP_Proximity, _filt_freq, 0.25f),
 
+    AP_GROUPINFO("_RATE", 19, AP_Proximity, _rate, 1),
+
     AP_GROUPEND
 };
 
