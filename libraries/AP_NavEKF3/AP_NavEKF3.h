@@ -440,7 +440,7 @@ private:
     const float extNavVelVarAccScale = 0.05f;      // Scale factor applied to ext nav velocity measurement variance due to manoeuvre acceleration
     const uint16_t magDelay_ms = 60;               // Magnetometer measurement delay (msec)
     const uint16_t tasDelay_ms = 100;              // Airspeed measurement delay (msec)
-    const uint16_t tiltDriftTimeMax_ms = 15000;    // Maximum number of ms allowed without any form of tilt aiding (GPS, flow, TAS, etc)
+    const uint32_t tiltDriftTimeMax_ms = 1200000;  // Maximum number of ms allowed without any form of tilt aiding (GPS, flow, TAS, etc)
     const uint16_t posRetryTimeUseVel_ms = 10000;  // Position aiding retry time with velocity measurements (msec)
     const uint16_t posRetryTimeNoVel_ms = 7000;    // Position aiding retry time without velocity measurements (msec)
     const uint16_t hgtRetryTimeMode0_ms = 10000;   // Height retry time with vertical velocity measurement (msec)
