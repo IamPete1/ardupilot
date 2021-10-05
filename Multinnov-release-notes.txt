@@ -1,3 +1,14 @@
+------- MN/UaviewStereo/evelopment Oct 5 2021
+
+- Change branches, create development and stable
+
+- Refactor logic in Usercode and mode:
+    - Now the MN flight mode tasks are moved to MN_Helpers
+
+- Solve bugs where source never was set again to 0
+
+- Add new task so it changes source to 0 while changing mode to loiter, and after MN_Loit_time it changes flight mode, to avoid jump in XY
+
 ------- MN/uaviewStereo/v.2.0
 
 - auto flight mode change and automatic ekf source change enabled. 
