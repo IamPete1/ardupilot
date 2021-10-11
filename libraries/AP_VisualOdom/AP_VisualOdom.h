@@ -125,6 +125,12 @@ private:
     AP_Float _threshold_pos;
     AP_Float _threshold_vel;
 
+    // t265 specific options
+    AP_Float _mapping_enabled;
+    AP_Float _position_jumping;
+    AP_Float _relocalization;
+    AP_Float _map_preservation;
+
     // reference to backends
     AP_VisualOdom_Backend *_driver;
 };

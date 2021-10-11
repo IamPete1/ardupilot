@@ -110,6 +110,12 @@ const AP_Param::GroupInfo AP_VisualOdom::var_info[] = {
     AP_GROUPINFO("_TH_POS", 8, AP_VisualOdom, _threshold_pos, 0.1f),
     AP_GROUPINFO("_TH_VEL", 9, AP_VisualOdom, _threshold_vel, 20.0f),
 
+    // t265 specific options
+    AP_GROUPINFO("_MAP_EN", 10, AP_VisualOdom, _mapping_enabled, 1.0f),
+    AP_GROUPINFO("_POS_JMP", 11, AP_VisualOdom, _position_jumping, 1.0f),
+    AP_GROUPINFO("_RELOC", 12, AP_VisualOdom, _relocalization, 1.0f),
+    AP_GROUPINFO("_MAP_PRS", 13, AP_VisualOdom, _map_preservation, 0.0f),
+
     AP_GROUPEND
 };
 
