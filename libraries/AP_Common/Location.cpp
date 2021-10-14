@@ -255,9 +255,11 @@ Vector3f Location::get_distance_NED(const Location &loc2) const
 // return the distance in meters in North/East/Down plane as a N/E/D vector to loc2, taking into account alt frame correctly
 Vector3f Location::get_distance_NED_alt_frame(const Location &loc2) const
 {
-    int32_t alt1, alt2;
-    IGNORE_RETURN(get_alt_cm(AltFrame::ABSOLUTE, alt1));
-    IGNORE_RETURN(loc2.get_alt_cm(AltFrame::ABSOLUTE, alt2));
+    int32_t alt1, alt2 = 0;
+    if (!get_alt_cm(AltFrame::ABSOLUTE, alt1) || !loc2.get_alt_cm(AltFrame::ABSOLUTE, alt2)) {
+        // one or both of the altitudes are invalid, don't do alt distance calc
+        alt1, alt2 = 0;
+    }
     return Vector3f((loc2.lat - lat) * LOCATION_SCALING_FACTOR,
                     (loc2.lng - lng) * LOCATION_SCALING_FACTOR * longitude_scale(),
                     (alt1 - alt2) * 0.01f);
