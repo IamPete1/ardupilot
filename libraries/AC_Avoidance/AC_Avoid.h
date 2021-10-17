@@ -20,6 +20,7 @@
 
 #define AC_AVOID_ACTIVE_LIMIT_TIMEOUT_MS    500     // if limiting is active if last limit is happend in the last x ms
 #define AC_AVOID_ACCEL_TIMEOUT_MS           200     // stored velocity used to calculate acceleration will be reset if avoidance is active after this many ms
+#define AC_AVOID_MIN_BACKUP_BREACH_DIST     10.0f   // vehicle will backaway if breach is greater than this distance in cm
 
 /*
  * This class prevents the vehicle from leaving a polygon fence or hitting proximity-based obstacles
@@ -111,6 +112,9 @@ public:
 
     // return true if limiting is active
     bool limits_active() const {return (AP_HAL::millis() - _last_limit_time) < AC_AVOID_ACTIVE_LIMIT_TIMEOUT_MS;};
+
+    // Enable or disable active proximity distance hold
+    void set_active_proximity_hold(bool state) {_active_hold = state;}
 
     static const struct AP_Param::GroupInfo var_info[];
 
@@ -219,12 +223,14 @@ private:
     AP_Float _accel_max;        // maximum accelration while simple avoidance is active
     AP_Float _backup_deadzone;  // distance beyond AVOID_MARGIN parameter, after which vehicle will backaway from obstacles
     AP_Float _margin_roof;      // Distance (in meters) from surfaces directly in front of lidar set as TOP
+    AP_Float _advance_margin;   // Distance at wich avoid will work
 
     bool _proximity_enabled = true; // true if proximity sensor based avoidance is enabled (used to allow pilot to enable/disable)
     bool _proximity_alt_enabled = true; // true if proximity sensor based avoidance is enabled based on altitude
     uint32_t _last_limit_time;      // the last time a limit was active
     uint32_t _last_log_ms;          // the last time simple avoidance was logged
     Vector3f _prev_avoid_vel;       // copy of avoidance adjusted velocity
+    bool _active_hold;              // true if vehicle should actively more towards an obstacle to mantain a fixed distance
 
     static AC_Avoid *_singleton;
 };

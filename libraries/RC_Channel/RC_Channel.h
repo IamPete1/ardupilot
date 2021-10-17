@@ -210,6 +210,7 @@ public:
 
         // Multinnov custom options        
         TAKE_PHOTO =          107, // Take single photo using Multinnovs PCB and PWM assigned values
+        PROX_DIST_HOLD  =     108, // enable / disable proximity distance hold
 
         // if you add something here, make sure to update the documentation of the parameter in RC_Channel.cpp!
         // also, if you add an option >255, you will need to fix duplicate_options_exist
