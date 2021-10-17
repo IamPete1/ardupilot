@@ -970,6 +970,57 @@ MAV_RESULT GCS_MAVLINK_Copter::handle_command_long_packet(const mavlink_command_
         return MAV_RESULT_ACCEPTED;
     }
 
+    case MAV_CMD_USER_1: {
+        //param1: 0->wall mode, 1->roof mode, 2->align yaw, 3-Distance setting
+        //param2: PWM value to input
+        switch ((uint8_t)packet.param1)
+        {
+        case 0:
+            if (packet.param2 <= 0) {
+                copter.avoid.set_active_proximity_hold(false);
+                gcs().send_text(MAV_SEVERITY_INFO, "Wall disabled"); 
+            } else {
+                copter.avoid.set_active_proximity_hold(true);
+                gcs().send_text(MAV_SEVERITY_INFO, "Wall enabled"); 
+            }
+            return MAV_RESULT_ACCEPTED;
+            break;
+        case 1:
+            if (packet.param2 <= 0) {
+                copter.surface_tracking.set_surface(Copter::SurfaceTracking::Surface::NONE);
+                gcs().send_text(MAV_SEVERITY_INFO, "Roof disabled"); 
+            } else {
+                copter.surface_tracking.set_surface(Copter::SurfaceTracking::Surface::CEILING);
+                gcs().send_text(MAV_SEVERITY_INFO, "Roof enabled");
+            }
+            return MAV_RESULT_ACCEPTED;
+            break;
+        case 2:
+            if (packet.param2 <= 0) {
+                copter.auto_yaw_enabled = false;
+                gcs().send_text(MAV_SEVERITY_INFO, "Auto yaw disabled"); 
+            } else {
+                copter.auto_yaw_enabled = true;
+                gcs().send_text(MAV_SEVERITY_INFO, "Auto yaw enabled"); 
+            }
+            return MAV_RESULT_ACCEPTED;
+            break;
+        case 3:
+            if (packet.param2 <= 0) {
+                copter.avoid.proximity_avoidance_enable(false);
+                gcs().send_text(MAV_SEVERITY_INFO, "Lidars disabled"); 
+            } else {
+                copter.avoid.proximity_avoidance_enable(true);
+                gcs().send_text(MAV_SEVERITY_INFO, "Lidars enabled"); 
+            }
+            return MAV_RESULT_ACCEPTED;
+            break;
+        default:
+            return MAV_RESULT_FAILED;
+            break;
+        }
+    }
+
     case MAV_CMD_USER_2: {
         //param1: 0->CameraMode, 1->LED
         //param2: PWM value to input
