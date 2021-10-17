@@ -1025,24 +1025,35 @@ MAV_RESULT GCS_MAVLINK_Copter::handle_command_long_packet(const mavlink_command_
         //param1: 0->CameraMode, 1->LED
         //param2: PWM value to input
         //param3: PWM for LED modes
-        if ((uint16_t)packet.param2 >= 1000 && (uint16_t)packet.param2 <= 2000) {
-            switch ((uint8_t)packet.param1)
-            {
-                case 0:
-                    SRV_Channels::set_output_pwm(SRV_Channel::k_cameraMode, (uint16_t)packet.param2);
-                    return MAV_RESULT_ACCEPTED;
-                    break;
-                case 1:
-                    SRV_Channels::set_output_pwm(SRV_Channel::k_ledsPower, (uint16_t)packet.param2);
-                    SRV_Channels::set_output_pwm(SRV_Channel::k_ledsMode, (uint16_t)packet.param3);
-                    return MAV_RESULT_ACCEPTED;
-                    break;
-                default:
-                    return MAV_RESULT_FAILED;
-                    break;
-            }
-        } else {
-            return MAV_RESULT_FAILED;
+        switch ((uint8_t)packet.param1)
+        {
+            case 0: // camera commands
+                switch ((uint8_t)packet.param2) 
+                {
+                    case 0: // stop video
+                        SRV_Channels::set_output_pwm(SRV_Channel::k_cameraMode, 1520);
+                        return MAV_RESULT_ACCEPTED;
+
+                    case 1: // take photo
+                        copter.trigger_multinnov_photo();
+                        return MAV_RESULT_ACCEPTED;
+
+                    case 2: // start video
+                        SRV_Channels::set_output_pwm(SRV_Channel::k_cameraMode, 1920);
+                        return MAV_RESULT_ACCEPTED;
+
+                    default:
+                        return MAV_RESULT_FAILED;
+                }
+            
+            case 1:
+                SRV_Channels::set_output_pwm(SRV_Channel::k_ledsPower, (uint16_t)packet.param2);
+                SRV_Channels::set_output_pwm(SRV_Channel::k_ledsMode, (uint16_t)packet.param3);
+                return MAV_RESULT_ACCEPTED;
+                break;
+            default:
+                return MAV_RESULT_FAILED;
+                break;
         }
     }
 

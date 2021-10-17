@@ -89,6 +89,7 @@ void RC_Channel_Copter::init_aux_function(const aux_func_t ch_option, const AuxS
     case AUX_FUNC::SAVE_WP:
     case AUX_FUNC::SMART_RTL:
     case AUX_FUNC::STABILIZE:
+    case AUX_FUNC::TAKE_PHOTO:
     case AUX_FUNC::THROW:
     case AUX_FUNC::USER_FUNC1:
     case AUX_FUNC::USER_FUNC2:
@@ -602,6 +603,18 @@ bool RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const AuxSwi
 #endif
             break;
         }
+
+        case AUX_FUNC::TAKE_PHOTO:
+            switch (ch_flag) {
+            case AuxSwitchPos::HIGH:
+                break;
+            case AuxSwitchPos::LOW:
+                copter.trigger_multinnov_photo();
+                break;
+            case AuxSwitchPos::MIDDLE:
+                break;
+            }
+            break;
 
     default:
         return RC_Channel::do_aux_function(ch_option, ch_flag);

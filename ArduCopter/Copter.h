@@ -225,6 +225,11 @@ public:
 
 private:
 
+    // Multinnov foxeer photo triggering params and functions
+    bool mn_photo_triggered = false;
+    uint32_t mn_photo_triggered_time;
+    void trigger_multinnov_photo();
+
     // key aircraft parameters passed to multiple libraries
     AP_Vehicle::MultiCopter aparm;
 
