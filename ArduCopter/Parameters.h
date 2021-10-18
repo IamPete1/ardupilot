@@ -648,6 +648,10 @@ public:
 #if MODE_GUIDED_ENABLED == ENABLED
     AP_Float guided_timeout;
 #endif
+#if HAL_PROXIMITY_ENABLED == ENABLED
+    AP_Float auto_yaw_min_dist;
+#endif
+
 };
 
 extern const AP_Param::Info        var_info[];

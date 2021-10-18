@@ -103,6 +103,8 @@ public:
 
     // returns true if pilot's yaw input should be used to adjust vehicle's heading
     virtual bool use_pilot_yaw() const {return true; }
+    // apply proximity auto yaw to input_euler_angle_roll_pitch_euler_rate_yaw
+    void input_euler_angle_roll_pitch_proximity_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds);
 
 protected:
 

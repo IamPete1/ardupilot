@@ -23,6 +23,9 @@ public:
     // get distance upwards in meters. returns true on success
     bool get_upward_distance(float &distance) const override;
 
+    bool get_closest_object(float& angle_deg, float &distance) const override 
+        { return boundary.get_closest_object_rangefinder(angle_deg, distance); }
+
 private:
 
     // horizontal distance support

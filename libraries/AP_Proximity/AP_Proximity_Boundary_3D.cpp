@@ -328,6 +328,72 @@ bool AP_Proximity_Boundary_3D::get_closest_object(float& angle_deg, float &dista
     return closest_found;
 }
 
+// used for multinnov setup
+bool AP_Proximity_Boundary_3D::get_closest_object_rangefinder(float& angle_deg, float &distance) const
+{
+    bool closest_found = false;
+    uint8_t closest_sector = 0;
+    uint8_t layer = PROXIMITY_MIDDLE_LAYER;
+
+    for (uint8_t sector=0; sector<PROXIMITY_NUM_SECTORS; sector++) {
+        if (_distance_valid[layer][sector]) {
+            if (!closest_found || (_distance[layer][sector] < _distance[layer][closest_sector])) {
+                closest_sector = sector;
+                closest_found = true;
+            }
+        }
+    }
+
+    if (!closest_found) {
+        return closest_found;
+    }
+
+    angle_deg = _angle[layer][closest_sector];
+    distance = _distance[layer][closest_sector];
+
+    // maitain closest distance, but move angle based on readings from adjacent sectors
+    // adjacent sectors will always be larger than closest
+    // as adjacent distance approaches closest offset approaches 45/2 (half way between the two)
+    // a similar reading in both adjacent sectors will cancel out
+
+    uint8_t next_sector;
+    uint8_t prev_sector;
+
+    switch(closest_sector) {
+        case 0:
+            next_sector = 1;
+            prev_sector = 7;
+            break;
+        
+        case 1:
+            prev_sector = 0;
+            next_sector = 255;
+            break;
+        
+        case 7:
+            prev_sector = 255;
+            next_sector = 0;
+            break;
+        
+        default:
+            prev_sector = 255;
+            next_sector = 255;
+            break;
+    }
+
+    if (_distance_valid[layer][next_sector]) {
+        angle_deg += (_distance[layer][closest_sector] / _distance[layer][next_sector]) * 0.5f * 45.0f;
+    }
+
+    if (_distance_valid[layer][prev_sector]) {
+        angle_deg -= (_distance[layer][closest_sector] / _distance[layer][prev_sector]) * 0.5f * 45.0f;
+    }
+
+    angle_deg = wrap_360(angle_deg);
+
+    return closest_found;
+}
+
 // get number of objects, used for non-GPS avoidance
 uint8_t AP_Proximity_Boundary_3D::get_horizontal_object_count() const
 {

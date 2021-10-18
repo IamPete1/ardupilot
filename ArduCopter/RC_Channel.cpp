@@ -107,6 +107,7 @@ void RC_Channel_Copter::init_aux_function(const aux_func_t ch_option, const AuxS
     case AUX_FUNC::PARACHUTE_3POS:      // we trust the vehicle will be disarmed so even if switch is in release position the chute will not release
     case AUX_FUNC::PARACHUTE_ENABLE:
     case AUX_FUNC::PRECISION_LOITER:
+    case AUX_FUNC::PROXIMITY_AUTO_YAW:
     case AUX_FUNC::RANGEFINDER:
     case AUX_FUNC::SIMPLE_MODE:
     case AUX_FUNC::STANDBY:
@@ -577,6 +578,30 @@ bool RC_Channel_Copter::do_aux_function(const aux_func_t ch_option, const AuxSwi
             copter.mode_acro.air_mode_aux_changed();
 #endif
             break;
+
+        case AUX_FUNC::PROXIMITY_AUTO_YAW: {
+#if HAL_PROXIMITY_ENABLED == ENABLED
+            if (copter.g2.proximity.sensor_enabled()) {
+                switch (ch_flag) {
+                case AuxSwitchPos::HIGH:
+                    copter.auto_yaw_enabled = true;
+                    gcs().send_text(MAV_SEVERITY_INFO, "Proximity auto yaw enabled");
+                    break;
+                case AuxSwitchPos::LOW:
+                    copter.auto_yaw_enabled = false;
+                    gcs().send_text(MAV_SEVERITY_INFO, "Proximity auto yaw disabled");
+                    break;
+                case AuxSwitchPos::MIDDLE:
+                    break;
+                }
+            } else {
+                gcs().send_text(MAV_SEVERITY_INFO, "Proximity not available");
+            }
+#else
+            gcs().send_text(MAV_SEVERITY_INFO, "Proximity not available");
+#endif
+            break;
+        }
 
     default:
         return RC_Channel::do_aux_function(ch_option, ch_flag);
