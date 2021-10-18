@@ -653,7 +653,6 @@ public:
 #endif
 
     AP_Float auto_mode_switch_time_to_loiter;
-    AP_Float auto_mode_switch_time_to_alt_hold;
     AP_Int8  auto_mode_switch_enabled;
 };
 

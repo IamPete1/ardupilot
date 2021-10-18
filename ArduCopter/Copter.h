@@ -230,6 +230,25 @@ private:
     uint32_t mn_photo_triggered_time;
     void trigger_multinnov_photo();
 
+    // Multinov global variable for auto mode switch
+    //
+    // These control the automatic flight mode change between alt hold and loiter
+    bool mn_auto_mode_switch = false;           // Indicates we are in auto change from loiter to alt hold
+    bool mn_auto_mode_switch_engaged = false;   // Indicates we are waiting for the timers to change mode, after t265 confidence triggers it
+    uint32_t mn_auto_mode_switch_time;          // Time since the t265 confidence engaged the mode change
+    void auto_flight_mode_check_loop();
+
+    // Helper for deciding or not to change to the modes, starting timers, changing sources, etc
+    bool set_mode_mn_checks_ok_to_proceed(Mode::Number mode, ModeReason reason);
+
+    // These control the waiting time when we request change to loiter, to solve the
+    // "little jump" issue 
+    bool change_to_loiter_requested = false;
+    bool change_to_loiter_allowed = false;
+    bool loiter_timer_running = false;
+    uint32_t mn_loiter_mode_switch_time;        // time since change to loiter was requested
+    void check_request_change_to_loiter();
+
     // key aircraft parameters passed to multiple libraries
     AP_Vehicle::MultiCopter aparm;
 

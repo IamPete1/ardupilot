@@ -176,6 +176,49 @@ Mode *Copter::mode_from_mode_num(const Mode::Number mode)
     return ret;
 }
 
+// returns true if set_mode shall proceed normally, false if set_mode should not proceed and return true instead
+bool Copter::set_mode_mn_checks_ok_to_proceed(Mode::Number mode, ModeReason reason) 
+{
+    if (!g2.auto_mode_switch_enabled) {
+        return true; // continue with normal set_mode behaviour
+    }
+    
+    if (mode == Mode::Number::LOITER) {
+        mn_auto_mode_switch = true; // enable automatic loiter behaviour ( change loiter/althold based on track confidence )
+        AP::ahrs().set_posvelyaw_source_set(0);
+
+        if (!change_to_loiter_requested) {
+            change_to_loiter_requested = true;
+            return false;
+        }
+
+        // If this is false, the timer is not yet ready. Return true even though flight mode has not been engaged yet
+        if (!change_to_loiter_allowed) {
+            return false;
+        }
+
+        // at this point everything should be ready to change to loiter
+    
+    } else {
+        if (reason != ModeReason::SCRIPTING) {
+            mn_auto_mode_switch = false;
+        }
+
+        // set source to 1 ( all to 0 but z position to 1 baro ) 
+        AP::ahrs().set_posvelyaw_source_set(1);
+    }
+
+    // reset the flags for check_request_change_to_loiter()
+    change_to_loiter_allowed = false;
+    change_to_loiter_requested = false;           
+    loiter_timer_running = false;  
+
+    // reset the flags for auto_flight_mode_check_loop
+    mn_auto_mode_switch_engaged = false;
+
+    return true;
+}
+
 
 // called when an attempt to change into a mode is unsuccessful:
 void Copter::mode_change_failed(const Mode *mode, const char *reason)
@@ -190,6 +233,11 @@ void Copter::mode_change_failed(const Mode *mode, const char *reason)
 // ACRO, STABILIZE, ALTHOLD, LAND, DRIFT and SPORT can always be set successfully but the return state of other flight modes should be checked and the caller should deal with failures appropriately
 bool Copter::set_mode(Mode::Number mode, ModeReason reason)
 {
+    // if not ok to proceed, return true directly so mode doesn't change yet, but the rest of autopilot calls to set_mode
+    // get true return ( flight mode will be engaged when timer finishes )
+    if (!set_mode_mn_checks_ok_to_proceed(mode, reason)) {
+        return true;
+    }
 
     // return immediately if we are already in the desired mode
     if (mode == flightmode->mode_number()) {
