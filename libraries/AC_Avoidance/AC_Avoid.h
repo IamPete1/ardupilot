@@ -106,6 +106,8 @@ public:
 
     // return minimum alt (in meters) above which avoidance will be active
     float get_min_alt() const { return _alt_min; }
+    // return margin_roof (in meters) that the vehicle should stay from objects
+    float get_margin_roof() const { return _margin_roof; }
 
     // return true if limiting is active
     bool limits_active() const {return (AP_HAL::millis() - _last_limit_time) < AC_AVOID_ACTIVE_LIMIT_TIMEOUT_MS;};
@@ -216,6 +218,7 @@ private:
     AP_Float _alt_min;          // alt below which Proximity based avoidance is turned off
     AP_Float _accel_max;        // maximum accelration while simple avoidance is active
     AP_Float _backup_deadzone;  // distance beyond AVOID_MARGIN parameter, after which vehicle will backaway from obstacles
+    AP_Float _margin_roof;      // Distance (in meters) from surfaces directly in front of lidar set as TOP
 
     bool _proximity_enabled = true; // true if proximity sensor based avoidance is enabled (used to allow pilot to enable/disable)
     bool _proximity_alt_enabled = true; // true if proximity sensor based avoidance is enabled based on altitude
