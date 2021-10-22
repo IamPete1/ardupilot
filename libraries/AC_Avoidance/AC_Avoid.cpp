@@ -104,7 +104,7 @@ const AP_Param::GroupInfo AC_Avoid::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("BACKUP_DZ", 9, AC_Avoid, _backup_deadzone, 0.10f),
 
-    // @Param: MARGIN_ROOF
+    // @Param: MARGIN_RF
     // @DisplayName: Avoidance distance for roof
     // @Description: Vehicle will attempt to stay at least this distance (in meters) from surfaces directly in front of lidar set as TOP
     // @Units: m
@@ -112,8 +112,8 @@ const AP_Param::GroupInfo AC_Avoid::var_info[] = {
     // @User: Standard
     AP_GROUPINFO("MARGIN_RF", 10, AC_Avoid, _margin_roof, 2.0f),
 
-    // @Param: MARGIN_ADVANCE
-    // @DisplayName: Distance at wich avoid will work
+    // @Param: ADVANCE
+    // @DisplayName: Distance at which avoid will work
     // @Description: Vehicle wont try to mantain a distance from the wall unless its at a distance smaller than this one
     // @Units: m
     // @Range: 1 10
@@ -407,8 +407,8 @@ void AC_Avoid::adjust_velocity_z(float kP, float accel_cmss, float& climb_rate_c
     // get distance from proximity sensor
     float proximity_alt_diff;
     AP_Proximity *proximity = AP::proximity();
-    if (proximity && proximity_avoidance_enabled() && proximity->get_upward_distance(proximity_alt_diff)) {
-        proximity_alt_diff -= _margin;
+    if (is_positive(_margin_roof) && proximity && proximity_avoidance_enabled() && proximity->get_upward_distance(proximity_alt_diff)) {
+        proximity_alt_diff -= _margin_roof;
         if (!limit_alt || proximity_alt_diff < alt_diff) {
             alt_diff = proximity_alt_diff;
             limit_alt = true;
