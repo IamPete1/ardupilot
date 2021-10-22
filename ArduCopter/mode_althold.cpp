@@ -85,7 +85,7 @@ void ModeAltHold::run()
 #endif
 
         // get avoidance adjusted climb rate
-        // target_climb_rate = get_avoidance_adjusted_climbrate(target_climb_rate);
+        target_climb_rate = get_avoidance_adjusted_climbrate(target_climb_rate);
 
         // update the vertical offset based on the surface measurement
         copter.surface_tracking.update_surface_offset();
