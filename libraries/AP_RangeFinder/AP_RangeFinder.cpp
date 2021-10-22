@@ -353,8 +353,6 @@ bool RangeFinder::_add_backend(AP_RangeFinder_Backend *backend, uint8_t instance
             gcs().send_text(MAV_SEVERITY_INFO, "Initialized unknown orientation lidar");
             break;
     }
-
-    drivers[num_instances++] = backend;
     return true;
 }
 
