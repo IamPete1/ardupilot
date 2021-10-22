@@ -892,3 +892,20 @@ void Mode::input_euler_angle_roll_pitch_proximity_yaw(float euler_roll_angle_cd,
 #endif
     attitude_control->input_euler_angle_roll_pitch_euler_rate_yaw(euler_roll_angle_cd, euler_pitch_angle_cd, euler_yaw_rate_cds);
 }
+
+void Mode::input_thrust_vector_proximity_yaw(Vector3f thrust_vec, float euler_yaw_rate_cds)
+{
+#if HAL_PROXIMITY_ENABLED == ENABLED
+    // Proximity based automatic yawing if no pilot input
+    if (is_zero(euler_yaw_rate_cds) && copter.auto_yaw_enabled && is_positive(copter.g2.auto_yaw_min_dist)) {
+        float angle, distance;
+        if (copter.g2.proximity.get_closest_object(angle, distance)) {
+            if (distance < copter.g2.auto_yaw_min_dist) {
+                attitude_control->input_thrust_vector_heading(thrust_vec, degrees(wrap_PI(copter.ahrs.get_yaw() + radians(angle))) * 100);
+                return;
+            }
+        }
+    }
+#endif
+    attitude_control->input_thrust_vector_rate_heading(thrust_vec, euler_yaw_rate_cds);
+}

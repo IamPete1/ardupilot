@@ -105,6 +105,7 @@ public:
     virtual bool use_pilot_yaw() const {return true; }
     // apply proximity auto yaw to input_euler_angle_roll_pitch_euler_rate_yaw
     void input_euler_angle_roll_pitch_proximity_yaw(float euler_roll_angle_cd, float euler_pitch_angle_cd, float euler_yaw_rate_cds);
+    void input_thrust_vector_proximity_yaw(Vector3f thrust_vec, float euler_yaw_rate_cds);
 
 protected:
 
