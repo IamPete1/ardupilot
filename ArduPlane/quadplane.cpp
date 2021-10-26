@@ -2801,7 +2801,8 @@ void QuadPlane::vtol_position_controller(void)
 
 
         const Vector2f diff_wp = plane.current_loc.get_distance_NE(loc);
-        const float distance = diff_wp.length();
+       // const float distance_3d = plane.current_loc.get_distance(loc);
+	const float distance = diff_wp.length();
 
         // calculate speed we should be at to reach the position2
         // target speed at the position2 distance threshold, assuming
@@ -2886,7 +2887,14 @@ void QuadPlane::vtol_position_controller(void)
 
     case QPOS_POSITION2:
     case QPOS_LAND_DESCEND: {
-        /*
+           if(plane.control_mode == &plane.mode_guided && (!loc.same_latlon_as(last_auto_target) ||
+              plane.next_WP_loc.alt != last_auto_target.alt)) {
+	    poscontrol.set_state(QPOS_POSITION1);
+            poscontrol.pilot_correction_done = false;
+            gcs().send_text(MAV_SEVERITY_INFO,"VTOL position1 (from guided) started v=%.1f d=%.1f",
+                                    (double)ahrs.groundspeed(), (double)plane.auto_state.wp_distance);
+        }
+	/*
           for final land repositioning and descent we run the position controller
          */
         if (poscontrol.pilot_correction_done) {
