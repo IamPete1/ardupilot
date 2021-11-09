@@ -233,24 +233,25 @@ void AP_Logger_MAVLink::handle_ack(const GCS_MAVLINK &link,
         return;
     }
     if(seqno == MAV_REMOTE_LOG_DATA_BLOCK_START) {
-        if (!_sending_to_client) {
-            Debug("Starting New Log");
-            free_all_blocks();
-            // _current_block = next_block();
-            // if (_current_block == nullptr) {
-            //     Debug("No free blocks?!!!\n");
-            //     return;
-            // }
-            stats_init();
-            _sending_to_client = true;
-            _target_system_id = msg.sysid;
-            _target_component_id = msg.compid;
-            _link = &link;
-            _next_seq_num = 0;
-            start_new_log_reset_variables();
-            _last_response_time = AP_HAL::millis();
-            Debug("Target: (%u/%u)", _target_system_id, _target_component_id);
+        if (_sending_to_client) {
+            stop_logging();
         }
+        Debug("Starting New Log");
+        free_all_blocks();
+        // _current_block = next_block();
+        // if (_current_block == nullptr) {
+        //     Debug("No free blocks?!!!\n");
+        //     return;
+        // }
+        stats_init();
+        _sending_to_client = true;
+        _target_system_id = msg.sysid;
+        _target_component_id = msg.compid;
+        _link = &link;
+        _next_seq_num = 0;
+        start_new_log_reset_variables();
+        _last_response_time = AP_HAL::millis();
+        Debug("Target: (%u/%u)", _target_system_id, _target_component_id);
         return;
     }
 
