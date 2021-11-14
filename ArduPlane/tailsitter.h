@@ -114,6 +114,11 @@ private:
     // true when flying a tilt-vectored tailsitter
     bool _is_vectored;
 
+    // true is outputs are configured
+    bool _have_elevator;
+    bool _have_aileron;
+    bool _have_rudder;
+
     // refences for convenience
     QuadPlane& quadplane;
     AP_MotorsMulticopter*& motors;
