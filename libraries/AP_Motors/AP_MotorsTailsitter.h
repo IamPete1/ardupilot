@@ -35,6 +35,9 @@ public:
 
     const char* get_frame_string() const override { return "TAILSITTER"; }
 
+    // Set by tailsitters using diskloading minumum outflow velocity limit
+    void set_min_throttle(float val) {external_min_throttle = val;}
+
 protected:
     // calculate motor outputs
     void output_armed_stabilizing() override;
@@ -45,4 +48,11 @@ protected:
     float _tilt_right;  // -1..1
     float _thrust_left;  // 0..1
     float _thrust_right;  // 0..1
+
+    // Set by tailsitters using diskloading minumum outflow velocity limit
+    float external_min_throttle;
+
+    // true if differential thrust is available
+    bool has_diff_thrust;
+
 };
