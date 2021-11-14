@@ -102,6 +102,10 @@ public:
     AP_Float scaling_speed_max;
     AP_Int16 gain_scaling_mask;
     AP_Float disk_loading;
+    AP_Float disk_loading_min_outflow;
+
+    // AP_MotorsTailsitter has a pointer to this value
+    float disk_loading_min_throttle;
 
 private:
 

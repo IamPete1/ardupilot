@@ -635,7 +635,7 @@ bool QuadPlane::setup(void)
         break;
     case AP_Motors::MOTOR_FRAME_TAILSITTER:
         // this is a duo-motor tailsitter
-        motors = new AP_MotorsTailsitter(plane.scheduler.get_loop_rate_hz(), rc_speed);
+        motors = new AP_MotorsTailsitter(plane.scheduler.get_loop_rate_hz(), rc_speed, (tailsitter.enable > 0) ? &tailsitter.disk_loading_min_throttle : nullptr );
         motors_var_info = AP_MotorsTailsitter::var_info;
         break;
     case AP_Motors::MOTOR_FRAME_DYNAMIC_SCRIPTING_MATRIX:

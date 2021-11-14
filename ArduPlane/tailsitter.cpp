@@ -141,6 +141,12 @@ const AP_Param::GroupInfo Tailsitter::var_info[] = {
     // @Range: -1 100
     AP_GROUPINFO("THR_VT", 18, Tailsitter, transition_throttle_vtol, -1),
 
+    // @Param: MIN_VO
+    // @DisplayName: Tailsitter Disk loading minimum outflow speed
+    // @Description: Use in conjunction with disk therory gain scaling and Q_TAILSIT_DSKLD to specify minumum airspeed over control surfaces, this will be used to boost throttle, when decending for example, 0 disables
+    // @Range: 0 15
+    AP_GROUPINFO("MIN_VO", 19, Tailsitter, disk_loading_min_outflow, 0),
+
     AP_GROUPEND
 };
 
@@ -566,8 +572,9 @@ int8_t Tailsitter::get_transition_angle_vtol() const
 void Tailsitter::speed_scaling(void)
 {
     const float hover_throttle = motors->get_throttle_hover();
-    const float throttle = motors->get_throttle();
+    const float throttle = motors->get_throttle_out();
     float spd_scaler = 1.0f;
+    disk_loading_min_throttle = 0.0;
 
     // Scaleing with throttle
     float throttle_scaler = throttle_scale_max;
@@ -660,6 +667,25 @@ void Tailsitter::speed_scaling(void)
             spd_scaler = throttle_scale_max;
             if (is_positive(sq_outflow)) {
                 spd_scaler = constrain_float(sq_hover_outflow / sq_outflow, gain_scaling_min.get(), throttle_scale_max.get());
+            }
+
+            if (is_positive(disk_loading_min_outflow)) {
+                // calculate throttle required to give minimum outflow speed over control surfaces
+                if (is_positive(airspeed)) {
+                    disk_loading_min_throttle = (((sq(disk_loading_min_outflow) - sq(airspeed)) * (0.5 * rho)) / (disk_loading.get() * GRAVITY_MSS)) * hover_throttle;
+                } else {
+                    // estimate backwards airspeed
+                    float reverse_airspeed = 0.0;
+                    Vector3f vel;
+                    if (quadplane.ahrs.get_velocity_NED(vel)) {
+                        reverse_airspeed = quadplane.ahrs.earth_to_body(vel - quadplane.ahrs.wind_estimate()).x;
+                    }
+                    // make sure actually negative
+                    reverse_airspeed = MIN(reverse_airspeed, 0.0);
+                    disk_loading_min_throttle = (((sq(disk_loading_min_outflow) + sq(reverse_airspeed)) * (0.5 * rho)) / (disk_loading.get() * GRAVITY_MSS)) * hover_throttle;
+                }
+                // AP_MotorsTailsitter has a pointer to this value
+                disk_loading_min_throttle = MAX(disk_loading_min_throttle, 0.0);
             }
         }
 
