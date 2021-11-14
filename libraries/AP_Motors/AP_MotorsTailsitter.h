@@ -12,7 +12,7 @@ class AP_MotorsTailsitter : public AP_MotorsMulticopter {
 public:
 
     /// Constructor
-    AP_MotorsTailsitter(uint16_t loop_rate, uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT);
+    AP_MotorsTailsitter(uint16_t loop_rate, uint16_t speed_hz = AP_MOTORS_SPEED_DEFAULT, float *_min_throttle = nullptr);
 
     // init
     void init(motor_frame_class frame_class, motor_frame_type frame_type) override;
@@ -45,4 +45,9 @@ protected:
     float _tilt_right;  // -1..1
     float _thrust_left;  // 0..1
     float _thrust_right;  // 0..1
+
+    // pointer to a float that gives the min throttle limit
+    // Set by tailsitters using diskloading minumum outflow velocity limit
+    float *external_min_throttle;
+
 };

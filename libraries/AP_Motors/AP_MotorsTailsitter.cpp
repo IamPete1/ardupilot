@@ -61,10 +61,12 @@ void AP_MotorsTailsitter::init(motor_frame_class frame_class, motor_frame_type f
 
 
 /// Constructor
-AP_MotorsTailsitter::AP_MotorsTailsitter(uint16_t loop_rate, uint16_t speed_hz) :
+AP_MotorsTailsitter::AP_MotorsTailsitter(uint16_t loop_rate, uint16_t speed_hz, float *_min_throttle) :
     AP_MotorsMulticopter(loop_rate, speed_hz)
 {
     set_update_rate(speed_hz);
+
+    external_min_throttle = _min_throttle;
 }
 
 
@@ -142,6 +144,7 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
     float   yaw_thrust;                 // yaw thrust input value, +/- 1.0
     float   throttle_thrust;            // throttle thrust input value, 0.0 - 1.0
     float   thrust_max;                 // highest motor value
+    float   thrust_min;                 // lowest motor value
     float   thr_adj = 0.0f;             // the difference between the pilot's desired throttle and throttle_thrust_best_rpy
 
     // apply voltage and air pressure compensation
@@ -150,6 +153,7 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
     pitch_thrust = _pitch_in + _pitch_in_ff;
     yaw_thrust = _yaw_in + _yaw_in_ff;
     throttle_thrust = get_throttle() * compensation_gain;
+    const float max_boost_throttle = _throttle_avg_max * compensation_gain;
 
     // sanity check throttle is above zero and below current limited throttle
     if (throttle_thrust <= 0.0f) {
@@ -165,20 +169,29 @@ void AP_MotorsTailsitter::output_armed_stabilizing()
     _thrust_left  = throttle_thrust + roll_thrust * 0.5f;
     _thrust_right = throttle_thrust - roll_thrust * 0.5f;
 
-    // if max thrust is more than one reduce average throttle
+    // never boost above max boost throttle, derived from throttle mix params
+    float min_throttle_out = (external_min_throttle != nullptr) ? *external_min_throttle : 0.0;
+    min_throttle_out = MIN(min_throttle_out, max_boost_throttle);
+
     thrust_max = MAX(_thrust_right,_thrust_left);
+    thrust_min = MIN(_thrust_right,_thrust_left);
     if (thrust_max > 1.0f) {
+        // if max thrust is more than one reduce average throttle
         thr_adj = 1.0f - thrust_max;
         limit.throttle_upper = true;
         limit.roll = true;
         limit.pitch = true;
+    } else if (thrust_min < min_throttle_out) {
+        // if min thrust is less than min_throttle increase average throttle
+        thr_adj = min_throttle_out - thrust_min;
+        limit.throttle_lower = true;
     }
 
     // Add adjustment to reduce average throttle
     _thrust_left  = constrain_float(_thrust_left  + thr_adj, 0.0f, 1.0f);
     _thrust_right = constrain_float(_thrust_right + thr_adj, 0.0f, 1.0f);
 
-    _throttle = throttle_thrust;
+    _throttle = MAX(throttle_thrust, min_throttle_out);
 
     // compensation_gain can never be zero
     _throttle_out = _throttle / compensation_gain;
