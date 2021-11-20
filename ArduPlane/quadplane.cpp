@@ -2328,15 +2328,9 @@ void QuadPlane::vtol_position_controller(void)
 
         Vector2f target_speed_xy;
         if (distance > 0.1) {
-            target_speed_xy = diff_wp.normalized() * target_speed;
+            target_speed_xy = diff_wp.normalized() * target_speed * 100;
         }
-        pos_control->set_vel_desired_xy_cms(target_speed_xy * 100);
-
-        // reset position controller xy target to current position
-        // because we only want velocity control (no position control)
-        const Vector3f& curr_pos = inertial_nav.get_position();
-        pos_control->set_pos_target_xy_cm(curr_pos.x, curr_pos.y);
-        pos_control->set_accel_desired_xy_cmss(Vector2f());
+        pos_control->input_vel_accel_xy(target_speed_xy, Vector2f());
 
         // run horizontal velocity controller
         run_xy_controller();
