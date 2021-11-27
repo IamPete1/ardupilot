@@ -1,7 +1,81 @@
-Release 4.1.2beta2 16th October 2021
-------------------------------------
+Release 4.1.4 25th November 2021
+--------------------------------
 
-This is beta update with minor fixes:
+This is a minor release with some important bug fixes and small number
+of new features.
+
+ - fixed RC parachute release to only trigger on RC input channel
+   above 1800, fixing an issue with trigger on power on
+
+ - added QRTL flight mode as an RCn_OPTION
+
+ - display VTOL position1 state change when landing approach and
+   airbrake logic is disabled using Q_OPTIONS
+
+ - limit Q_VFWD integrator to be below TRIM_THROTTLE to prevent very
+   high forward throttle building up in some landing approach
+   conditions
+
+ - fixed an issue with high position1 landing approach target speed
+   causing the nose to dip when going between VTOL approach and
+   position1 states
+
+ - allow for a wider range of Q_A_THR_MIX values to be configured, to
+   better support landing quadplanes in high wind
+
+Happy flying!
+
+
+Release 4.1.3 16th November 2021
+--------------------------------
+
+This is a minor release with some bug fixes and small number of new
+features.
+
+ - allow for scripting based quadplane motor mixers
+
+ - fixed double application of rangefinder landing offset on go-around
+
+ - avoid doing quadplane approach when close to landing point
+
+ - suppress D gains on fixed wing control surfaces when in ground mode
+   to prevent ground oscillation on some aircraft
+
+ - added OBAL Linux board support
+
+ - added CAN_Dn_UC_OPTION parameter to control conflicts in DroneCAN
+   DNA database
+
+ - fixed a bug in POSITION1 quadplane landing code that led to too
+   sharp pullup in VTOL automatic landing
+
+ - default maximum attitude rate for quadplanes to 75 degrees/second
+
+ - fixed a bug in use of non-zero EK3_PRIMARY value
+
+ - fixed a bug in ADSB vertical velocity reporting
+
+ - fixed an overshoot in quadplane guided takeoff
+
+ - allow for interruption of quadplane guided takeoff with a new
+   target location
+
+ - fixed creation of APM/LOGS directory on some boards
+
+ - added RCn_OPTION switch for enabling fixed wing AUTOTUNE in any
+   stabilized flight mode (useful for LOITER and AUTO modes)
+
+ - support Durandal with alternative ICM-20602 IMU
+
+ - removed a spurious EKF yaw reset message
+
+Happy flying!
+
+
+Release 4.1.2 17th October 2021
+-------------------------------
+
+This is minor update with a few important fixes and some new features:
 
  - added EK3_PRIMARY parameter, to allow for selection of other than
    the first IMU as initial EK3 lane
@@ -23,6 +97,9 @@ This is beta update with minor fixes:
 
  - fixed turn rate coordination when inverted in fixed wing flight
 
+ - fixed bug in AUTOTUNE mode that could leave gains from part way
+   through the tune
+
 Of these fixes the only one that is not backwards compatible is the
 new RC_OPTION bit which needs to be set if you have multiple RC
 receivers on your aircraft and want to fail over to a backup receiver
@@ -30,12 +107,6 @@ while in flight. You will need to set the new RC_OPTION to enable that
 for the 4.1.2 release and later.
 
 Happy flying!
-
-Release 4.1.2beta1 10th October 2021
-------------------------------------
-
-This is beta update to test a fix to the AUTOTUNE code which can lead
-to bad gains being saved. We will release 4.1.2 stable shortly
 
 Release 4.1.1 stable 8th October 2021
 -------------------------------------

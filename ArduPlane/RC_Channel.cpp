@@ -156,11 +156,13 @@ void RC_Channel_Plane::init_aux_function(const RC_Channel::aux_func_t ch_option,
     case AUX_FUNC::RTL:
     case AUX_FUNC::TAKEOFF:
     case AUX_FUNC::FBWA:
+    case AUX_FUNC::QRTL:
     case AUX_FUNC::FBWA_TAILDRAGGER:
     case AUX_FUNC::FWD_THR:
     case AUX_FUNC::LANDING_FLARE:
     case AUX_FUNC::PARACHUTE_RELEASE:
     case AUX_FUNC::MODE_SWITCH_RESET:
+    case AUX_FUNC::FW_AUTOTUNE:
         break;
 
     case AUX_FUNC::Q_ASSIST:
@@ -237,6 +239,10 @@ bool RC_Channel_Plane::do_aux_function(const aux_func_t ch_option, const AuxSwit
         do_aux_function_change_mode(Mode::Number::FLY_BY_WIRE_A, ch_flag);
         break;
 
+    case AUX_FUNC::QRTL:
+        do_aux_function_change_mode(Mode::Number::QRTL, ch_flag);
+        break;
+
     case AUX_FUNC::SOARING:
         do_aux_function_soaring_3pos(ch_flag);
         break;
@@ -310,12 +316,18 @@ case AUX_FUNC::ARSPD_CALIBRATE:
 
     case AUX_FUNC::PARACHUTE_RELEASE:
 #if PARACHUTE == ENABLED
-        plane.parachute_manual_release();
+        if (ch_flag == AuxSwitchPos::HIGH) {
+            plane.parachute_manual_release();
+        }
 #endif
         break;
 
     case AUX_FUNC::MODE_SWITCH_RESET:
         plane.reset_control_switch();
+        break;
+
+    case AUX_FUNC::FW_AUTOTUNE:
+        plane.autotune_enable(ch_flag == AuxSwitchPos::HIGH);
         break;
 
     default:
