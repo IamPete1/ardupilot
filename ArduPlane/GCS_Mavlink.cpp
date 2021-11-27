@@ -1212,15 +1212,23 @@ void GCS_MAVLINK_Plane::handleMessage(const mavlink_message_t &msg)
         }
 
         // only local moves for now
-        if (packet.coordinate_frame != MAV_FRAME_LOCAL_OFFSET_NED) {
+        if (packet.coordinate_frame != MAV_FRAME_LOCAL_OFFSET_NED  && packet.coordinate_frame != MAV_FRAME_LOCAL_NED) {
             break;
         }
 
         // just do altitude for now
-        plane.next_WP_loc.alt += -packet.z*100.0;
-        gcs().send_text(MAV_SEVERITY_INFO, "Change alt to %.1f",
-                        (double)((plane.next_WP_loc.alt - plane.home.alt)*0.01));
-        
+              if (packet.coordinate_frame == MAV_FRAME_LOCAL_OFFSET_NED)
+        {
+          plane.next_WP_loc.alt = plane.current_loc.alt-packet.z*100.0;
+        }
+        if (packet.coordinate_frame == MAV_FRAME_LOCAL_NED)
+        {
+          Vector3f neu = Vector3f(packet.x*100, packet.y*100, -packet.z*100);
+          Location target(neu, Location::AltFrame::ABOVE_ORIGIN);
+          plane.next_WP_loc = target;
+        }
+        //gcs().send_text(MAV_SEVERITY_INFO, "Change alt to %.1f", (double)((plane.next_WP_loc.alt - plane.home.alt)*0.01));
+	 
         break;
     }
 
