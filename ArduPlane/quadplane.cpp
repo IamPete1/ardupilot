@@ -559,6 +559,24 @@ const AP_Param::GroupInfo QuadPlane::var_info2[] = {
     // @Range: 10 500
     AP_GROUPINFO("TAILSIT_RAT_VT", 25, QuadPlane, tailsitter.transition_rate_vtol, 50),
 
+    // @Param: TAILSIT_VT_R_P
+    // @DisplayName: Tailsitter VTOL control surface roll gain
+    // @Description: Scale from PID output to control surface, for use where a single axis is actuated by both motors and Tilt/control surface on a copter style tailsitter, increase to favor control surfaces and reduce motor output by reducing gains
+    // @Range: 0 2
+    AP_GROUPINFO("TAILSIT_VT_R_P", 26, QuadPlane, tailsitter.VTOL_roll_scale, 1),
+
+    // @Param: TAILSIT_VT_P_P
+    // @DisplayName: Tailsitter VTOL control surface pitch gain
+    // @Description: Scale from PID output to control surface, for use where a single axis is actuated by both motors and Tilt/control surface on a copter style tailsitter, increase to favor control surfaces and reduce motor output by reducing gains
+    // @Range: 0 2
+    AP_GROUPINFO("TAILSIT_VT_P_P", 27, QuadPlane, tailsitter.VTOL_pitch_scale, 1),
+
+    // @Param: TAILSIT_VT_Y_P
+    // @DisplayName: Tailsitter VTOL control surface yaw gain
+    // @Description: Scale from PID output to control surface, for use where a single axis is actuated by both motors and Tilt/control surface on a copter style tailsitter, increase to favor control surfaces and reduce motor output by reducing gains
+    // @Range: 0 2
+    AP_GROUPINFO("TAILSIT_VT_Y_P", 28, QuadPlane, tailsitter.VTOL_yaw_scale, 1),
+
     AP_GROUPEND
 };
 
