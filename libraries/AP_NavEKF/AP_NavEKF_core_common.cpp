@@ -19,7 +19,7 @@
 NavEKF_core_common::Matrix24 NavEKF_core_common::KH;
 NavEKF_core_common::Matrix24 NavEKF_core_common::KHP;
 NavEKF_core_common::Matrix24 NavEKF_core_common::nextP;
-NavEKF_core_common::Vector28 NavEKF_core_common::Kfusion;
+NavEKF_core_common::Vector28 NavEKF_core_common::Kfusion{};
 
 /*
   fill common scratch variables, for detecting re-use of variables between loops in SITL
