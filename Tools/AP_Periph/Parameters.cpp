@@ -363,9 +363,9 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
 #endif
 
 #if AP_SCRIPTING_ENABLED
-    // @Group: SCR_
+    // @Group: SCR
     // @Path: ../libraries/AP_Scripting/AP_Scripting.cpp
-    GOBJECT(scripting, "SCR_", AP_Scripting),
+    GOBJECT(scripting, "SCR", AP_Scripting),
 #endif
     AP_VAREND
 };

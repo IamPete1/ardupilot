@@ -652,9 +652,9 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_SUBGROUPINFO(rc_channels, "RC", 17, ParametersG2, RC_Channels),
 
 #if AP_SCRIPTING_ENABLED
-    // @Group: SCR_
+    // @Group: SCR
     // @Path: ../libraries/AP_Scripting/AP_Scripting.cpp
-    AP_SUBGROUPINFO(scripting, "SCR_", 18, ParametersG2, AP_Scripting),
+    AP_SUBGROUPINFO(scripting, "SCR", 18, ParametersG2, AP_Scripting),
 #endif
 
     // @Group: ARSPD

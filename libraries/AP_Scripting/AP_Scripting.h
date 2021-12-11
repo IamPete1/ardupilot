@@ -85,6 +85,10 @@ public:
     };
     ObjectBuffer<struct scripting_mission_cmd> * mission_data;
 
+    // params and var table pointer that can be loaded by scripts
+    static const struct AP_Param::GroupInfo *script_var_info[2];
+    AP_Param *script_params[2];
+
 private:
 
     bool repl_start(void);

@@ -50,84 +50,88 @@ static_assert(SCRIPTING_STACK_SIZE <= SCRIPTING_STACK_MAX_SIZE, "Scripting requi
 extern const AP_HAL::HAL& hal;
 
 const AP_Param::GroupInfo AP_Scripting::var_info[] = {
-    // @Param: ENABLE
+    // @Param: _ENABLE
     // @DisplayName: Enable Scripting
     // @Description: Controls if scripting is enabled
     // @Values: 0:None,1:Lua Scripts
     // @RebootRequired: True
     // @User: Advanced
-    AP_GROUPINFO_FLAGS("ENABLE", 1, AP_Scripting, _enable, SCRIPTING_ENABLE_DEFAULT, AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO_FLAGS("_ENABLE", 1, AP_Scripting, _enable, SCRIPTING_ENABLE_DEFAULT, AP_PARAM_FLAG_ENABLE),
 
-    // @Param: VM_I_COUNT
+    // @Param: _VM_I_COUNT
     // @DisplayName: Scripting Virtual Machine Instruction Count
     // @Description: The number virtual machine instructions that can be run before considering a script to have taken an excessive amount of time
     // @Range: 1000 1000000
     // @Increment: 10000
     // @User: Advanced
-    AP_GROUPINFO("VM_I_COUNT", 2, AP_Scripting, _script_vm_exec_count, 10000),
+    AP_GROUPINFO("_VM_I_COUNT", 2, AP_Scripting, _script_vm_exec_count, 10000),
 
-    // @Param: HEAP_SIZE
+    // @Param: _HEAP_SIZE
     // @DisplayName: Scripting Heap Size
     // @Description: Amount of memory available for scripting
     // @Range: 1024 1048576
     // @Increment: 1024
     // @User: Advanced
     // @RebootRequired: True
-    AP_GROUPINFO("HEAP_SIZE", 3, AP_Scripting, _script_heap_size, SCRIPTING_HEAP_SIZE),
+    AP_GROUPINFO("_HEAP_SIZE", 3, AP_Scripting, _script_heap_size, SCRIPTING_HEAP_SIZE),
 
-    // @Param: DEBUG_OPTS
+    // @Param: _DEBUG_OPTS
     // @DisplayName: Scripting Debug Level
     // @Description: Debugging options
     // @Bitmask: 0:No Scripts to run message if all scripts have stopped, 1:Runtime messages for memory usage and execution time, 2:Suppress logging scripts to dataflash, 3:log runtime memory usage and execution time
     // @User: Advanced
-    AP_GROUPINFO("DEBUG_OPTS", 4, AP_Scripting, _debug_options, 0),
+    AP_GROUPINFO("_DEBUG_OPTS", 4, AP_Scripting, _debug_options, 0),
 
-    // @Param: USER1
+    // @Param: _USER1
     // @DisplayName: Scripting User Parameter1
     // @Description: General purpose user variable input for scripts
     // @User: Standard
-    AP_GROUPINFO("USER1", 5, AP_Scripting, _user[0], 0.0),
+    AP_GROUPINFO("_USER1", 5, AP_Scripting, _user[0], 0.0),
 
-    // @Param: USER2
+    // @Param: _USER2
     // @DisplayName: Scripting User Parameter2
     // @Description: General purpose user variable input for scripts
     // @User: Standard
-    AP_GROUPINFO("USER2", 6, AP_Scripting, _user[1], 0.0),
+    AP_GROUPINFO("_USER2", 6, AP_Scripting, _user[1], 0.0),
 
-    // @Param: USER3
+    // @Param: _USER3
     // @DisplayName: Scripting User Parameter3
     // @Description: General purpose user variable input for scripts
     // @User: Standard
-    AP_GROUPINFO("USER3", 7, AP_Scripting, _user[2], 0.0),
+    AP_GROUPINFO("_USER3", 7, AP_Scripting, _user[2], 0.0),
 
-    // @Param: USER4
+    // @Param: _USER4
     // @DisplayName: Scripting User Parameter4
     // @Description: General purpose user variable input for scripts
     // @User: Standard
-    AP_GROUPINFO("USER4", 8, AP_Scripting, _user[3], 0.0),
+    AP_GROUPINFO("_USER4", 8, AP_Scripting, _user[3], 0.0),
 
-    // @Param: USER5
+    // @Param: _USER5
     // @DisplayName: Scripting User Parameter5
     // @Description: General purpose user variable input for scripts
     // @User: Standard
-    AP_GROUPINFO("USER5", 10, AP_Scripting, _user[4], 0.0),
+    AP_GROUPINFO("_USER5", 10, AP_Scripting, _user[4], 0.0),
 
-    // @Param: USER6
+    // @Param: _USER6
     // @DisplayName: Scripting User Parameter6
     // @Description: General purpose user variable input for scripts
     // @User: Standard
-    AP_GROUPINFO("USER6", 11, AP_Scripting, _user[5], 0.0),
+    AP_GROUPINFO("_USER6", 11, AP_Scripting, _user[5], 0.0),
     
-    // @Param: DIR_DISABLE
+    // @Param: _DIR_DISABLE
     // @DisplayName: Directory disable
     // @Description: This will stop scripts being loaded from the given locations
     // @Bitmask: 0:ROMFS, 1:APM/scripts
     // @RebootRequired: True
     // @User: Advanced
-    AP_GROUPINFO("DIR_DISABLE", 9, AP_Scripting, _dir_disable, 0),
+    AP_GROUPINFO("_DIR_DISABLE", 9, AP_Scripting, _dir_disable, 0),
+
+    AP_SUBGROUPVARPTR(script_params[0], "1_", 12, AP_Scripting, script_var_info[0]),
 
     AP_GROUPEND
 };
+
+const AP_Param::GroupInfo *AP_Scripting::script_var_info[2];
 
 AP_Scripting::AP_Scripting() {
     AP_Param::setup_object_defaults(this, var_info);

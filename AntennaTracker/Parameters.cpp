@@ -457,9 +457,9 @@ const AP_Param::Info Tracker::var_info[] = {
     GGROUP(pidYaw2Srv,         "YAW2SRV_", AC_PID),
 
 #if AP_SCRIPTING_ENABLED
-    // @Group: SCR_
+    // @Group: SCR
     // @Path: ../libraries/AP_Scripting/AP_Scripting.cpp
-    GOBJECT(scripting, "SCR_", AP_Scripting),
+    GOBJECT(scripting, "SCR", AP_Scripting),
 #endif
 
     // @Param: CMD_TOTAL

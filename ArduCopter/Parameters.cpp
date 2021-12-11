@@ -938,9 +938,9 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
 #endif
 
 #if AP_SCRIPTING_ENABLED
-    // @Group: SCR_
+    // @Group: SCR
     // @Path: ../libraries/AP_Scripting/AP_Scripting.cpp
-    AP_SUBGROUPINFO(scripting, "SCR_", 30, ParametersG2, AP_Scripting),
+    AP_SUBGROUPINFO(scripting, "SCR", 30, ParametersG2, AP_Scripting),
 #endif
 
     // @Param: TUNE_MIN

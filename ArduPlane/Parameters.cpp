@@ -1089,9 +1089,9 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     AP_GROUPINFO("FLIGHT_OPTIONS", 13, ParametersG2, flight_options, 0),
 
 #if AP_SCRIPTING_ENABLED
-    // @Group: SCR_
+    // @Group: SCR
     // @Path: ../libraries/AP_Scripting/AP_Scripting.cpp
-    AP_SUBGROUPINFO(scripting, "SCR_", 14, ParametersG2, AP_Scripting),
+    AP_SUBGROUPINFO(scripting, "SCR", 14, ParametersG2, AP_Scripting),
 #endif
 
     // @Param: TKOFF_ACCEL_CNT

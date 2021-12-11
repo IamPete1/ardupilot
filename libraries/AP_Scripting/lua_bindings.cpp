@@ -390,12 +390,12 @@ static int add_param(lua_State *L) {
     uint16_t index = static_cast<uint16_t>(luaL_checkinteger(L, 1));
 
     // this magic value is to be compared against a automaticaly loaded param at the start of the new table,
-    // the the magics don't match we should reset the new table to defaults 
+    // the the magic s don't match we should reset the new table to defaults 
     //const uint16_t magic = static_cast<uint16_t>(luaL_checkinteger(L, 2));
 
-    AP_Param::Info *info = (AP_Param::Info *)hal.util->malloc_type(sizeof(AP_Param::Info)*(num_params+1), AP_HAL::Util::Memory_Type::MEM_FAST);
-    struct AP_Param::var_table *table = new AP_Param::var_table;
-    if (info == nullptr || table == nullptr) {
+    AP_Param::GroupInfo *info = (AP_Param::GroupInfo *)calloc(num_params+1, sizeof(AP_Param::GroupInfo));
+    AP_Param *params = (AP_Param*)calloc(num_params, sizeof(AP_Param));
+    if (info == nullptr || params == nullptr) {
         gcs().send_text(MAV_SEVERITY_ERROR,"Lua: failed to create var tables");
         goto failed_load;
     }
@@ -475,59 +475,53 @@ static int add_param(lua_State *L) {
         }
         lua_pop (L, 1); // this pops the outer table index
 
-        void *param = nullptr;
         switch (type) {
             case AP_PARAM_INT8:
-                param = new AP_Int8;
+                new (&params[i]) AP_Int8;
                 break;
             case AP_PARAM_INT16:
-                param = new AP_Int16;
+                new (&params[i]) AP_Int16;
                 break;
             case AP_PARAM_INT32:
-                param = new AP_Int32;
+                new (&params[i]) AP_Int32;
                 break;
             case AP_PARAM_FLOAT:
-                param = new AP_Float;
+                new (&params[i]) AP_Float;
                 break;
             default:
                 gcs().send_text(MAV_SEVERITY_ERROR,"Lua: unknown param type");
                 goto failed_load;
         }
 
-        if (param == nullptr) {
-            gcs().send_text(MAV_SEVERITY_ERROR,"Lua: failed to create param");
-            goto failed_load;
-        }
 
-        new (&info[i]) AP_Param::Info {static_cast<uint8_t>(type), name, index, param, {def_value:default_val}, flag};
-
+        new (&info[i]) AP_Param::GroupInfo {static_cast<uint8_t>(type), static_cast<uint8_t>(i+1U), name, &params[0] - &params[i], {def_value:default_val}, flag};
         index++;
     }
 
     // add the table footer
-    new (&info[num_params]) AP_Param::Info {static_cast<uint8_t>(AP_PARAM_NONE), "", index, nullptr, {group_info:nullptr}, 0 };
+    new (&info[num_params]) AP_Param::GroupInfo AP_GROUPEND;
 
-    table->var_info = info;
+    // load
+    AP::scripting()->script_params[0] = params;
+    AP::scripting()->script_var_info[0] = info;
+    AP_Param::setup_object_defaults(params, info);
+    AP_Param::load_object_from_eeprom(params, info);
+    AP_Param::show_all(hal.console, true);
+    return 0;
 
-    if (AP_Param::load_param_info(table)) {
-        // success !!
-        return 0;
-    }
-
-    gcs().send_text(MAV_SEVERITY_ERROR,"Lua: failed to load param table");
 
 failed_load:
     // clear all the stuff we added
-    delete[] table;
     if (info != nullptr) {
-        for (uint8_t i=0; i<=num_params; i++) {
-            delete[] info[i].ptr;
-        }
-        delete[] info;
+        free(info);
+        info = nullptr;
     }
-    hal.util->free_type(info, sizeof(AP_Param::Info)*(num_params+1), AP_HAL::Util::Memory_Type::MEM_FAST);
+    if (params != nullptr) {
+        free(params);
+        params = nullptr;
+    }
 
-    luaL_error(L, "Param load fail");
+    luaL_error(L, "Param load failed");
 
     return 0;
 }
@@ -542,8 +536,8 @@ struct userdata_enum AP_Param_enums[] = {
     {"AP_PARAM_INT32", AP_PARAM_INT32},
     {"AP_PARAM_INT16", AP_PARAM_INT16},
     {"AP_PARAM_INT8", AP_PARAM_INT8},
-    {"AP_PARAM_FLAG_ENABLE",AP_PARAM_FLAG_ENABLE},
-    {"AP_PARAM_FLAG_INTERNAL_USE_ONLY",AP_PARAM_FLAG_INTERNAL_USE_ONLY},
+    {"AP_PARAM_FLAG_ENABLE", AP_PARAM_FLAG_ENABLE},
+    {"AP_PARAM_FLAG_INTERNAL_USE_ONLY", AP_PARAM_FLAG_INTERNAL_USE_ONLY},
 };
 
 const luaL_Reg AP_param_functions[] = {
