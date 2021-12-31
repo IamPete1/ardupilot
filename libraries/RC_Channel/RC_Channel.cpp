@@ -46,6 +46,7 @@ extern const AP_HAL::HAL& hal;
 #include <AP_Mount/AP_Mount.h>
 #include <AP_VideoTX/AP_VideoTX.h>
 #include <AP_Torqeedo/AP_Torqeedo.h>
+#include <AC_AttitudeControl/AC_WeatherVane.h>
 
 #define SWITCH_DEBOUNCE_TIME_MS  200
 
@@ -514,6 +515,7 @@ void RC_Channel::init_aux_function(const aux_func_t ch_option, const AuxSwitchPo
     case AUX_FUNC::RUNCAM_OSD_CONTROL:
     case AUX_FUNC::SPRAYER:
     case AUX_FUNC::DISABLE_AIRSPEED_USE:
+    case AUX_FUNC::WEATHER_VANE_ENABLE:
 #if HAL_MOUNT_ENABLED
     case AUX_FUNC::RETRACT_MOUNT:
 #endif
@@ -572,6 +574,7 @@ const RC_Channel::LookupTable RC_Channel::lookuptable[] = {
     { AUX_FUNC::ARSPD_CALIBRATE,"Calibrate Airspeed"},
     { AUX_FUNC::TORQEEDO_CLEAR_ERR, "Torqeedo Clear Err"},
     { AUX_FUNC::EMERGENCY_LANDING_EN, "Emergency Landing"},
+    { AUX_FUNC::WEATHER_VANE_ENABLE, "Weathervane Allowed"},
 };
 
 /* lookup the announcement for switch change */
@@ -1183,6 +1186,25 @@ bool RC_Channel::do_aux_function(const aux_func_t ch_option, const AuxSwitchPos 
         }
 #endif
         break;
+    }
+
+    case AUX_FUNC::WEATHER_VANE_ENABLE: {
+        AC_WeatherVane* wvane = AC_WeatherVane::get_singleton();
+        if (wvane == nullptr) {
+            break;
+        }
+
+        switch (ch_flag) {
+            case AuxSwitchPos::HIGH:
+                wvane->allow_weathervaning(true);
+                break;
+            case AuxSwitchPos::MIDDLE:
+                // nothing
+                break;
+            case AuxSwitchPos::LOW:
+                wvane->allow_weathervaning(false);
+                break;
+        }
     }
 
     case AUX_FUNC::SCRIPTING_1:
