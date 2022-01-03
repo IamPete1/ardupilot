@@ -31,6 +31,7 @@ public:
     bool logging_enabled() const override { return true; }
     bool logging_failed() const override { return false; }
     bool logging_started(void) const override { return log_write_started; }
+    AP_Logger_Backend::Type get_backend_type() const override { return AP_Logger_Backend::Type::BLOCK; };
 
 protected:
     /* Write a block of data at current offset */

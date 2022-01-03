@@ -63,6 +63,8 @@ public:
 
     void remote_log_block_status_msg(const mavlink_channel_t chan, const mavlink_message_t& msg) override;
 
+    AP_Logger_Backend::Type get_backend_type() const override { return AP_Logger_Backend::Type::MAVLINK; };
+
 protected:
 
     bool WritesOK() const override;

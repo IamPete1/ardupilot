@@ -60,6 +60,8 @@ public:
 
     virtual void PrepForArming() override;
 
+    AP_Logger_Backend::Type get_backend_type() const override { return AP_Logger_Backend::Type::FILESYSTEM; };
+
 protected:
 
     bool WritesOK() const override;

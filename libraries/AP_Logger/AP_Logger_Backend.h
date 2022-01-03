@@ -130,6 +130,8 @@ public:
       MAVLINK    = (1<<1),
       BLOCK      = (1<<2),
     };
+    virtual Type get_backend_type() const = 0;
+
 protected:
 
     AP_Logger &_front;
