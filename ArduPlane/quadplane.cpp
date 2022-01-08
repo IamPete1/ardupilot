@@ -3240,15 +3240,11 @@ float QuadPlane::get_weathervane_yaw_rate_cds(void)
 
     if (weathervane->should_weathervane(plane.channel_rudder->get_control_in(), plane.relative_ground_altitude(plane.g.rangefinder_landing))) {
         // For 'normal' quad planes use half the yaw rate limit. This results in a less aggressive yaw leaving more control power for maintaining attitude
-        float limit = yaw_rate_max.get()/2.0;
-        if (tailsitter.enabled()) {
-            // For tailsitters that may want to orient side on to the wind set the limit to be the angle max in cdeg. This gives the aircaft far more 'gain' to maintain the side on angle
-            limit = aparm.angle_max.get();
-        }
-        return weathervane->get_yaw_rate_cds(wp_nav->get_roll(), wp_nav->get_pitch(), limit);
+        const float output = constrain_float(weathervane->get_yaw_rate_cds(wp_nav->get_roll(), wp_nav->get_pitch()), -100.0, 100.0);
+        return output * yaw_rate_max * 0.5;
     }
 
-    return 0.0f;
+    return 0.0;
 }
 
 /*
