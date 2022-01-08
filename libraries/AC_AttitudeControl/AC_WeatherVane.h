@@ -22,6 +22,8 @@ class AC_WeatherVane {
         // allow/disallow weather vaning from other means than by the parameter
         void allow_weathervaning(bool allow) { allowed = allow; }
 
+        void gain_conversion(float new_gain);
+
         static AC_WeatherVane* get_singleton(void) { return _singleton; }
 
         static const struct AP_Param::GroupInfo var_info[];

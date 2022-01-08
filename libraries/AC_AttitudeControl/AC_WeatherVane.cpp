@@ -7,11 +7,9 @@
 #include <AP_AHRS/AP_AHRS.h>
 
 #if APM_BUILD_TYPE(APM_BUILD_ArduPlane)
-    #define WVANE_PARAM_ENABLED 1
     #define WVANE_PARAM_SPD_MAX_DEFAULT 0
     #define WVANE_PARAM_VELZ_MAX_DEFAULT 0
 #else
-    #define WVANE_PARAM_ENABLED 0
     #define WVANE_PARAM_SPD_MAX_DEFAULT 2
     #define WVANE_PARAM_VELZ_MAX_DEFAULT 1
 #endif
@@ -25,15 +23,15 @@ const AP_Param::GroupInfo AC_WeatherVane::var_info[] = {
     // @Description{Plane}: Enable weather vaning.  When active, the aircraft will automatically yaw into wind when in a VTOL position controlled mode. Pilot yaw commands overide the weathervaning action.
     // @Values: 0:Disabled,1:Nose into wind,2:Nose or tail into wind,3:Side into wind
     // @User: Standard
-    AP_GROUPINFO_FLAGS("ENABLE", 1, AC_WeatherVane, _direction, WVANE_PARAM_ENABLED, AP_PARAM_FLAG_ENABLE),
+    AP_GROUPINFO_FLAGS("ENABLE", 1, AC_WeatherVane, _direction, 0, AP_PARAM_FLAG_ENABLE),
 
-    // @Param: GAIN
-    // @DisplayName: Weathervaning gain
-    // @Description: This converts the target roll/pitch angle of the aircraft into the correcting (into wind) yaw rate. e.g. Gain = 2, roll = 30 deg, pitch = 0 deg, yaw rate = 60 deg/s.
-    // @Range: 0.5 4
-    // @Increment: 0.1
+    // @Param: P
+    // @DisplayName: Weathervaning P gain
+    // @Description: This converts the target roll/pitch angle of the aircraft into the correcting (into wind) yaw rate.
+    // @Range: 450 1000
+    // @Increment: 10
     // @User: Standard
-    AP_GROUPINFO("GAIN", 2, AC_WeatherVane, _gain, 1.0),
+    AP_GROUPINFO("P", 2, AC_WeatherVane, _gain, 1.0),
 
     // @Param: ANG_MIN
     // @DisplayName: Weathervaning min angle
@@ -83,6 +81,15 @@ AC_WeatherVane::AC_WeatherVane(void)
     _singleton = this;
 }
 
+void AC_WeatherVane::gain_conversion(float new_gain)
+{
+    if (_gain.configured_in_storage() || !is_positive(new_gain)) {
+        return;
+    }
+    _direction.set_and_save(1);
+    _gain.set_and_save(new_gain);
+}
+
 float AC_WeatherVane::get_yaw_rate_cds(const float roll_cdeg, const float pitch_cdeg)
 {
     if (!active_msg_sent) {
@@ -129,7 +136,7 @@ float AC_WeatherVane::get_yaw_rate_cds(const float roll_cdeg, const float pitch_
     last_output = 0.98 * last_output + 0.02 * output;
 
     // apply gain and scale factor to convert gains to same as originally used by plane
-    return (last_output * _gain) / 45.0;
+    return last_output * _gain;
 }
 
 // Called on an interrupt to reset the weathervane controller
