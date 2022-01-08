@@ -515,7 +515,6 @@ const AP_Param::ConversionInfo q_conversion_table[] = {
     { Parameters::k_param_quadplane, 23,  AP_PARAM_INT16, "Q_M_PWM_MAX" },
 
     // PARAMETER_CONVERSION - Added: Jan-2022
-    { Parameters::k_param_quadplane, 33,  AP_PARAM_FLOAT, "Q_WVANE_GAIN" },     // Moved from quadplane to weathervane library
     { Parameters::k_param_quadplane, 34,  AP_PARAM_FLOAT, "Q_WVANE_ANG_MIN" },  // Q_WVANE_MINROLL moved from quadplane to weathervane library
 };
 
@@ -686,6 +685,13 @@ bool QuadPlane::setup(void)
         AP_BoardConfig::allocation_error("weathervane");
     }
     AP_Param::load_object_from_eeprom(weathervane, weathervane->var_info);
+
+    // PARAMETER_CONVERSION - Added: Jan-2022
+    const AP_Param::ConversionInfo old_wvane_gain_info = { Parameters::k_param_quadplane, 33,  AP_PARAM_FLOAT, "Q_WVANE_GAIN" };
+    AP_Float old_wvane_gain;
+    if (AP_Param::find_old_parameter(&old_wvane_gain_info, &old_wvane_gain)) {
+        weathervane->gain_conversion(old_wvane_gain.get() * yaw_rate_max * 0.5 * 45);
+    }
 
     motors->init(frame_class, frame_type);
     motors->update_throttle_range();
@@ -3240,8 +3246,8 @@ float QuadPlane::get_weathervane_yaw_rate_cds(void)
 
     if (weathervane->should_weathervane(plane.channel_rudder->get_control_in(), plane.relative_ground_altitude(plane.g.rangefinder_landing))) {
         // For 'normal' quad planes use half the yaw rate limit. This results in a less aggressive yaw leaving more control power for maintaining attitude
-        const float output = constrain_float(weathervane->get_yaw_rate_cds(wp_nav->get_roll(), wp_nav->get_pitch()), -100.0, 100.0);
-        return output * yaw_rate_max * 0.5;
+        const float limit = yaw_rate_max * 100 * 0.5;
+        return constrain_float(weathervane->get_yaw_rate_cds(wp_nav->get_roll(), wp_nav->get_pitch()), -limit, limit);
     }
 
     return 0.0;
