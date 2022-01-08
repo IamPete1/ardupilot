@@ -83,7 +83,7 @@ AC_WeatherVane::AC_WeatherVane(void)
     _singleton = this;
 }
 
-float AC_WeatherVane::get_yaw_rate_cds(const float roll_cdeg, const float pitch_cdeg, const float rate_limit)
+float AC_WeatherVane::get_yaw_rate_cds(const float roll_cdeg, const float pitch_cdeg)
 {
     if (!active_msg_sent) {
         gcs().send_text(MAV_SEVERITY_INFO, "Weathervane Active");
@@ -91,49 +91,45 @@ float AC_WeatherVane::get_yaw_rate_cds(const float roll_cdeg, const float pitch_
     }
 
     // Normalise the roll and pitch targets to be between -1 and 1
-    const float roll = roll_cdeg / 4500.0;
-    const float pitch = pitch_cdeg / 4500.0;
+    const float deadzone_cdeg = _min_dz_ang_deg*100.0;
     float output = 0.0;
     switch (get_direction()) {
         case Direction::OFF:
+            last_output = 0.0;
             return 0.0;
 
-        case Direction::NOSE_OR_TAIL_IN:
-            output = roll * _gain;
 
-            if (pitch > 0) {
+        case Direction::NOSE_IN:
+            if (!is_positive(pitch_cdeg)) {
+                output = MAX(fabsf(roll_cdeg) - deadzone_cdeg, 0.0);
+            } else {
+                output = fabsf(roll_cdeg) + pitch_cdeg;
+            }
+            if (is_negative(roll_cdeg)) {
                 output *= -1.0;
             }
             break;
 
-        case Direction::NOSE_IN:
-            output = (fabsf(roll) + MAX(pitch,0.0)) * _gain;
-
-            // Yaw in the direction of the lowest 'wing'
-            if (roll < 0) {
+        case Direction::NOSE_OR_TAIL_IN:
+            output = MAX(fabsf(roll_cdeg) - deadzone_cdeg, 0.0);
+            if (is_negative(roll_cdeg) != is_positive(pitch_cdeg)) {
                 output *= -1.0;
             }
             break;
 
         case Direction::SIDE_IN:
-            output = pitch * _gain;
-
-            if (roll < 0) {
+            output = MAX(fabsf(pitch_cdeg) - deadzone_cdeg, 0.0);
+            if (is_positive(pitch_cdeg) != is_positive(roll_cdeg)) {
                 output *= -1.0;
             }
             break;
     }
 
-    // Don't activate weather vane if less than deadzone angle
-    float angle = get_direction() == Direction::SIDE_IN ? pitch_cdeg : roll_cdeg;
-    if (fabsf(angle) < _min_dz_ang_deg*100.0 && !(pitch_cdeg > _min_dz_ang_deg*100.0 && get_direction() == Direction::NOSE_IN)) {
-        output = 0.0;
-    }
+    // Slew output
+    last_output = 0.98 * last_output + 0.02 * output;
 
-    // Constrain and slew output
-    last_output = 0.98 * last_output + 0.02 * constrain_float(output, -1, 1);
-
-    return last_output * rate_limit;
+    // apply gain and scale factor to convert gains to same as originally used by plane
+    return (last_output * _gain) / 45.0;
 }
 
 // Called on an interrupt to reset the weathervane controller
@@ -142,6 +138,7 @@ void AC_WeatherVane::reset(void)
     last_output = 0;
     active_msg_sent = false;
     first_activate_ms = 0;
+    last_check_ms = AP_HAL::millis();
 }
 
 // Returns true if the vehicle is in a condition whereby weathervaning is allowed
@@ -161,18 +158,8 @@ bool AC_WeatherVane::should_weathervane(const int16_t pilot_yaw, const float hgt
         return false;
     }
 
-    const uint32_t now = AP_HAL::millis();
-
     // Don't fight pilot inputs
     if (pilot_yaw != 0) {
-        last_pilot_input_ms = now;
-        reset();
-        return false;
-    }
-
-    // Only allow weather vaning if no input from pilot in last 2 seconds
-    const uint32_t buffer_time_ms = 2000;
-    if (now - last_pilot_input_ms < buffer_time_ms) {
         reset();
         return false;
     }
@@ -198,6 +185,14 @@ bool AC_WeatherVane::should_weathervane(const int16_t pilot_yaw, const float hgt
         return false;
     }
 
+
+    const uint32_t now = AP_HAL::millis();
+    // not run this function recently, make sure it has been reset
+    if (now - last_check_ms > 250) {
+        reset();
+    }
+    last_check_ms = now;
+
     /*
       Use a 2 second buffer to ensure weathervaning occurs once the vehicle has
       clearly achieved an acceptable condition.
@@ -205,7 +200,7 @@ bool AC_WeatherVane::should_weathervane(const int16_t pilot_yaw, const float hgt
     if (first_activate_ms == 0) {
         first_activate_ms = now;
     }
-    if (now - first_activate_ms < buffer_time_ms) {
+    if (now - first_activate_ms < 2000) {
         return false;
     }
 
