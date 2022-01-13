@@ -2049,7 +2049,7 @@ bool AP_Mission::jump_to_shortest_mission_leg(void)
 // jumps the mission to the closest landing abort that is planned, returns false if unable to find a valid abort
 bool AP_Mission::jump_to_abort_landing_sequence(struct Location start_loc)
 {
-   uint16_t abort_index = 0;
+    uint16_t abort_index = 0;
     float min_distance = FLT_MAX;
 
     for (uint16_t i = 1; i < num_commands(); i++) {
