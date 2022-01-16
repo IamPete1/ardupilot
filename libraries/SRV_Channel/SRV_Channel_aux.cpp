@@ -542,6 +542,14 @@ float SRV_Channels::get_output_scaled(SRV_Channel::Aux_servo_function_t function
     return 0;
 }
 
+float SRV_Channels::get_slew_limited_output_scaled(SRV_Channel::Aux_servo_function_t function)
+{
+    if (SRV_Channel::valid_function(function)) {
+        return functions[function].get_slew_limited();
+    }
+    return 0;
+}
+
 /*
   get mask of output channels for a function
  */
@@ -691,32 +699,20 @@ void SRV_Channels::set_output_norm(SRV_Channel::Aux_servo_function_t function, f
   limit slew rate for an output function to given rate in percent per
   second. This assumes output has not yet done to the hal
  */
-void SRV_Channels::limit_slew_rate(SRV_Channel::Aux_servo_function_t function, float slew_rate, float dt)
+void SRV_Channels::set_slew_rate(SRV_Channel::Aux_servo_function_t function, float slew_rate, uint16_t range, float dt)
 {
-    if (slew_rate <= 0) {
-        // nothing to do
+    if (!SRV_Channel::valid_function(function) || is_negative(slew_rate)) {
         return;
     }
-    if (!SRV_Channel::valid_function(function)) {
+    const float max_change = range * slew_rate * 0.01 * dt;
+
+    // initalise linked list
+    if (_slew == nullptr) {
+        _slew = new slew_list(function, get_output_scaled(function), max_change);
         return;
     }
-    for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {
-        SRV_Channel &c = channels[i];
-        if (c.function == function) {
-            c.calc_pwm(functions[function].output_scaled);
-            uint16_t last_pwm = hal.rcout->read_last_sent(c.ch_num);
-            if (last_pwm == c.get_output_pwm()) {
-                continue;
-            }
-            uint16_t max_change = (c.get_output_max() - c.get_output_min()) * slew_rate * dt * 0.01f;
-            if (max_change == 0 || dt > 1) {
-                // always allow some change. If dt > 1 then assume we
-                // are just starting out, and only allow a small
-                // change for this loop
-                max_change = 1;
-            }
-            c.set_output_pwm(constrain_int16(c.get_output_pwm(), last_pwm-max_change, last_pwm+max_change));
-        }
+    while(true) {
+
     }
 }
 

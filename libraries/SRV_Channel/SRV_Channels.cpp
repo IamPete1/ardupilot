@@ -306,6 +306,12 @@ void SRV_Channels::setup_failsafe_trim_all_non_motors(void)
  */
 void SRV_Channels::calc_pwm(void)
 {
+    // slew rate limit all functions
+    for (uint16_t i = 0; i < SRV_Channel::k_nr_aux_servo_functions; i++) {
+        functions[i].output_scaled = functions[i].get_slew_limited();
+        functions[i].last_output_scaled = functions[i].output_scaled;
+    }
+
     WITH_SEMAPHORE(_singleton->override_counter_sem);
 
     for (uint8_t i=0; i<NUM_SERVO_CHANNELS; i++) {
