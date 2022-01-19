@@ -37,9 +37,9 @@ extern const AP_HAL::HAL& hal;
 
 #ifndef HAL_LOGGING_BACKENDS_DEFAULT
 # ifdef HAL_LOGGING_DATAFLASH
-#  define HAL_LOGGING_BACKENDS_DEFAULT Backend_Type::BLOCK
+#  define HAL_LOGGING_BACKENDS_DEFAULT AP_Logger_Backend::Type::BLOCK
 # else
-#  define HAL_LOGGING_BACKENDS_DEFAULT Backend_Type::FILESYSTEM
+#  define HAL_LOGGING_BACKENDS_DEFAULT AP_Logger_Backend::Type::FILESYSTEM
 # endif
 #endif
 
@@ -127,7 +127,7 @@ void AP_Logger::Init(const struct LogStructure *structures, uint8_t num_types)
     _structures = structures;
 
 #if defined(HAL_BOARD_LOG_DIRECTORY) && HAVE_FILESYSTEM_SUPPORT
-    if (_params.backend_types & uint8_t(Backend_Type::FILESYSTEM)) {
+    if (_params.backend_types & uint8_t(AP_Logger_Backend::Type::FILESYSTEM)) {
         LoggerMessageWriter_DFLogStart *message_writer =
             new LoggerMessageWriter_DFLogStart();
         if (message_writer != nullptr)  {
@@ -144,7 +144,7 @@ void AP_Logger::Init(const struct LogStructure *structures, uint8_t num_types)
 #endif // HAVE_FILESYSTEM_SUPPORT
 
 #ifdef HAL_LOGGING_DATAFLASH
-    if (_params.backend_types & uint8_t(Backend_Type::BLOCK)) {
+    if (_params.backend_types & uint8_t(AP_Logger_Backend::Type::BLOCK)) {
         if (_next_backend == LOGGER_MAX_BACKENDS) {
             AP_HAL::panic("Too many backends");
             return;
@@ -163,7 +163,7 @@ void AP_Logger::Init(const struct LogStructure *structures, uint8_t num_types)
 #endif
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
-    if (_params.backend_types & uint8_t(Backend_Type::BLOCK)) {
+    if (_params.backend_types & uint8_t(AP_Logger_Backend::Type::BLOCK)) {
         if (_next_backend == LOGGER_MAX_BACKENDS) {
             AP_HAL::panic("Too many backends");
             return;
@@ -182,7 +182,7 @@ void AP_Logger::Init(const struct LogStructure *structures, uint8_t num_types)
 #endif
     // the "main" logging type needs to come before mavlink so that index 0 is correct
 #if LOGGER_MAVLINK_SUPPORT
-    if (_params.backend_types & uint8_t(Backend_Type::MAVLINK)) {
+    if (_params.backend_types & uint8_t(AP_Logger_Backend::Type::MAVLINK)) {
         if (_next_backend == LOGGER_MAX_BACKENDS) {
             AP_HAL::panic("Too many backends");
             return;

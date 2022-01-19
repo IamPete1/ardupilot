@@ -125,6 +125,11 @@ public:
     bool Write_Format_Units(const struct LogStructure *structure);
 
 
+    enum class Type : uint8_t {
+      FILESYSTEM = (1<<0),
+      MAVLINK    = (1<<1),
+      BLOCK      = (1<<2),
+    };
 protected:
 
     AP_Logger &_front;
