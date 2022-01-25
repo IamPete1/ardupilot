@@ -385,11 +385,6 @@ void Tailsitter::output(void)
         quadplane.motors_output(false);
     }
 
-    // In full Q assist it is better to use copter I and zero plane
-    plane.pitchController.reset_I();
-    plane.rollController.reset_I();
-    plane.yawController.reset_I();
-
     // pull in copter control outputs
     SRV_Channels::set_output_scaled(SRV_Channel::k_aileron, (motors->get_yaw()+motors->get_yaw_ff())*-SERVO_MAX*VTOL_yaw_scale);
     SRV_Channels::set_output_scaled(SRV_Channel::k_elevator, (motors->get_pitch()+motors->get_pitch_ff())*SERVO_MAX*VTOL_pitch_scale);
@@ -401,6 +396,12 @@ void Tailsitter::output(void)
     } else if (tailsitter_motors != nullptr) {
         tailsitter_motors->set_min_throttle(0.0);
     }
+
+    // Set forward flight I terms so there is no step change in control surface output when control is passed over
+    // this almost works, however we also need to set a target rate otherwise with 0 error the angle controller tries to stop
+    plane.pitchController.set_I(SRV_Channels::get_output_scaled(SRV_Channel::k_elevator) * 0.01);
+    plane.rollController.set_I(SRV_Channels::get_output_scaled(SRV_Channel::k_aileron) * 0.01);
+    plane.yawController.set_I(SRV_Channels::get_output_scaled(SRV_Channel::k_rudder) * 0.01);
 
     tilt_left = 0.0f;
     tilt_right = 0.0f;
