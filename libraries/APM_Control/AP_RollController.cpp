@@ -251,6 +251,12 @@ void AP_RollController::reset_I()
     rate_pid.reset_I();
 }
 
+void AP_RollController::set_I(float new_I)
+{
+    _pid_info.I = new_I;
+    rate_pid.set_integrator(radians(new_I));
+}
+
 /*
   convert from old to new PIDs
   this is a temporary conversion function during development

@@ -346,6 +346,12 @@ void AP_YawController::reset_I()
     _integrator = 0;
 }
 
+void AP_YawController::set_I(float new_I)
+{
+    _pid_info.I = new_I;
+    rate_pid.set_integrator(radians(new_I));
+}
+
 /*
   start an autotune
  */
