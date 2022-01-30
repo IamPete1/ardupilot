@@ -270,6 +270,10 @@ const AP_Param::GroupInfo SITL::var_info3[] = {
 
     AP_GROUPINFO("ESC_TELEM", 40, SITL, esc_telem, 1),
 
+    // params for IE PPM
+    // @Path: ./SIM_IntelligentEnergy_PPM.cpp
+    AP_SUBGROUPINFO(ie_ppm_sim, "IEPPM_", 41, SITL, IntelligentEnergyPPM),
+
     // user settable parameters for the 1st airspeed sensor
     AP_GROUPINFO("ARSPD_RND",     50, SITL,  arspd_noise[0], 2.0),
     AP_GROUPINFO("ARSPD_OFS",     51, SITL,  arspd_offset[0], 2013),

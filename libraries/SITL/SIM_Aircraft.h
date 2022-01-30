@@ -147,6 +147,7 @@ public:
     void set_richenpower(RichenPower *_richenpower) { richenpower = _richenpower; }
     void set_fetteconewireesc(FETtecOneWireESC *_fetteconewireesc) { fetteconewireesc = _fetteconewireesc; }
     void set_ie24(IntelligentEnergy24 *_ie24) { ie24 = _ie24; }
+    void set_ie_ppm(IntelligentEnergyPPM *_ie_ppm) { ie_ppm = _ie_ppm; }
     void set_gripper_servo(Gripper_Servo *_gripper) { gripper = _gripper; }
     void set_gripper_epm(Gripper_EPM *_gripper_epm) { gripper_epm = _gripper_epm; }
     void set_precland(SIM_Precland *_precland);
@@ -337,6 +338,7 @@ private:
     FETtecOneWireESC *fetteconewireesc;
 
     IntelligentEnergy24 *ie24;
+    IntelligentEnergyPPM *ie_ppm;
     SIM_Precland *precland;
     class I2C *i2c;
 };
