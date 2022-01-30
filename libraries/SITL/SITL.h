@@ -22,6 +22,7 @@
 #include "SIM_RichenPower.h"
 #include "SIM_FETtecOneWireESC.h"
 #include "SIM_IntelligentEnergy24.h"
+#include "SIM_IntelligentEnergy_PPM.h"
 #include "SIM_Ship.h"
 #include <AP_RangeFinder/AP_RangeFinder.h>
 
@@ -422,6 +423,7 @@ public:
     SIM_Precland precland_sim;
     RichenPower richenpower_sim;
     IntelligentEnergy24 ie24_sim;
+    IntelligentEnergyPPM ie_ppm_sim;
     FETtecOneWireESC fetteconewireesc_sim;
 
     // ESC telemetry
