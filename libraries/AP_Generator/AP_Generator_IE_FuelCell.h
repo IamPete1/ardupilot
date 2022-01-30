@@ -46,8 +46,6 @@ protected:
         const char *msg_txt;
     };
 
-    static const Lookup_State lookup_state[];
-
     uint32_t _err_code;       // The error code from fuel cell
     uint32_t _last_err_code;  // The previous error code from fuel cell
     State _state;          // The PSU state
@@ -94,7 +92,7 @@ protected:
     virtual void decode_latest_term(void) = 0;
 
     // Check if we should notify on any change of fuel cell state
-    void check_status(void);
+    virtual void check_status(void);
 
     // Check error codes and populate message with error code
     virtual bool check_for_err_code(char* msg_txt, uint8_t msg_len) const = 0;
@@ -102,5 +100,7 @@ protected:
     // Only check the error code if it has changed since we last checked
     bool check_for_err_code_if_changed(char* msg_txt, uint8_t msg_len);
 
+private:
+    static const Lookup_State lookup_state[];
 };
 #endif
