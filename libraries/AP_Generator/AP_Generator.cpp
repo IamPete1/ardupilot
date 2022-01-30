@@ -20,13 +20,14 @@
 #include "AP_Generator_IE_650_800.h"
 #include "AP_Generator_IE_2400.h"
 #include "AP_Generator_RichenPower.h"
+#include "AP_Generator_IE_PPM.h"
 
 const AP_Param::GroupInfo AP_Generator::var_info[] = {
 
     // @Param: TYPE
     // @DisplayName: Generator type
     // @Description: Generator type
-    // @Values: 0:Disabled, 1:IE 650w 800w Fuel Cell, 2:IE 2.4kW Fuel Cell, 3: Richenpower
+    // @Values: 0:Disabled, 1:IE 650w 800w Fuel Cell, 2:IE 2.4kW Fuel Cell, 3: Richenpower, 4:IE Power Path Module
     // @User: Standard
     // @RebootRequired: True
     AP_GROUPINFO_FLAGS("TYPE", 1, AP_Generator, _type, 0, AP_PARAM_FLAG_ENABLE),
@@ -66,6 +67,10 @@ void AP_Generator::init()
 
         case Type::RICHENPOWER:
             _driver_ptr = new AP_Generator_RichenPower(*this);
+            break;
+
+        case Type::IE_PPM:
+            _driver_ptr = new AP_Generator_IE_PPM(*this);
             break;
     }
 

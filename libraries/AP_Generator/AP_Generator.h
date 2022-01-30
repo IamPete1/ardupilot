@@ -16,6 +16,7 @@ class AP_Generator_Backend;
 class AP_Generator_IE_650_800;
 class AP_Generator_IE_2400;
 class AP_Generator_RichenPower;
+class AP_Generator_IE_PPM;
 
 class AP_Generator
 {
@@ -23,6 +24,7 @@ class AP_Generator
     friend class AP_Generator_IE_650_800;
     friend class AP_Generator_IE_2400;
     friend class AP_Generator_RichenPower;
+    friend class AP_Generator_IE_PPM;
 
 public:
     // Constructor
@@ -80,6 +82,7 @@ private:
         IE_650_800 = 1,
         IE_2400 = 2,
         RICHENPOWER = 3,
+        IE_PPM = 4,
     };
 
     // Helper to get param and cast to GenType
