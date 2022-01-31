@@ -91,6 +91,11 @@ public:
         GENERATOR_FUEL             = 18,
         Rotoye                     = 19,
         MPPT_PacketDigital         = 20,
+        GENERATOR_IE_PPM_ELEC_1    = 21,
+        GENERATOR_IE_PPM_FUEL_1    = 22,
+        GENERATOR_IE_PPM_ELEC_2    = 23,
+        GENERATOR_IE_PPM_FUEL_2    = 24,
+        GENERATOR_IE_PPM_ELEC_combined = 25,
     };
 
     FUNCTOR_TYPEDEF(battery_failsafe_handler_fn_t, void, const char *, const int8_t);
