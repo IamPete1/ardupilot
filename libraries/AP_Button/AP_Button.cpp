@@ -188,6 +188,10 @@ void AP_Button::update(void)
             continue;
         }
         const uint16_t pwm_us = pwm_pin_source[i].get_pwm_us();
+        if (pwm_us < 800 || pwm_us > 2200) {
+            // invalid pulse width
+            continue;
+        }
         // these values are the same as used in RC_Channel:
         if (pwm_state & mask) {
             // currently asserted; check to see if we should de-assert
