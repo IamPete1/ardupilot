@@ -214,6 +214,8 @@ public:
         void set_yaw_angle_rate(float yaw_angle_d, float yaw_rate_ds);
         void update_weathervane(const int16_t roll_cdeg, const int16_t pitch_cdeg, const int16_t pilot_yaw, const int32_t hgt_cm);
 
+        bool fixed_yaw_slew_finished() { return is_zero(_fixed_yaw_offset_cd); }
+
     private:
 
         float look_ahead_yaw();
