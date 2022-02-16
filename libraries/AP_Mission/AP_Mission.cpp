@@ -144,6 +144,7 @@ void AP_Mission::resume()
         // restart the active nav command
         set_current_cmd(_nav_cmd.index);
     }
+    gcs().send_text(MAV_SEVERITY_DEBUG, "Mission Resume");
 
     // Note: if there is no active command then the mission must have been stopped just after the previous nav command completed
     //      update will take care of finding and starting the nav command
@@ -540,6 +541,8 @@ bool AP_Mission::restart_current_nav_cmd()
     if ((nav_cmd_index == 0) || (nav_cmd_index >= num_commands())) {
         return false;
     }
+
+    gcs().send_text(MAV_SEVERITY_DEBUG, "Mission Restart current cmd");
 
     return set_current_cmd(_nav_cmd.index);
 }
@@ -1662,6 +1665,8 @@ void AP_Mission::complete()
     _flags.state = MISSION_COMPLETE;
     _flags.in_landing_sequence = false;
     _flags.in_rejoin_sequence = false;
+
+    gcs().send_text(MAV_SEVERITY_DEBUG, "Mission Complete");
 
     // callback to main program's mission complete function
     _mission_complete_fn();

@@ -545,6 +545,9 @@ void GCS_MAVLINK::handle_mission_set_current(AP_Mission &mission, const mavlink_
             send_message(MSG_CURRENT_WAYPOINT);
         }
     }
+
+    gcs().send_text(MAV_SEVERITY_DEBUG, "handle_mission_set_current");
+
 }
 
 /*
@@ -3907,6 +3910,8 @@ MAV_RESULT GCS_MAVLINK::handle_command_do_set_mission_current(const mavlink_comm
     if (!mission->set_current_cmd(seq)) {
         return MAV_RESULT_FAILED;
     }
+
+    gcs().send_text(MAV_SEVERITY_DEBUG, "handle_command_do_set_mission_current");
 
     // volunteer the new current waypoint for all listeners
     send_message(MSG_CURRENT_WAYPOINT);

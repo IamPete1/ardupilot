@@ -149,6 +149,7 @@ void ModeAuto::run()
     if (auto_RTL && (!(mission.get_in_landing_sequence_flag() || mission.get_in_rejoin_sequence_flag() || mission.state() == AP_Mission::mission_state::MISSION_COMPLETE))) {
         auto_RTL = false;
         // log exit from Auto RTL
+        gcs().send_text(MAV_SEVERITY_DEBUG, "landing: %i, rejoin %i, state: %i", mission.get_in_landing_sequence_flag(), mission.get_in_rejoin_sequence_flag(), mission.state());
         copter.logger.Write_Mode((uint8_t)copter.flightmode->mode_number(), ModeReason::AUTO_RTL_EXIT);
     }
 }
