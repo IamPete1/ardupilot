@@ -1278,12 +1278,27 @@ void ModeAuto::do_land(const AP_Mission::Mission_Command& cmd)
 
     // if location provided we fly to that location at current altitude
     if (cmd.content.location.lat != 0 || cmd.content.location.lng != 0) {
-        // set state to fly to location
-        state = State::FlyToLocation;
-
         const Location target_loc = terrain_adjusted_location(cmd);
+        if (target_loc.get_distance_NE(copter.current_loc).length_squared() < sq(copter.wp_nav->get_wp_radius_cm() * 0.01)) {
+            // within waypoint radius, skip reposition
 
-        wp_start(target_loc);
+            // convert location to NE vector2f
+            Vector2f dest;
+            if (!target_loc.get_vector_xy_from_origin_NE(dest)) {
+                return;
+            }
+
+            // initialise landing controller
+            land_start(dest);
+
+            // advance to next state
+            state = State::Descending;
+        } else {
+            // set state to fly to location
+            state = State::FlyToLocation;
+
+            wp_start(target_loc);
+        }
     } else {
         // set landing state
         state = State::Descending;
