@@ -102,6 +102,9 @@ public:
     // 10hz logging of voltage scaling and max trust
     void                Log_Write() override;
 
+    // to be called if output has not been called for some time
+    void reset_filters() override;
+
     // var_info for holding Parameter information
     static const struct AP_Param::GroupInfo        var_info[];
 

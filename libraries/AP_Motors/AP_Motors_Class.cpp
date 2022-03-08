@@ -266,6 +266,12 @@ void AP_Motors::output_test_seq(uint8_t motor_seq, int16_t pwm)
     }
 }
 
+// to be called if output has not been called for some time
+void AP_Motors::reset_filters()
+{
+    _throttle_filter.reset();
+}
+
 namespace AP {
     AP_Motors *motors()
     {

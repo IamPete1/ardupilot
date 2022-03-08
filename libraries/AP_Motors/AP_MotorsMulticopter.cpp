@@ -800,3 +800,10 @@ void AP_MotorsMulticopter::convert_pwm_min_max_param(int16_t radio_min, int16_t 
     _pwm_min.set_and_save(radio_min);
     _pwm_max.set_and_save(radio_max);
 }
+
+// to be called if output has not been called for some time
+void AP_MotorsMulticopter::reset_filters()
+{
+    _batt_voltage_filt.reset();
+    AP_Motors::reset_filters();
+}

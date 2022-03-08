@@ -265,6 +265,9 @@ public:
     // write log, to be called at 10hz
     virtual void Log_Write() {};
 
+    // to be called if output has not been called for some time
+    virtual void reset_filters();
+
 protected:
     // output functions that should be overloaded by child classes
     virtual void        output_armed_stabilizing() = 0;
