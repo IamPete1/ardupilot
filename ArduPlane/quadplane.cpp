@@ -1920,7 +1920,13 @@ void QuadPlane::motors_output(bool run_rate_controller)
     // see if motors should be shut down
     update_throttle_suppression();
 
+    // reset motors if have been inactive
+    if (now - last_motor_output_ms > 100) {
+        motors->reset_filters();
+    }
+
     motors->output();
+    last_motor_output_ms = now;
 
     // remember when motors were last active for throttle suppression
     if (motors->get_throttle() > 0.01f || tiltrotor.motors_active()) {

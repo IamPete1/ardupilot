@@ -379,8 +379,9 @@ private:
 
     Location last_auto_target;
 
-    // when did we last run the attitude controller?
+    // when did we last run the attitude controller or motors?
     uint32_t last_att_control_ms;
+    uint32_t last_motor_output_ms;
 
     // transition logic
     Transition *transition = nullptr;
