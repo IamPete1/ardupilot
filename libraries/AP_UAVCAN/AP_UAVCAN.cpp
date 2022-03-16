@@ -537,7 +537,7 @@ void AP_UAVCAN::SRV_push_servos()
 {
     WITH_SEMAPHORE(SRV_sem);
 
-    for (uint8_t i = 0; i < NUM_SERVO_CHANNELS; i++) {
+    for (uint8_t i = 0; i < UAVCAN_SRV_NUMBER; i++) {
         // Check if this channels has any function assigned
         if (SRV_Channels::channel_function(i)) {
             _SRV_conf[i].pulse = SRV_Channels::srv_channel(i)->get_output_pwm();
