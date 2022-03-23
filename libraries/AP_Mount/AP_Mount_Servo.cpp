@@ -1,6 +1,9 @@
 #include "AP_Mount_Servo.h"
 #if HAL_MOUNT_ENABLED
 
+#include <AP_AHRS/AP_AHRS.h>
+#include <AP_AHRS/AP_AHRS_View.h>
+
 extern const AP_HAL::HAL& hal;
 
 // init - performs any required initialisation for this instance
@@ -144,7 +147,12 @@ void AP_Mount_Servo::send_mount_status(mavlink_channel_t chan)
 //  output: _angle_bf_output_deg (body frame angles in degrees)
 void AP_Mount_Servo::stabilize()
 {
-    AP_AHRS &ahrs = AP::ahrs();
+    const AP_AHRS_View *ahrs_view = AP::ahrs().get_view();
+    if (ahrs_view == nullptr) {
+        return;
+    }
+    const AP_AHRS_View &ahrs = *ahrs_view; // dirty hack to save changing ahrs.x to ahrs->x
+
     // only do the full 3D frame transform if we are doing pan control
     if (_state._stab_pan) {
         Matrix3f m;                         ///< holds 3 x 3 matrix, var is used as temp in calcs
