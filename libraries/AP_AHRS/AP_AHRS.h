@@ -615,6 +615,9 @@ public:
     // get access to an EKFGSF_yaw estimator
     const EKFGSF_yaw *get_yaw_estimator(void) const;
 
+    // get AHRS view if set
+    const AP_AHRS_View* get_view() const { return _view; }
+
 private:
 
     // optional view class
