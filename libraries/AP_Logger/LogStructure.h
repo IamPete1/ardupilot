@@ -715,6 +715,8 @@ struct PACKED log_MotBatt {
     float   th_limit;
     float th_average_max;
     uint8_t mot_fail_flags;
+    uint8_t spool_state;
+    uint8_t desired_spool_state;
 };
 
 struct PACKED log_VER {
@@ -1258,6 +1260,8 @@ struct PACKED log_VER {
 // @Field: ThLimit: Throttle limit set due to battery current limitations
 // @Field: ThrAvMx: Maximum average throttle that can be used to maintain attitude controll, derived from throttle mix params
 // @Field: FailFlags: bit 0 motor failed, bit 1 motors balanced, should be 2 in normal flight
+// @Field: ss: spool state
+// @Field: Dss: desired spool state
 
 // messages for all boards
 #define LOG_COMMON_STRUCTURES \
@@ -1383,7 +1387,7 @@ LOG_STRUCTURE_FROM_AIS, \
     { LOG_VER_MSG, sizeof(log_VER), \
       "VER",   "QBHBBBBIZH", "TimeUS,BT,BST,Maj,Min,Pat,FWT,GH,FWS,APJ", "s---------", "F---------", false }, \
     { LOG_MOTBATT_MSG, sizeof(log_MotBatt), \
-      "MOTB", "QffffB",  "TimeUS,LiftMax,BatVolt,ThLimit,ThrAvMx,FailFlags", "s-----", "F-----" , true }
+      "MOTB", "QffffBBB",  "TimeUS,LiftMax,BatVolt,ThLimit,ThrAvMx,FailFlags,ss,Dss", "s-------", "F-------" , true }
 
 // message types 0 to 63 reserved for vehicle specific use
 
