@@ -406,6 +406,8 @@ void AP_MotorsMulticopter::Log_Write()
         th_limit        : _throttle_limit,
         th_average_max  : _throttle_avg_max,
         mot_fail_flags  : (uint8_t)(_thrust_boost | (_thrust_balanced << 1U)),
+        spool_state     : (uint8_t)_spool_state,
+        desired_spool_state : (uint8_t)_spool_desired,
     };
     AP::logger().WriteBlock(&pkt_mot, sizeof(pkt_mot));
 }
