@@ -350,8 +350,8 @@ void Copter::set_mode_auto_do_land_start_or_RTL(ModeReason reason)
         return;
     }
 
-    if (flightmode->mode_number() == Mode::Number::RTL || flightmode->mode_number() == Mode::Number::LAND) {
-        gcs().send_text(MAV_SEVERITY_INFO, "Already in RTL or LAND");
+    if (flightmode->mode_number() == Mode::Number::RTL) {
+        gcs().send_text(MAV_SEVERITY_INFO, "Already in RTL");
         return;
     }
 
