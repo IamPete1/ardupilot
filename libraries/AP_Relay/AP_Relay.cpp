@@ -141,13 +141,14 @@ void AP_Relay::set(const uint8_t instance, const bool value)
     if (_pin[instance] == -1) {
         return;
     }
-    uint32_t now = AP_HAL::millis();
-    _pin_states = value?_pin_states | (1<< instance): _pin_states & ~(1<< instance);
-    if (now > last + 1000) {
-       AP::logger().Write("RELY", "TimeUS,State", "QB",
+    const uint32_t now = AP_HAL::millis();
+    _pin_states = value ? _pin_states | (1U<<instance) : _pin_states & ~(1U<<instance);
+    if ((_pin_states != _last_logged_pin_states) && (now > (_last_log_ms + 100))) {
+       AP::logger().Write("RELY", "TimeUS,State", "s-", "F-", "QB",
                                         AP_HAL::micros64(),
                                         _pin_states);
-       last=now;
+       _last_log_ms = now;
+       _last_logged_pin_states = _pin_states;
     }
 #if AP_SIM_ENABLED && (CONFIG_HAL_BOARD != HAL_BOARD_SITL)
     return;
