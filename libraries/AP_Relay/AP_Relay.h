@@ -50,6 +50,8 @@ private:
 
     AP_Int8 _pin[AP_RELAY_NUM_RELAYS];
     AP_Int8 _default;
+    uint8_t _pin_states;
+    uint32_t last;
 
     void set(uint8_t instance, bool value);
 };
