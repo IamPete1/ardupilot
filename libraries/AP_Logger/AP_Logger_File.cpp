@@ -27,7 +27,7 @@
 
 extern const AP_HAL::HAL& hal;
 
-#define MAX_LOG_FILES 120U
+#define MAX_LOG_FILES 500U
 #define LOGGER_PAGE_SIZE 1024UL
 
 #ifndef HAL_LOGGER_WRITE_CHUNK_SIZE
