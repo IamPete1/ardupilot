@@ -122,6 +122,7 @@ private:
     char *_lastlog_file_name() const;
     uint32_t _get_log_size(const uint16_t log_num);
     uint32_t _get_log_time(const uint16_t log_num);
+    bool dirent_to_log_num(const dirent *de, uint16_t &log_num) const;
 
     void stop_logging(void) override;
 
