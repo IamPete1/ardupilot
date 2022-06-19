@@ -2126,6 +2126,33 @@ void AP_GPS::Write_GPS(uint8_t i)
         delta_ms      : last_message_delta_time_ms(i)
     };
     AP::logger().WriteBlock(&pkt2, sizeof(pkt2));
+
+    uint16_t pdop = 0U;
+    float STD_lat = AP::logger().quiet_nanf();
+    float STD_long = AP::logger().quiet_nanf();
+    float STD_alt = AP::logger().quiet_nanf();
+
+    if ((i < GPS_MAX_RECEIVERS) && (drivers[i] != nullptr) && (drivers[i]->get_pdop(pdop) | drivers[i]->get_std(STD_lat, STD_long, STD_alt))) {
+// @LoggerMessage: GPB
+// @Description: Extra postion noids stats
+// @Field: TimeUS: Time since system startup
+// @Field: I: GPS instance number
+// @Field: pdop: postion dilution of precision
+// @Filed: STDlat: Standard devation latitude error
+// @Filed: STDlng: Standard devation longitude error
+// @Filed: STDalt: Standard devation altitude error
+        AP::logger().WriteStreaming("GPB",
+            "TimeUS,I,pdop,STDlat,STDlng,STDalt",
+            "s#mmmm",
+            "F-B000",
+            "QBHfff",
+            time_us,
+            i,
+            pdop,
+            STD_lat,
+            STD_long,
+            STD_alt);
+    }
 }
 
 /*
