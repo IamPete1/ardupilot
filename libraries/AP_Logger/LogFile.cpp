@@ -179,6 +179,33 @@ void AP_Logger::Write_GPS(uint8_t i, uint64_t time_us)
         delta_ms      : gps.last_message_delta_time_ms(i)
     };
     WriteBlock(&pkt2, sizeof(pkt2));
+
+    uint16_t pdop = 0U;
+    float STD_lat = quiet_nanf();
+    float STD_long = quiet_nanf();
+    float STD_alt = quiet_nanf();
+
+    if (gps.get_pdop(i, pdop) | gps.get_std(i, STD_lat, STD_long, STD_alt)) {
+// @LoggerMessage: GPB
+// @Description: Extra postion noids stats
+// @Field: TimeUS: Time since system startup
+// @Field: I: GPS instance number
+// @Field: pdop: postion dilution of precision
+// @Filed: STDlat: Standard deviation latitude error
+// @Filed: STDlng: Standard deviation longitude error
+// @Filed: STDalt: Standard deviation altitude error
+        Write("GPB",
+            "TimeUS,I,pdop,STDlat,STDlng,STDalt",
+            "s#mmmm",
+            "F-B000",
+            "QBHfff",
+            time_us,
+            i,
+            pdop,
+            STD_lat,
+            STD_long,
+            STD_alt);
+    }
 }
 
 
