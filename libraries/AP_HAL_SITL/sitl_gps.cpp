@@ -701,6 +701,16 @@ void SITL_State::_update_gps_nmea(const struct gps_data *d, uint8_t instance)
     if (_sitl->gps_hdg_enabled) {
         _gps_nmea_printf(instance, "$GPHDT,%.2f,T", d->yaw);
     }
+
+    // GST - GPS Pseudorange Noise Statistics
+    // Only parse the 3 standard devations
+    _gps_nmea_printf(instance, "$GPGST,%s,1.0,1.0,1.0,0,1.11,2.22,3.33,",tstring);
+
+    // GSA - GPS DOP and active satellites
+    // Only parse the dops
+    _gps_nmea_printf(instance, "$GNGSA,A,3,3,4,5,6,7,8,9,10,11,12,13,14,1.11,2.22,3.33,");
+
+
 }
 
 void SITL_State::_sbp_send_message(uint16_t msg_type, uint16_t sender_id, uint8_t len, uint8_t *payload, uint8_t instance)
