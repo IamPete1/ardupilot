@@ -885,7 +885,8 @@ void AP_GPS::update_instance(uint8_t instance)
             if (_type[instance] == GPS_TYPE_MAV ||
                 _type[instance] == GPS_TYPE_UAVCAN ||
                 _type[instance] == GPS_TYPE_UAVCAN_RTK_BASE ||
-                _type[instance] == GPS_TYPE_UAVCAN_RTK_ROVER) {
+                _type[instance] == GPS_TYPE_UAVCAN_RTK_ROVER ||
+                _type[instance] == GPS_TYPE_NMEA) {
                 state[instance].status = NO_FIX;
             } else {
                 // free the driver before we run the next detection, so we
