@@ -70,6 +70,9 @@ public:
 
     const char *name() const override { return "NMEA"; }
 
+    bool get_pdop(uint16_t &pdop) const override;
+    bool get_std(float &STD_lat, float &STD_long, float &STD_alt) const override;
+
 private:
     /// Coding for the GPS sentences that the parser handles
     enum _sentence_types : uint8_t {      //there are some more than 10 fields in some sentences , thus we have to increase these value.

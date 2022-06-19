@@ -103,6 +103,9 @@ public:
         return gps.option_set(option);
     }
 
+    virtual bool get_pdop(uint16_t &pdop) const { return false; }
+    virtual bool get_std(float &STD_lat, float &STD_long, float &STD_alt) const { return false; }
+
 protected:
     AP_HAL::UARTDriver *port;           ///< UART we are attached to
     AP_GPS &gps;                        ///< access to frontend (for parameters)
