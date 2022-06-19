@@ -418,6 +418,7 @@ public:
     void send_mavlink_gps2_raw(mavlink_channel_t chan);
 
     void send_mavlink_gps_rtk(mavlink_channel_t chan, uint8_t inst);
+    void send_mavlink_gps_noise(mavlink_channel_t chan, uint8_t inst);
 
     // Returns true if there is an unconfigured GPS, and provides the instance number of the first non configured GPS
     bool first_unconfigured_gps(uint8_t &instance) const WARN_IF_UNUSED;

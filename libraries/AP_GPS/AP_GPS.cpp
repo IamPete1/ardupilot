@@ -1141,6 +1141,8 @@ void AP_GPS::send_mavlink_gps_raw(mavlink_channel_t chan)
         sacc * 1000,          // one-sigma standard deviation in mm/s
         0,                    // TODO one-sigma heading accuracy standard deviation
         gps_yaw_cdeg(0));
+
+    send_mavlink_gps_noise(chan, 0);
 }
 
 #if GPS_MAX_RECEIVERS > 1
@@ -1167,6 +1169,8 @@ void AP_GPS::send_mavlink_gps2_raw(mavlink_channel_t chan)
         state[1].rtk_num_sats,
         state[1].rtk_age_ms,
         gps_yaw_cdeg(1));
+
+    send_mavlink_gps_noise(chan, 1);
 }
 #endif // GPS_MAX_RECEIVERS
 
@@ -1177,6 +1181,27 @@ void AP_GPS::send_mavlink_gps_rtk(mavlink_channel_t chan, uint8_t inst)
     }
     if (drivers[inst] != nullptr && drivers[inst]->supports_mavlink_gps_rtk_message()) {
         drivers[inst]->send_mavlink_gps_rtk(chan);
+    }
+}
+
+void AP_GPS::send_mavlink_gps_noise(mavlink_channel_t chan, uint8_t inst)
+{
+    if (inst >= GPS_MAX_RECEIVERS || (drivers[inst] == nullptr)) {
+        return;
+    }
+
+    uint16_t pdop = UINT16_MAX;
+    float STD_lat = -1.0;
+    float STD_long = -1.0;
+    float STD_alt = -1.0;
+
+    if (drivers[inst]->get_pdop(pdop) | drivers[inst]->get_std(STD_lat, STD_long, STD_alt)) {
+        mavlink_msg_gps_noise_send(chan,
+                                    last_fix_time_ms(inst)*(uint64_t)1000,
+                                    pdop,
+                                    STD_lat,
+                                    STD_long,
+                                    STD_alt);
     }
 }
 
