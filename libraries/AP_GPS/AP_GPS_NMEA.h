@@ -80,6 +80,8 @@ private:
         _GPS_SENTENCE_PHD = 138, // extension for AllyStar GPS modules
         _GPS_SENTENCE_THS = 160, // True heading with quality indicator, available on Trimble MB-Two
         _GPS_SENTENCE_KSXT = 170, // extension for Unicore, 21 fields
+        _GPS_SENTENCE_GSA = 200, // GPS DOP and active satellites, 18 fields
+        _GPS_SENTENCE_GST = 220, // GPS Pseudorange Noise Statistics, 9 fields
         _GPS_SENTENCE_OTHER = 0
     };
 
@@ -144,6 +146,7 @@ private:
     int32_t _new_course;                                        ///< course parsed from a term
     float   _new_gps_yaw;                                        ///< yaw parsed from a term
     uint16_t _new_hdop;                                                 ///< HDOP parsed from a term
+    uint16_t _new_vdop;                                 ///< VDOP parsed from a term
     uint8_t _new_satellite_count;                       ///< satellite count parsed from a term
     uint8_t _new_quality_indicator;                                     ///< GPS quality indicator parsed from a term
 
@@ -195,6 +198,15 @@ private:
         float fields[21];
     } _ksxt;
 
+    // GPS Pseudorange Noise Statistics
+    struct {
+        float STD_lat;
+        float STD_long;
+        float STD_alt;
+    } _new_GST, _GST;
+
+    // GST - GPS Pseudorange Noise Statistics
+    uint16_t _new_pdop, _pdop;
 };
 
 #define AP_GPS_NMEA_HEMISPHERE_INIT_STRING \

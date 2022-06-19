@@ -398,6 +398,14 @@ bool AP_GPS_NMEA::_term_complete()
                         state.gps_yaw_configured = true;
                     }
                     break;
+                case _GPS_SENTENCE_GSA:
+                    state.hdop = _new_hdop;
+                    state.vdop = _new_vdop;
+                    _pdop = _new_pdop;
+                    break;
+                case _GPS_SENTENCE_GST:
+                    _GST = _new_GST;
+                    break;
                 }
             } else {
                 switch (_sentence_type) {
@@ -459,6 +467,12 @@ bool AP_GPS_NMEA::_term_complete()
             // VTG may not contain a data qualifier, presume the solution is good
             // unless it tells us otherwise.
             _gps_data_good = true;
+        } else if (strcmp(term_type, "GST") == 0) {
+            _sentence_type = _GPS_SENTENCE_GST;
+            _gps_data_good = true;
+        } else if (strcmp(term_type, "GSA") == 0) {
+            _sentence_type = _GPS_SENTENCE_GSA;
+            _gps_data_good = true;
         } else {
             _sentence_type = _GPS_SENTENCE_OTHER;
         }
@@ -487,7 +501,23 @@ bool AP_GPS_NMEA::_term_complete()
             _new_satellite_count = atol(_term);
             break;
         case _GPS_SENTENCE_GGA + 8: // HDOP (GGA)
+        case _GPS_SENTENCE_GSA + 16: // HDOP (GSA)
             _new_hdop = (uint16_t)_parse_decimal_100(_term);
+            break;
+        case _GPS_SENTENCE_GSA + 17: // VDOP (GSA)
+            _new_vdop = (uint16_t)_parse_decimal_100(_term);
+            break;
+        case _GPS_SENTENCE_GSA + 15: // PDOP (GSA)
+            _new_pdop = (uint16_t)_parse_decimal_100(_term);
+            break;
+        case _GPS_SENTENCE_GST + 6:
+            _new_GST.STD_lat = strtof(_term, NULL);
+            break;
+        case _GPS_SENTENCE_GST + 7:
+           _new_GST.STD_long = strtof(_term, NULL);
+            break;
+        case _GPS_SENTENCE_GST + 8:
+            _new_GST.STD_alt = strtof(_term, NULL);
             break;
 
         // time and date
