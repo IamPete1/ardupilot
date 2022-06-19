@@ -718,7 +718,8 @@ void AP_GPS::update_instance(uint8_t instance)
             timing[instance].last_message_time_ms = tnow;
             timing[instance].delta_time_ms = GPS_TIMEOUT_MS;
             // do not try to detect again if type is MAV
-            if (_type[instance] == GPS_TYPE_MAV) {
+            if (_type[instance] == GPS_TYPE_MAV ||
+                _type[instance] == GPS_TYPE_NMEA) {
                 state[instance].status = NO_FIX;
             } else {
                 // free the driver before we run the next detection, so we
