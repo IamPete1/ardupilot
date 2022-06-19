@@ -1782,6 +1782,20 @@ bool AP_GPS::logging_failed(void) const {
     return false;
 }
 
+bool AP_GPS::get_pdop(uint8_t instance, uint16_t &pdop) const {
+    if (instance > GPS_MAX_RECEIVERS || (drivers[instance] == nullptr)) {
+        return false;
+    }
+    return drivers[instance]->get_pdop(pdop);
+}
+
+bool AP_GPS::get_std(uint8_t instance, float &STD_lat, float &STD_long, float &STD_alt) const {
+    if (instance > GPS_MAX_RECEIVERS || (drivers[instance] == nullptr)) {
+        return false;
+    }
+    return drivers[instance]->get_std(STD_lat, STD_long, STD_alt);
+}
+
 namespace AP {
 
 AP_GPS &gps()

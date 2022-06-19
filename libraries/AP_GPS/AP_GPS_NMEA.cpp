@@ -493,3 +493,17 @@ AP_GPS_NMEA::_detect(struct NMEA_detect_state &state, uint8_t data)
     }
     return false;
 }
+
+bool AP_GPS_NMEA::get_pdop(uint16_t &pdop) const 
+{
+    pdop = _pdop;
+    return true;
+}
+
+bool AP_GPS_NMEA::get_std(float &STD_lat, float &STD_long, float &STD_alt) const
+{
+    STD_lat = _GST.STD_lat;
+    STD_long = _GST.STD_long;
+    STD_alt = _GST.STD_alt;
+    return true;
+}

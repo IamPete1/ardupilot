@@ -476,6 +476,9 @@ public:
         return instance>=GPS_MAX_RECEIVERS? GPS_Type::GPS_TYPE_NONE : GPS_Type(_type[instance].get());
     }
 
+    bool get_pdop(uint8_t instance, uint16_t &pdop) const;
+    bool get_std(uint8_t instance, float &STD_lat, float &STD_long, float &STD_alt) const;
+
 protected:
 
     // configuration parameters
