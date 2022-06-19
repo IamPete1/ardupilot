@@ -572,6 +572,16 @@ void GPS::update_nmea(const struct gps_data *d)
                     d->speedN * 3.6,
                     -d->speedD * 3.6);
     }
+
+    // GST - GPS Pseudorange Noise Statistics
+    // Only parse the 3 standard devations
+    nmea_printf("$GPGST,%s,1.0,1.0,1.0,0,1.11,2.22,3.33,",tstring);
+
+    // GSA - GPS DOP and active satellites
+    // Only parse the dops
+    nmea_printf("$GNGSA,A,3,3,4,5,6,7,8,9,10,11,12,13,14,1.11,2.22,3.33,");
+
+
 }
 
 void GPS::sbp_send_message(uint16_t msg_type, uint16_t sender_id, uint8_t len, uint8_t *payload)
