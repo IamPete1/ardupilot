@@ -228,7 +228,8 @@ bool Plane::set_mode(Mode &new_mode, const ModeReason reason)
     // TODO: move these to be after enter() once start_command_callback() no longer checks control_mode
     previous_mode = control_mode;
     control_mode = &new_mode;
-    const ModeReason previous_mode_reason = control_mode_reason;
+    const ModeReason  old_previous_mode_reason = previous_mode_reason;
+    previous_mode_reason = control_mode_reason;
     control_mode_reason = reason;
 
     // attempt to enter new mode
@@ -241,6 +242,7 @@ bool Plane::set_mode(Mode &new_mode, const ModeReason reason)
         control_mode = &old_mode;
 
         control_mode_reason = previous_mode_reason;
+        previous_mode_reason = old_previous_mode_reason;
 
         // currently, only Q modes can fail enter(). This will likely change in the future and all modes
         // should be changed to check dependencies and fail early before depending on changes in Mode::set_mode()
@@ -258,9 +260,6 @@ bool Plane::set_mode(Mode &new_mode, const ModeReason reason)
 
     // exit previous mode
     old_mode.exit();
-
-    // record reasons
-    control_mode_reason = reason;
 
     // log and notify mode change
     logger.Write_Mode(control_mode->mode_number(), control_mode_reason);
