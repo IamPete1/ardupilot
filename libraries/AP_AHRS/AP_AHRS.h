@@ -606,6 +606,9 @@ public:
     // active AHRS type for logging
     virtual uint8_t get_active_AHRS_type(void) const { return 0; }
 
+    // get the view
+    AP_AHRS_View *get_view(void) const { return _view; };
+
     // for holding parameters
     static const struct AP_Param::GroupInfo var_info[];
 
