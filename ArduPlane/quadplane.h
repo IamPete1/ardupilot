@@ -649,6 +649,8 @@ private:
         OPTION_THR_LANDING_CONTROL=(1<<15),
         OPTION_DISABLE_APPROACH=(1<<16),
         OPTION_REPOSITION_LANDING=(1<<17),
+
+        OPTION_FW_MODE_CHANGE_ALT_LIMIT=(1<<21),
     };
 
     AP_Float takeoff_failure_scalar;

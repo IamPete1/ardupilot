@@ -67,7 +67,7 @@ bool Mode::enter()
     // initialize speed variable used in AUTO and GUIDED for DO_CHANGE_SPEED commands
     plane.new_airspeed_cm = -1;
 
-    bool enter_result = _enter();
+    bool enter_result = allow_enter_at_current_alt() && _enter();
 
     if (enter_result) {
         // -------------------
@@ -101,3 +101,42 @@ bool Mode::is_vtol_man_throttle() const
     }
     return false;
 }
+
+// Deny changing into forward flight modes at low altitude
+bool Mode::allow_enter_at_current_alt() const
+{
+    if (!hal.util->get_soft_armed() ||
+            is_vtol_mode() ||
+            !((plane.quadplane.options & QuadPlane::OPTION_FW_MODE_CHANGE_ALT_LIMIT) != 0)) {
+        // always allowed to change mode if disarmed
+        // always allowed to enter a vtol mode
+        // check disabled
+        return true;
+    }
+    float min_alt_cm = 0.0;
+    bool have_min_alt = false;
+    if (((plane.fence.get_enabled_fences() & AC_FENCE_TYPE_ALT_MIN) != 0)) {
+        min_alt_cm = plane.fence.get_safe_alt_min()*100;
+        have_min_alt = true;
+    }
+    if (plane.g.FBWB_min_altitude_cm > 0) {
+        min_alt_cm = MAX(min_alt_cm, plane.g.FBWB_min_altitude_cm);
+        have_min_alt = true;
+    }
+    if (!have_min_alt) {
+        // no altitude limit set
+        return true;
+    }
+    int32_t alt_cm;
+    if (!plane.current_loc.initialised() || !plane.current_loc.get_alt_cm(Location::AltFrame::ABOVE_HOME, alt_cm)) {
+        // don't know current altitude
+        return true;
+    }
+    if (alt_cm < min_alt_cm) {
+        // under threshold altitude
+        gcs().send_text(MAV_SEVERITY_NOTICE, "Must be above %0.1fm for fixedwing mode: %s", min_alt_cm*0.01, name());
+        return false;
+    }
+    return true;
+}
+

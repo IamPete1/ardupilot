@@ -111,6 +111,9 @@ protected:
 
     // subclasses override this to perform any required cleanup when exiting the mode
     virtual void _exit() { return; }
+
+    // subclasses can override this method to refuse mode enter
+    virtual bool allow_enter_at_current_alt() const;
 };
 
 
@@ -152,6 +155,9 @@ public:
     bool does_auto_throttle() const override { return true; }
 
 protected:
+
+    // Allow entering at any altitude
+    bool allow_enter_at_current_alt() const override { return true; }
 
     bool _enter() override;
     void _exit() override;
@@ -197,6 +203,9 @@ public:
     bool does_auto_throttle() const override { return true; }
 
 protected:
+
+    // Allow entering at any altitude
+    bool allow_enter_at_current_alt() const override { return true; }
 
     bool _enter() override;
 };
