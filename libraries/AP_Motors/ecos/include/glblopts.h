@@ -24,7 +24,7 @@
 #define __GLBLOPTS_H__
 
 /* SET PRINT LEVEL ----------------------------------------------------- */
-#define PRINTLEVEL (2)     /* 0: no prints					             */
+#define PRINTLEVEL (0)     /* 0: no prints					             */
 						   /* 1: only final info				         */
                            /* 2: progress print per iteration            */
 						   /* 3: debug level, enables print & dump fcns. */
@@ -36,7 +36,7 @@
                             /* problems.                                 */
 
 /* SET PROFILING LEVEL ------------------------------------------------- */
-#define PROFILING (1)      /* 0: no timing information				     */
+#define PROFILING (0)      /* 0: no timing information				     */
                            /* 1: runtime (divided in setup and solve)    */
                            /* 2: detailed profiling                      */
 
@@ -44,6 +44,8 @@
 #define DEBUG (0)          /* 0: no debugging information                */
                            /* 1: debug info & dump intermediate results  */
                            /* (flag used only for development)           */
+
+#define CTRLC (0)
 
 /* DATA TYPES ---------------------------------------------------------- */
 #include <float.h>
@@ -59,7 +61,7 @@ typedef double pfloat;              /* for numerical values  */
 #endif
 
 /* Exponential cone */
-#define EXPCONE      /*When defined the exponential cone solver code is enabled*/
+//#define EXPCONE      /*When defined the exponential cone solver code is enabled*/
 
 /* SYSTEM INCLUDES FOR PRINTING ---------------------------------------- */
 #if PRINTLEVEL > 0
@@ -77,7 +79,8 @@ typedef double pfloat;              /* for numerical values  */
 #define PRINTTEXT(...)
 #endif
 
-#include "SuiteSparse_config.h"
+//#include "SuiteSparse_config.h"
+#include <AP_Motors/ecos/external/SuiteSparse_config/SuiteSparse_config.h>
 
 /* USE SAME NUMBER REPRESENTATION FOR INDEXING AS AMD AND LDL ---------- */
 #if defined(DLONG) && !defined(LDL_LONG) || defined(LDL_LONG) && !defined(DLONG)
