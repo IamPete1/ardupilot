@@ -29,7 +29,7 @@
 int main(void)
 {
 	idxint exitflag = ECOS_FATAL;
-	pwork* mywork;
+	ECOS_pwork* mywork;
 
 #if PROFILING > 0
 	double ttotal, tsolve, tsetup;

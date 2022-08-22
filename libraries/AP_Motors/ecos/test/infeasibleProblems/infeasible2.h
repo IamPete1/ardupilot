@@ -17,7 +17,7 @@ idxint Air[4] = {0,1,1,1};
 pfloat Apr[4] = {1.0, -1.0, 1.0, 1.0};
 pfloat b[2] = {3.0, 0.0};
 
-pwork *mywork;
+ECOS_pwork *mywork;
 idxint exitflag;
 
 /* set up data */

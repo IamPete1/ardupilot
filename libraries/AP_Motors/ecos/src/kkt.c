@@ -36,9 +36,9 @@
 
 /* Factorization of KKT matrix. Just a wrapper for some LDL code */
 #if PROFILING > 1
-idxint kkt_factor(kkt* KKT, pfloat eps, pfloat delta, pfloat *t1, pfloat* t2)
+idxint kkt_factor(ECOS_kkt* KKT, pfloat eps, pfloat delta, pfloat *t1, pfloat* t2)
 #else
-idxint kkt_factor(kkt* KKT, pfloat eps, pfloat delta)
+idxint kkt_factor(ECOS_kkt* KKT, pfloat eps, pfloat delta)
 #endif
 {
 	idxint nd;
@@ -84,7 +84,7 @@ idxint kkt_factor(kkt* KKT, pfloat eps, pfloat delta)
  *
  * Returns the number of iterative refinement steps really taken.
  */
-idxint kkt_solve(kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pfloat* dy, pfloat* dz, idxint n, idxint p, idxint m, cone* C, idxint isinit, idxint nitref)
+idxint kkt_solve(ECOS_kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pfloat* dy, pfloat* dz, idxint n, idxint p, idxint m, cone* C, idxint isinit, idxint nitref)
 {
 
 #if CONEMODE == 0

@@ -10,7 +10,7 @@
 static char * test_norm()
 {
 
-    pwork *mywork;
+    ECOS_pwork *mywork;
     idxint exitflag;
     qc_socp *data;
 
@@ -40,7 +40,7 @@ static char * test_norm()
 static char * test_quad_over_lin()
 {
 
-    pwork *mywork;
+    ECOS_pwork *mywork;
     idxint exitflag;
     qc_socp *data;
 
@@ -70,7 +70,7 @@ static char * test_quad_over_lin()
 static char * test_sq_norm()
 {
 
-    pwork *mywork;
+    ECOS_pwork *mywork;
     idxint exitflag;
     qc_socp *data;
 
@@ -100,7 +100,7 @@ static char * test_sq_norm()
 static char * test_sum_sq()
 {
 
-    pwork *mywork;
+    ECOS_pwork *mywork;
     idxint exitflag;
     qc_socp *data;
 
@@ -130,7 +130,7 @@ static char * test_sum_sq()
 static char * test_inv_pos()
 {
 
-    pwork *mywork;
+    ECOS_pwork *mywork;
     idxint exitflag;
     qc_socp *data;
 

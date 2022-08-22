@@ -37,13 +37,13 @@
  * set_equilibration: This routine takes the workspace and sets 
  * the equilibration vectors.
  */
-void set_equilibration(pwork *w);
+void set_equilibration(ECOS_pwork *w);
 
 /**
  * unset_equilibration: This routine takes the workspace and
  * undoes the equilibration.
  */
-void unset_equilibration(pwork *w);
+void unset_equilibration(ECOS_pwork *w);
 
 
 #endif

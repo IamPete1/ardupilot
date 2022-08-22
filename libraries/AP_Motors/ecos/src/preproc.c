@@ -551,13 +551,13 @@ void ECOS_cleanup(pwork* w, idxint keepvars)
  * Sets up all data structures needed.
  * Replace by codegen
  */
-pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint* q, idxint nexc,
+ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint* q, idxint nexc,
                    pfloat* Gpr, idxint* Gjc, idxint* Gir,
                    pfloat* Apr, idxint* Ajc, idxint* Air,
                    pfloat* c, pfloat* h, pfloat* b)
 {
     idxint i, cidx, conesize, lnz, amd_result, nK, *Ljc, *Lir, *P, *Pinv, *Sign;
-    pwork* mywork;
+    ECOS_pwork* mywork;
 	double Control [AMD_CONTROL], Info [AMD_INFO];
 	pfloat *Lpr;
 	spmat *At, *Gt, *KU;
@@ -615,7 +615,7 @@ pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint*
 #endif
 
 	/* get work data structure */
-    mywork = (pwork *)MALLOC(sizeof(pwork));
+    mywork = (ECOS_pwork *)MALLOC(sizeof(ECOS_pwork));
 #if PRINTLEVEL > 2
     PRINTTEXT("Memory allocated for WORK struct\n");
 #endif
@@ -653,7 +653,7 @@ pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint*
     mywork->best_y = (pfloat *)MALLOC(p*sizeof(pfloat));
     mywork->best_z = (pfloat *)MALLOC(m*sizeof(pfloat));
     mywork->best_s = (pfloat *)MALLOC(m*sizeof(pfloat));
-    mywork->best_info = (stats *)MALLOC(sizeof(stats));
+    mywork->best_info = (ECOS_stats *)MALLOC(sizeof(ECOS_stats));
 
 	/* cones */
 	mywork->C = (cone *)MALLOC(sizeof(cone));
@@ -735,7 +735,7 @@ pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint*
 #endif
 
 	/* info struct */
-    mywork->info = (stats *)MALLOC(sizeof(stats));
+    mywork->info = (ECOS_stats *)MALLOC(sizeof(ECOS_stats));
 #if PROFILING > 1
 	mywork->info->tfactor = 0;
 	mywork->info->tkktsolve = 0;
@@ -758,7 +758,7 @@ pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint*
 #endif
 
 	/* settings */
-	mywork->stgs = (settings *)MALLOC(sizeof(settings));
+	mywork->stgs = (ECOS_settings *)MALLOC(sizeof(ECOS_settings));
 	mywork->stgs->maxit = MAXIT;
 	mywork->stgs->gamma = GAMMA;
 	mywork->stgs->delta = DELTA;
@@ -886,7 +886,7 @@ pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint*
 
 
     /* allocate memory in KKT system */
-	mywork->KKT = (kkt *)MALLOC(sizeof(kkt));
+	mywork->KKT = (ECOS_kkt *)MALLOC(sizeof(ECOS_kkt));
 	mywork->KKT->D = (pfloat *)MALLOC(nK*sizeof(pfloat));
 	mywork->KKT->Parent = (idxint *)MALLOC(nK*sizeof(idxint));
 	mywork->KKT->Pinv = (idxint *)MALLOC(nK*sizeof(idxint));

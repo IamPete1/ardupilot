@@ -17,7 +17,7 @@ idxint *Air = NULL;
 pfloat *Apr = NULL;
 pfloat *b = NULL;
  
-pwork *mywork;
+ECOS_pwork *mywork;
 idxint exitflag;
  
 /* set up data */

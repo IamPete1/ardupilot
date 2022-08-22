@@ -273,7 +273,7 @@ ecos_bb_pwork *ECOS_BB_setup(
     prob->y = (pfloat *)MALLOC(p * sizeof(pfloat));
     prob->z = (pfloat *)MALLOC(m * sizeof(pfloat));
     prob->s = (pfloat *)MALLOC(m * sizeof(pfloat));
-    prob->info = (stats *)MALLOC(sizeof(stats));
+    prob->info = (ECOS_stats *)MALLOC(sizeof(ECOS_stats));
 
     /* Setup the ecos solver*/
     prob->ecos_prob = ECOS_setup(

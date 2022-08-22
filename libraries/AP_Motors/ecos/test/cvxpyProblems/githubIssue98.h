@@ -19,7 +19,7 @@ static char * test_issue98()
      * minimize 0
      * s.t. 0 <= x <= 1
      */
-    pwork *mywork;
+    ECOS_pwork *mywork;
     idxint exitflag;
 
     /* set up data */

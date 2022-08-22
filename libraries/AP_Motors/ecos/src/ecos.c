@@ -58,7 +58,7 @@ const char* ECOS_ver(void)
 /* Compares stats of two iterates with each other.
  * Returns 1 if infoA is better than infoB, zero otherwise.
  */
-idxint compareStatistics(stats* infoA, stats* infoB)
+idxint compareStatistics(ECOS_stats* infoA, ECOS_stats* infoB)
 {
 
     if ( infoA->pinfres != ECOS_NAN && infoA->kapovert > 1){
@@ -102,7 +102,7 @@ idxint compareStatistics(stats* infoA, stats* infoB)
 
 
 /* Copy variables from current to best iterate */
-void saveIterateAsBest(pwork* w)
+void saveIterateAsBest(ECOS_pwork* w)
 {
     idxint i;
     for (i=0; i<w->n; i++) { w->best_x[i] = w->x[i]; }
@@ -132,7 +132,7 @@ void saveIterateAsBest(pwork* w)
  * Comapred to saveIterateAsBest, only the iteration number
  * is not restored.
  */
-void restoreBestIterate(pwork* w)
+void restoreBestIterate(ECOS_pwork* w)
 {
     idxint i;
     for (i=0; i<w->n; i++) { w->x[i] = w->best_x[i]; }
@@ -176,7 +176,7 @@ void restoreBestIterate(pwork* w)
  * If none of the exit tests are met, the function returns ECOS_NOT_CONVERGED_YET.
  * This should not be an exitflag that is ever returned to the outside world.
  */
-idxint checkExitConditions(pwork* w, idxint mode)
+idxint checkExitConditions(ECOS_pwork* w, idxint mode)
 {
     pfloat feastol;
     pfloat abstol;
@@ -257,7 +257,7 @@ idxint checkExitConditions(pwork* w, idxint mode)
 /*
  * Initializes the solver.
  */
-idxint init(pwork* w)
+idxint init(ECOS_pwork* w)
 {
 	idxint i, j, k, l, KKT_FACTOR_RETURN_CODE;
 	idxint* Pinv = w->KKT->Pinv;
@@ -452,7 +452,7 @@ idxint init(pwork* w)
  * hrz = s + G*x;       rz = hrz - h.*tau;  hresz = norm(rz,2);
  * rt = kappa + c'*x + b'*y + h'*z;
  */
-void computeResiduals(pwork *w)
+void computeResiduals(ECOS_pwork *w)
 {
 	/* rx = -A'*y - G'*z - c.*tau */
 	if( w->p > 0 ) {
@@ -499,11 +499,11 @@ void computeResiduals(pwork *w)
 /*
  * Updates statistics.
  */
-void updateStatistics(pwork* w)
+void updateStatistics(ECOS_pwork* w)
 {
 	pfloat nry, nrz;
 
-	stats* info = w->info;
+	ECOS_stats* info = w->info;
 
 	/* mu = (s'*z + kap*tau) / (D+1) where s'*z is the duality gap */
 	info->gap = eddot(w->m, w->s, w->z);
@@ -544,7 +544,7 @@ void updateStatistics(pwork* w)
 
 
 #if PRINTLEVEL > 0
-void printProgress(stats* info)
+void printProgress(ECOS_stats* info)
 {
 	if( info->iter == 0 )
 	{
@@ -621,7 +621,7 @@ void printProgress(stats* info)
 
 }
 
-void deleteLastProgressLine( stats* info )
+void deleteLastProgressLine( ECOS_stats* info )
 {
     idxint i;
     idxint offset = 0;
@@ -645,7 +645,7 @@ void deleteLastProgressLine( stats* info )
  * of the scalings for the second-order cone), we need this to prepare
  * the RHS before solving the KKT system in the special format.
  */
-void RHS_affine(pwork* w)
+void RHS_affine(ECOS_pwork* w)
 {
 	pfloat* RHS = w->KKT->RHS2;
 	idxint n = w->n;
@@ -685,7 +685,7 @@ void RHS_affine(pwork* w)
 /**
  * Prepares the RHS for computing the combined search direction.
  */
-void RHS_combined(pwork* w)
+void RHS_combined(ECOS_pwork* w)
 {
 	pfloat* ds1 = w->KKT->work1;
 	pfloat* ds2 = w->KKT->work2;
@@ -758,7 +758,7 @@ void RHS_combined(pwork* w)
  * When affine = 1 it starts from alpha=w->info->step_aff
  * when affine = 0 it starts from alpha=w->info->step
 */
-pfloat expConeLineSearch(pwork* w, pfloat dtau, pfloat dkappa, idxint affine)
+pfloat expConeLineSearch(ECOS_pwork* w, pfloat dtau, pfloat dkappa, idxint affine)
 {
     /* Iterates and workspace */
     pfloat* ws = w->KKT->work1;
@@ -944,7 +944,7 @@ pfloat expConeLineSearch(pwork* w, pfloat dtau, pfloat dkappa, idxint affine)
 /*
  * Line search according to Vandenberghe (cf. �8 in his manual).
  */
-pfloat lineSearch(pfloat* lambda, pfloat* ds, pfloat* dz, pfloat tau, pfloat dtau, pfloat kap, pfloat dkap, cone* C, kkt* KKT)
+pfloat lineSearch(pfloat* lambda, pfloat* ds, pfloat* dz, pfloat tau, pfloat dtau, pfloat kap, pfloat dkap, cone* C, ECOS_kkt* KKT)
 {
 	idxint i, j, cone_start, conesize;
 	pfloat rhomin, sigmamin, alpha, lknorm2, lknorm, lknorminv, rhonorm, sigmanorm, conic_step, temp;
@@ -1048,7 +1048,7 @@ pfloat lineSearch(pfloat* lambda, pfloat* ds, pfloat* dz, pfloat tau, pfloat dta
  * Scales variables by 1.0/tau, i.e. computes
  * x = x./tau, y = y./tau, z = z./tau, s = s./tau
  */
-void backscale(pwork *w)
+void backscale(ECOS_pwork *w)
 {
 	idxint i;
 #if defined EQUILIBRATE && EQUILIBRATE > 0
@@ -1072,7 +1072,7 @@ void backscale(pwork *w)
 /*
  * Main solver routine.
  */
-idxint ECOS_solve(pwork* w)
+idxint ECOS_solve(ECOS_pwork* w)
 {
 	idxint i, initcode, KKT_FACTOR_RETURN_CODE;
 	pfloat dtau_denom, dtauaff, dkapaff, sigma, dtau, dkap, bkap;
@@ -1620,7 +1620,7 @@ idxint ECOS_solve(pwork* w)
  * Updates one element of the RHS vector h of inequalities
  * After the call, w->h[idx] = value (but equilibrated)
  */
-void ecos_updateDataEntry_h(pwork* w, idxint idx, pfloat value)
+void ecos_updateDataEntry_h(ECOS_pwork* w, idxint idx, pfloat value)
 {
 #if EQUILIBRATE > 0
     w->h[idx] = value / w->Gequil[idx];
@@ -1634,7 +1634,7 @@ void ecos_updateDataEntry_h(pwork* w, idxint idx, pfloat value)
  * Updates one element of the OBJ vector c of inequalities
  * After the call, w->c[idx] = value (but equilibrated)
  */
-void ecos_updateDataEntry_c(pwork* w, idxint idx, pfloat value)
+void ecos_updateDataEntry_c(ECOS_pwork* w, idxint idx, pfloat value)
 {
     w->c[idx] = value;
 }
@@ -1645,7 +1645,7 @@ void ecos_updateDataEntry_c(pwork* w, idxint idx, pfloat value)
  * and re-equilibrates.
  * Then updates the corresponding KKT entries.
  */
-void ECOS_updateData(pwork *w, pfloat *Gpr, pfloat *Apr,
+void ECOS_updateData(ECOS_pwork *w, pfloat *Gpr, pfloat *Apr,
                      pfloat* c, pfloat* h, pfloat* b)
 {
 

@@ -96,7 +96,7 @@ extern "C" {
 
 
 /* SETTINGS STRUCT ----------------------------------------------------- */
-typedef struct settings{
+typedef struct ECOS_settings{
 	pfloat gamma;                /* scaling the final step length        */
 	pfloat delta;                /* regularization parameter             */
     pfloat eps;                  /* regularization threshold             */
@@ -114,11 +114,11 @@ typedef struct settings{
     pfloat bk_scale;         /* Backtracking scaling */
     pfloat centrality;       /* Centrality bound, ignored when centrality vars = 0*/
 #endif
-} settings;
+} ECOS_settings;
 
 
 /* INFO STRUCT --------------------------------------------------------- */
-typedef struct stats{
+typedef struct ECOS_stats{
 	pfloat pcost;
 	pfloat dcost;
     pfloat pres;
@@ -167,11 +167,11 @@ typedef struct stats{
     pfloat centrality; /*Centrality at the end of the backtracking*/
 #endif
 
-} stats;
+} ECOS_stats;
 
 
 /* ALL DATA NEEDED BY SOLVER ------------------------------------------- */
-typedef struct pwork{
+typedef struct ECOS_pwork{
 	/* dimensions */
 	idxint n;	/* number of primal variables x */
 	idxint m;   /* number of conically constrained variables s */
@@ -198,7 +198,7 @@ typedef struct pwork{
     pfloat best_cx;
     pfloat best_by;
     pfloat best_hz;
-    stats* best_info; /* info of best iterate               */
+    ECOS_stats* best_info; /* info of best iterate               */
 
 	/* temporary stuff holding search direction etc. */
     pfloat* dsaff;
@@ -238,15 +238,15 @@ typedef struct pwork{
 	pfloat cx;  pfloat by;  pfloat hz;  pfloat sz;
 
 	/* KKT System */
-	kkt* KKT;
+	ECOS_kkt* KKT;
 
 	/* info struct */
-    stats* info;
+    ECOS_stats* info;
 
 	/* settings struct */
-	settings* stgs;
+	ECOS_settings* stgs;
 
-} pwork;
+} ECOS_pwork;
 
 
 /* SOME USEFUL MACROS -------------------------------------------------- */
@@ -278,18 +278,18 @@ typedef struct pwork{
  * pfloat* h       Array of size m, RHS vector of cone constraint
  * pfloat* b       Array of size p, RHS vector of equalities (can be NULL if no equalities are present)
  */
-pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint* q, idxint nex,
+ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint* q, idxint nex,
                    pfloat* Gpr, idxint* Gjc, idxint* Gir,
                    pfloat* Apr, idxint* Ajc, idxint* Air,
                    pfloat* c, pfloat* h, pfloat* b);
 
 
 #ifdef EXPCONE
-pfloat expConeLineSearch(pwork* w, pfloat dtau, pfloat dkappa, idxint affine);
+pfloat expConeLineSearch(ECOS_pwork* w, pfloat dtau, pfloat dkappa, idxint affine);
 #endif
 
 /* solve */
-idxint ECOS_solve(pwork* w);
+idxint ECOS_solve(ECOS_pwork* w);
 
 /**
  * Cleanup: free memory (not used for embedded solvers, only standalone)
@@ -299,7 +299,7 @@ idxint ECOS_solve(pwork* w);
  * copying over the arrays. One use case is the MEX interface, where we
  * do not want to free x,y,s,z (depending on the number of LHS).
  */
-void ECOS_cleanup(pwork* w, idxint keepvars);
+void ECOS_cleanup(ECOS_pwork* w, idxint keepvars);
 
 
 /**
@@ -318,20 +318,20 @@ const char* ECOS_ver(void);
  * Updates one element of the RHS vector h of inequalities
  * After the call, w->h[idx] = value (but equilibrated)
  */
-void ecos_updateDataEntry_h(pwork* w, idxint idx, pfloat value);
+void ecos_updateDataEntry_h(ECOS_pwork* w, idxint idx, pfloat value);
 
 /*
  * Updates one element of the OBJ vector c of inequalities
  * After the call, w->c[idx] = value (but equilibrated)
  */
-void ecos_updateDataEntry_c(pwork* w, idxint idx, pfloat value);
+void ecos_updateDataEntry_c(ECOS_pwork* w, idxint idx, pfloat value);
 
 /*
  * Updates numerical data for G, A, c, h, and b,
  * and re-equilibrates.
  * Then updates the corresponding KKT entries.
  */
-void ECOS_updateData(pwork *w, pfloat *Gpr, pfloat *Apr,
+void ECOS_updateData(ECOS_pwork *w, pfloat *Gpr, pfloat *Apr,
                      pfloat* c, pfloat* h, pfloat* b);
 
 

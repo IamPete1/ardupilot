@@ -29,7 +29,7 @@ int main(void)
 {
 	/*char ver[7];*/
     idxint exitflag = ECOS_FATAL;
-	pwork* mywork;
+	ECOS_pwork* mywork;
 #if PROFILING > 1 && PRINTLEVEL > 2
     double torder, tkktcreate, ttranspose, tfactor, tkktsolve, ttotal, tsetup, tsolve;
 #endif

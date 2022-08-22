@@ -1656,7 +1656,7 @@ pfloat udd_optval2 = -20.011586;
 
 static char * test_update_data(){
 
-    pwork *mywork;
+    ECOS_pwork *mywork;
     idxint exitflag;
     
     mywork = ECOS_setup(udd_n, udd_m, udd_p, udd_l, udd_ncones, udd_q, 0,

@@ -18,7 +18,7 @@ pfloat logax_x_Gpr[2] = {-0.3, -1.0};
 pfloat logax_x_h[3] = {0.0,0.0,1.0};
 
 static char * test_log_ax_x(){
-pwork *mywork;
+ECOS_pwork *mywork;
 idxint exitflag;
  
 /* print test name */

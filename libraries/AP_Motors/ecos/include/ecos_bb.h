@@ -130,7 +130,7 @@ extern "C"
 		idxint *int_vars_idx;
 
 		/* ECOS data */
-		pwork *ecos_prob;
+		ECOS_pwork *ecos_prob;
 
 		/* Modified pointers to ecos internals */
 		/* Use these to edit or reset the h variables */
@@ -148,7 +148,7 @@ extern "C"
 		pfloat *s;   /* slacks for conic inequalities       */
 		pfloat kap;  /* kappa (homogeneous embedding)       */
 		pfloat tau;  /* tau (homogeneous embedding)         */
-		stats *info; /* info of best iterate               */
+		ECOS_stats *info; /* info of best iterate               */
 		pfloat global_U;
 		pfloat global_L;
 

@@ -112,7 +112,7 @@ void restore(const pfloat *D, const pfloat *E, spmat *mat)
     }
 }
 
-void use_alternating_norm_equilibration(pwork *w)
+void use_alternating_norm_equilibration(ECOS_pwork *w)
 {
     idxint i, j, ind;
     idxint num_cols = w->A ? w->A->n : w->G->n;
@@ -207,7 +207,7 @@ void use_alternating_norm_equilibration(pwork *w)
     }
 }
 
-void use_ruiz_equilibration(pwork *w)
+void use_ruiz_equilibration(ECOS_pwork *w)
 {
     idxint i, j, ind, iter;
     idxint num_cols = w->A ? w->A->n : w->G->n;
@@ -340,7 +340,7 @@ void use_ruiz_equilibration(pwork *w)
 }
 
 /* equilibrate */
-void set_equilibration(pwork *w)
+void set_equilibration(ECOS_pwork *w)
 {
 #if defined(RUIZ_EQUIL)
     use_ruiz_equilibration(w);
@@ -366,7 +366,7 @@ void set_equilibration(pwork *w)
 #endif
 }
 /* invert the equilibration job */
-void unset_equilibration(pwork *w)
+void unset_equilibration(ECOS_pwork *w)
 {
     idxint i;
     /* idxint num_cols = w->A ? w->A->n : w->G->n; */

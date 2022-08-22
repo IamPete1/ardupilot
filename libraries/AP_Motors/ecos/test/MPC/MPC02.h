@@ -19,7 +19,7 @@ pfloat MPC02_b[499] = {-1.000000000000001721e-01, -1.000000000000001721e-01, -1.
 
 static char * test_MPC02(){
 
-pwork *mywork;
+ECOS_pwork *mywork;
 idxint exitflag;
  
 /* set up data */

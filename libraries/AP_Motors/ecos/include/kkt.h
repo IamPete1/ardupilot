@@ -34,7 +34,7 @@
 #include "spla.h"
 #include "cone.h"
 
-typedef struct kkt{	
+typedef struct ECOS_kkt{	
 	spmat*  PKPt;    /* Permuted KKT matrix, upper part only      */	
 	spmat*  L;       /* LDL factor L                              */
     
@@ -64,7 +64,7 @@ typedef struct kkt{
 	idxint* Lnz;     /* idxint workspace needed for factorization */
 	
 	pfloat delta;    /* size of regularization					  */
-} kkt;
+} ECOS_kkt;
 
 /* Return codes */
 #define KKT_PROBLEM (0)
@@ -81,9 +81,9 @@ typedef struct kkt{
  * for sparsity pattern computation in t1 and for numerical solve in t2.
  */
 #if PROFILING > 1
-idxint kkt_factor(kkt* KKT, pfloat eps, pfloat delta, pfloat *t1, pfloat *t2);
+idxint kkt_factor(ECOS_kkt* KKT, pfloat eps, pfloat delta, pfloat *t1, pfloat *t2);
 #else
-idxint kkt_factor(kkt* KKT, pfloat eps, pfloat delta);
+idxint kkt_factor(ECOS_kkt* KKT, pfloat eps, pfloat delta);
 #endif
 
 
@@ -101,7 +101,7 @@ idxint kkt_factor(kkt* KKT, pfloat eps, pfloat delta);
  *
  * Returns the number of iterative refinement steps really taken.
  */
-idxint kkt_solve(kkt* KKT,
+idxint kkt_solve(ECOS_kkt* KKT,
                  spmat* A, spmat* G,
                  pfloat* Pb,
                  pfloat* dx, pfloat* dy, pfloat* dz,
