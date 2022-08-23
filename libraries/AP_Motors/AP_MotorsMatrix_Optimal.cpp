@@ -17,7 +17,7 @@
 
 #if AP_MOTOR_FRAME_OPTIMAL_ENABLED
 
-// allows more accurate timeing, do not fly!
+// allows more accurate timing, do not fly!
 #define DISABLE_INTERRUPTS_FOR_TIMMING 0
 
 #include <AP_Logger/AP_Logger.h>
@@ -39,6 +39,12 @@ void AP_MotorsMatrix_Optimal::init(motor_frame_class frame_class, motor_frame_ty
         // Scripting frame class not supported
         // Scripting is setup to use the AP_MotorsMatrix singleton, which wont exist if were here.
         // So there is no way for scripting to setup the motors, once we fix that it should work well...
+        set_initialised_ok(false);
+        return;
+    }
+
+    // hack to allow copying in of one cone setup matrix for testing
+    if ((frame_class != MOTOR_FRAME_OCTA) || (frame_type != MOTOR_FRAME_TYPE_X)) {
         set_initialised_ok(false);
         return;
     }
@@ -248,6 +254,215 @@ void AP_MotorsMatrix_Optimal::init(motor_frame_class frame_class, motor_frame_ty
         A.min_throttle[i] =  1.0;
     }
 
+    // hardcoded G matrix for octa X
+    G.values[0] = 0.125;
+    G.values[1] = 1;
+    G.values[2] = -1;
+    G.values[3] = 2.08623;
+    G.values[4] = -0.00981516;
+    G.values[5] = 0.409963;
+    G.values[6] = -1.07216;
+    G.values[7] = 0.409963;
+    G.values[8] = -1.07216;
+    G.values[9] = 1.03821;
+    G.values[10] = 1.03821;
+    G.values[11] = 0.125;
+    G.values[12] = 1;
+    G.values[13] = -1;
+    G.values[14] = -0.00981516;
+    G.values[15] = 2.08623;
+    G.values[16] = -1.07216;
+    G.values[17] = 0.409963;
+    G.values[18] = -1.07216;
+    G.values[19] = 0.409963;
+    G.values[20] = 1.03821;
+    G.values[21] = 1.03821;
+    G.values[22] = 0.125;
+    G.values[23] = 1;
+    G.values[24] = -1;
+    G.values[25] = 0.409963;
+    G.values[26] = -1.07216;
+    G.values[27] = 2.08623;
+    G.values[28] = 1.03821;
+    G.values[29] = 1.03821;
+    G.values[30] = -0.00981515;
+    G.values[31] = -1.07216;
+    G.values[32] = 0.409963;
+    G.values[33] = 0.125;
+    G.values[34] = 1;
+    G.values[35] = -1;
+    G.values[36] = -1.07216;
+    G.values[37] = 0.409963;
+    G.values[38] = 1.03821;
+    G.values[39] = 2.08623;
+    G.values[40] = -0.00981516;
+    G.values[41] = 1.03821;
+    G.values[42] = -1.07216;
+    G.values[43] = 0.409963;
+    G.values[44] = 0.125;
+    G.values[45] = 1;
+    G.values[46] = -1;
+    G.values[47] = 0.409963;
+    G.values[48] = -1.07216;
+    G.values[49] = 1.03821;
+    G.values[50] = -0.00981516;
+    G.values[51] = 2.08623;
+    G.values[52] = 1.03821;
+    G.values[53] = 0.409963;
+    G.values[54] = -1.07216;
+    G.values[55] = 0.125;
+    G.values[56] = 1;
+    G.values[57] = -1;
+    G.values[58] = -1.07216;
+    G.values[59] = 0.409963;
+    G.values[60] = -0.00981515;
+    G.values[61] = 1.03821;
+    G.values[62] = 1.03821;
+    G.values[63] = 2.08623;
+    G.values[64] = 0.409963;
+    G.values[65] = -1.07216;
+    G.values[66] = 0.125;
+    G.values[67] = 1;
+    G.values[68] = -1;
+    G.values[69] = 1.03821;
+    G.values[70] = 1.03821;
+    G.values[71] = -1.07216;
+    G.values[72] = -1.07216;
+    G.values[73] = 0.409963;
+    G.values[74] = 0.409963;
+    G.values[75] = 2.08623;
+    G.values[76] = -0.00981515;
+    G.values[77] = 0.125;
+    G.values[78] = 1;
+    G.values[79] = -1;
+    G.values[80] = 1.03821;
+    G.values[81] = 1.03821;
+    G.values[82] = 0.409963;
+    G.values[83] = 0.409963;
+    G.values[84] = -1.07216;
+    G.values[85] = -1.07216;
+    G.values[86] = -0.00981515;
+    G.values[87] = 2.08623;
+    G.values[88] = -1;
+    G.values[89] = 1;
+
+    G.rows[0] = 0;
+    G.rows[1] = 1;
+    G.rows[2] = 9;
+    G.rows[3] = 18;
+    G.rows[4] = 19;
+    G.rows[5] = 20;
+    G.rows[6] = 21;
+    G.rows[7] = 22;
+    G.rows[8] = 23;
+    G.rows[9] = 24;
+    G.rows[10] = 25;
+    G.rows[11] = 0;
+    G.rows[12] = 2;
+    G.rows[13] = 10;
+    G.rows[14] = 18;
+    G.rows[15] = 19;
+    G.rows[16] = 20;
+    G.rows[17] = 21;
+    G.rows[18] = 22;
+    G.rows[19] = 23;
+    G.rows[20] = 24;
+    G.rows[21] = 25;
+    G.rows[22] = 0;
+    G.rows[23] = 3;
+    G.rows[24] = 11;
+    G.rows[25] = 18;
+    G.rows[26] = 19;
+    G.rows[27] = 20;
+    G.rows[28] = 21;
+    G.rows[29] = 22;
+    G.rows[30] = 23;
+    G.rows[31] = 24;
+    G.rows[32] = 25;
+    G.rows[33] = 0;
+    G.rows[34] = 4;
+    G.rows[35] = 12;
+    G.rows[36] = 18;
+    G.rows[37] = 19;
+    G.rows[38] = 20;
+    G.rows[39] = 21;
+    G.rows[40] = 22;
+    G.rows[41] = 23;
+    G.rows[42] = 24;
+    G.rows[43] = 25;
+    G.rows[44] = 0;
+    G.rows[45] = 5;
+    G.rows[46] = 13;
+    G.rows[47] = 18;
+    G.rows[48] = 19;
+    G.rows[49] = 20;
+    G.rows[50] = 21;
+    G.rows[51] = 22;
+    G.rows[52] = 23;
+    G.rows[53] = 24;
+    G.rows[54] = 25;
+    G.rows[55] = 0;
+    G.rows[56] = 6;
+    G.rows[57] = 14;
+    G.rows[58] = 18;
+    G.rows[59] = 19;
+    G.rows[60] = 20;
+    G.rows[61] = 21;
+    G.rows[62] = 22;
+    G.rows[63] = 23;
+    G.rows[64] = 24;
+    G.rows[65] = 25;
+    G.rows[66] = 0;
+    G.rows[67] = 7;
+    G.rows[68] = 15;
+    G.rows[69] = 18;
+    G.rows[70] = 19;
+    G.rows[71] = 20;
+    G.rows[72] = 21;
+    G.rows[73] = 22;
+    G.rows[74] = 23;
+    G.rows[75] = 24;
+    G.rows[76] = 25;
+    G.rows[77] = 0;
+    G.rows[78] = 8;
+    G.rows[79] = 16;
+    G.rows[80] = 18;
+    G.rows[81] = 19;
+    G.rows[82] = 20;
+    G.rows[83] = 21;
+    G.rows[84] = 22;
+    G.rows[85] = 23;
+    G.rows[86] = 24;
+    G.rows[87] = 25;
+    G.rows[88] = 17;
+    G.rows[89] = 26;
+
+    G.column[0] = 0;
+    G.column[1] = 11;
+    G.column[2] = 22;
+    G.column[3] = 33;
+    G.column[4] = 44;
+    G.column[5] = 55;
+    G.column[6] = 66;
+    G.column[7] = 77;
+    G.column[8] = 88;
+    G.column[9] = 90;
+
+    // rest of h array is populated from contratins matrix
+    h[17] = 1.0;
+    h[18] = 0.0;
+    h[19] = 0.0;
+    h[20] = 0.0;
+    h[21] = 0.0;
+    h[22] = 0.0;
+    h[23] = 0.0;
+    h[24] = 0.0;
+    h[25] = 0.0;
+    h[26] = 0.0;
+
+    // rest of input matrix is set at runtime
+    F[8] = 1.0;
+
     // re-scale by weights to save runtime calculation
     w[2] *= num_motors*0.25;
     w[3] *= num_motors;
@@ -290,15 +505,53 @@ void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
     // calculate input vector
     mat_vec_mult(motor_factors, inputs, f);
 
-    // constraints, average throttle, 1 and 0
-    b[0] = -throttle_avg_max;
+    // inputs to ECOS format
     for (uint8_t i = 0; i < num_motors; i++) {
-        b[1+i] = -1.0; // could set this to 0 if a failed motor is detected
-        b[1+num_motors+i] = 0.0;
+        F[i] = f[i];
     }
 
+    // constraints, average throttle, 1 and 0
+    //b[0] = -throttle_avg_max;
+    //for (uint8_t i = 0; i < num_motors; i++) {
+    //    b[1+i] = -1.0; // could set this to 0 if a failed motor is detected
+    //    b[1+num_motors+i] = 0.0;
+    //}
+
+    // constraints, average throttle, 1 and 0
+    h[0] = -throttle_avg_max;
+    for (uint8_t i = 0; i < num_motors; i++) {
+        h[1+i] = 1.0; // could set this to 0 if a failed motor is detected
+        h[1+num_motors+i] = 0.0;
+    }
+
+    idxint cone_dim[1] = {num_motors + 2};
+    solution = ECOS_setup(num_motors + 1,                   // Number of variables
+                          num_constraints + num_motors + 2, // Number of inequalities, number of rows of G
+                          0,                                // Number of equality constraints
+                          num_constraints,                  // Dimension of positive orthant
+                          1,                                // Number of second order cones
+                          cone_dim,                         // Array of length 'ncones', defines the dimension of each cone
+                          0,                                // Number of exponential cones
+                          G.values,                         // Sparse G matrix data array (column compressed storage)
+                          G.column,                         // Sparse G matrix column index array (column compressed storage)
+                          G.rows,                           // Sparse G matrix row index array (column compressed storage)
+                          nullptr,                          // Sparse A matrix data array (column compressed storage) (can be all NULL if no equalities are present)
+                          nullptr,                          // Sparse A matrix column index array (column compressed storage) (can be all NULL if no equalities are present)
+                          nullptr,                          // Sparse A matrix row index array (column compressed storage) (can be all NULL if no equalities are present)
+                          F,                                // Array of size n, cost function weights
+                          h,                                // Array of size m, RHS vector of cone constraint
+                          nullptr);                         // Array of size p, RHS vector of equalities (can be NULL if no equalities are present)
+
+    ECOS_solve(solution);
+
+    for (uint8_t i = 0; i < num_motors; i++) {
+        x[i] = solution->best_x[i];
+    }
+
+    ECOS_cleanup(solution, 0);
+
     // the clever bit
-    interior_point_solve();
+    // interior_point_solve();
 
     // workout what output was achieved
     mat_vec_mult(motor_factors_trans, x, outputs);

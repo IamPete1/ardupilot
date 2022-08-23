@@ -11,6 +11,7 @@
 
 #include "AP_MotorsMatrix.h"
 #include <AP_Math/matrix_vec_dsp.h>
+#include "ecos/include/ecos.h"
 
 class AP_MotorsMatrix_Optimal : public AP_MotorsMatrix {
 public:
@@ -93,9 +94,24 @@ private:
     float f[max_num_motors];
     float b[max_num_constraints];
 
+    pfloat F[max_num_motors+1];
+
+    ECOS_pwork* solution;
+
+
     // number of iterations and convergence flag
     uint8_t iter;
     bool converged;
+
+    // ECOS CCS G matrix format
+    struct sparce_CCS_G {
+        // maximum number of none zero values in G matrix
+        static constexpr idxint max_G_size = 2 + max_num_motors * 3 + max_num_motors * max_num_motors;
+        pfloat values[max_G_size];
+        idxint rows[max_G_size];
+        idxint column[max_num_motors + 2];
+    } G;
+    pfloat h[max_num_constraints + max_num_motors + 2];
 
     // frame string with optimal prepended
     const char *string_prefix = "Optimal ";
