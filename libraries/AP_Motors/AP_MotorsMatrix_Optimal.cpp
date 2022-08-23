@@ -448,7 +448,7 @@ void AP_MotorsMatrix_Optimal::init(motor_frame_class frame_class, motor_frame_ty
     G.column[8] = 88;
     G.column[9] = 90;
 
-    // rest of h array is populated from contratins matrix
+    // rest of h array is populated from constraints matrix
     h[17] = 1.0;
     h[18] = 0.0;
     h[19] = 0.0;
@@ -518,7 +518,7 @@ void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
     //}
 
     // constraints, average throttle, 1 and 0
-    h[0] = -throttle_avg_max;
+    h[0] = throttle_avg_max;
     for (uint8_t i = 0; i < num_motors; i++) {
         h[1+i] = 1.0; // could set this to 0 if a failed motor is detected
         h[1+num_motors+i] = 0.0;
