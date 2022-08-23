@@ -19,14 +19,14 @@
 
 /* Equilibration module (c) Eric Chu, March 2014 */
 
-#include "ecos.h"
+#include <AP_Motors/ecos/include/ecos.h>
 
 #if defined EQUILIBRATE && EQUILIBRATE > 0
 
 #include <math.h>
 
-#include "equil.h"
-#include "spla.h"
+#include <AP_Motors/ecos/include/equil.h>
+#include <AP_Motors/ecos/include/spla.h>
 
 void max_rows(pfloat *E, const spmat *mat)
 {

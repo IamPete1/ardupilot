@@ -21,9 +21,9 @@
 
 
 /* ECOS HEADER FILE ---------------------------------------------------- */
-#include "ecos.h"
-#include "splamm.h"
-#include "equil.h"
+#include <AP_Motors/ecos/include/ecos.h>
+#include <AP_Motors/ecos/include/splamm.h>
+#include <AP_Motors/ecos/include/equil.h>
 
 /* NEEDED FOR SQRT ----------------------------------------------------- */
 #include <math.h>

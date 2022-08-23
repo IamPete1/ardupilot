@@ -26,11 +26,11 @@
  * - etc.
  */
 
-#include "kkt.h"
-#include "ldl.h"
-#include "splamm.h"
-#include "ecos.h"
-#include "cone.h"
+#include <AP_Motors/ecos/include/kkt.h>
+#include <AP_Motors/ecos/external/ldl/include/ldl.h>
+#include <AP_Motors/ecos/include/splamm.h>
+#include <AP_Motors/ecos/include/ecos.h>
+#include <AP_Motors/ecos/include/cone.h>
 
 #include <math.h>
 

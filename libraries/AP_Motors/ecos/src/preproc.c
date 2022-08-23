@@ -24,9 +24,9 @@
  * The main tasks are to set up the data structure, initializie memory,
  * and to compute the orderings on the regularized KKT matrix.
  */
-#include "ecos.h"
-#include "splamm.h"
-#include "equil.h"
+#include <AP_Motors/ecos/include/ecos.h>
+#include <AP_Motors/ecos/include/splamm.h>
+#include <AP_Motors/ecos/include/equil.h>
 
 /* NEEDED FORM MEMORY ALLOCATION --------------------------------------- */
 #include <stdlib.h>
@@ -35,11 +35,11 @@
 #include <math.h>
 
 /* MATRIX ORDERING LIBRARY --------------------------------------------- */
-#include "amd.h"
-#include "amd_internal.h"
+#include <AP_Motors/ecos/external/amd/include/amd.h>
+#include <AP_Motors/ecos/external/amd/include/amd_internal.h>
 
 /* SPARSE LDL LIBRARY -------------------------------------------------- */
-#include "ldl.h"
+#include <AP_Motors/ecos/external/ldl/include/ldl.h>
 
 
 /* CHOOSE RIGHT MEMORY MANAGER ----------------------------------------- */
@@ -443,7 +443,7 @@ void createKKT_U(spmat* Gt, spmat* At, cone* C, idxint** S, spmat** K,
  * copying over the arrays. One use case is the MEX interface, where we
  * do not want to free x,y,s,z (depending on the number of LHS).
  */
-void ECOS_cleanup(pwork* w, idxint keepvars)
+void ECOS_cleanup(ECOS_pwork* w, idxint keepvars)
 {
 	idxint i;
 

@@ -13,7 +13,7 @@
  * AMD_postorder routine.
  */
 
-#include "amd_internal.h"
+#include <AP_Motors/ecos/external/amd/include/amd_internal.h>
 
 /* ========================================================================= */
 /* === clear_flag ========================================================== */

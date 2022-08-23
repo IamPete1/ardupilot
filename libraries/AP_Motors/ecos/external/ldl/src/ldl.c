@@ -154,10 +154,10 @@
  * the README file for the License.
  */
 
-#include "ldl.h"
+#include <AP_Motors/ecos/external/ldl/include/ldl.h>
 
-#include "../../include/glblopts.h"
-#include "../../include/ecos.h"
+#include <AP_Motors/ecos/include/glblopts.h>
+#include <AP_Motors/ecos/include/ecos.h>
 
 
 /* ========================================================================== */

@@ -29,7 +29,7 @@
  * This module is (c) Michael Grant, [mcg@cvxr.com] contributed by Github PR #82
  */
 
-#include "ctrlc.h"
+#include <AP_Motors/ecos/include/ctrlc.h>
 
 #if CTRLC > 0
 

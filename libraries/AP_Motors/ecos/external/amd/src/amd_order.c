@@ -12,7 +12,7 @@
  * documentation.
  */
 
-#include "amd_internal.h"
+#include <AP_Motors/ecos/external/amd/include/amd_internal.h>
 
 /* ========================================================================= */
 /* === AMD_order =========================================================== */

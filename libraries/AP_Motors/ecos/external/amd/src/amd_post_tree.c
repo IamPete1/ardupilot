@@ -10,7 +10,7 @@
 
 /* Post-ordering of a supernodal elimination tree.  */
 
-#include "amd_internal.h"
+#include <AP_Motors/ecos/external/amd/include/amd_internal.h>
 
 GLOBAL Int AMD_post_tree
 (

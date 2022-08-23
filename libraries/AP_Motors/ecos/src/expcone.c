@@ -22,7 +22,7 @@
   * [akle@stanford.edu]
   */
 
-#include "expcone.h"
+#include <AP_Motors/ecos/include/expcone.h>
 
 #ifdef EXPCONE
 /* Evaluates the Hessian of the exponential dual cone barrier at the triplet

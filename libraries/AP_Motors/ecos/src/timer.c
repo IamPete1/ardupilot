@@ -28,7 +28,7 @@
  */
 
 
-#include "timer.h"
+#include <AP_Motors/ecos/include/timer.h>
 
 #if PROFILING > 0
 

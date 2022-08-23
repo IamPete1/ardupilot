@@ -23,7 +23,7 @@
  * accesses MALLOC and hence should not go on an embedded platform.
  */
 
-#include "splamm.h"
+#include <AP_Motors/ecos/include/splamm.h>
 
 /* SYSTEM INCLUDES FOR MEMORY ALLOCATION ------------------------------- */
 #if PRINTLEVEL > 2

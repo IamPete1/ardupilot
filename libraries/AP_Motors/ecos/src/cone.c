@@ -19,10 +19,10 @@
 
 
 /* cone functions */
-#include "cone.h"
-#include "spla.h"
-#include "ecos.h"
-#include "expcone.h"
+#include <AP_Motors/ecos/include/cone.h>
+#include <AP_Motors/ecos/include/spla.h>
+#include <AP_Motors/ecos/include/ecos.h>
+#include <AP_Motors/ecos/include/expcone.h>
 
 #include <stdio.h>
 #include <stdlib.h>

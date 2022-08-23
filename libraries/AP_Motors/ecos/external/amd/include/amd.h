@@ -43,7 +43,7 @@ extern "C" {
 /* get the definition of size_t: */
 #include <stddef.h>
 
-#include "SuiteSparse_config.h"
+#include <AP_Motors/ecos/external/SuiteSparse_config/SuiteSparse_config.h>
 
 int amd_order                  /* returns AMD_OK, AMD_OK_BUT_JUMBLED,
                                 * AMD_INVALID, or AMD_OUT_OF_MEMORY */

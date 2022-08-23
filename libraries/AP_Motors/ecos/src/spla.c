@@ -23,7 +23,7 @@
  * such as malloc is accessed by this module.
  */
 
-#include "spla.h"
+#include <AP_Motors/ecos/include/spla.h>
 
 #include <math.h>
 

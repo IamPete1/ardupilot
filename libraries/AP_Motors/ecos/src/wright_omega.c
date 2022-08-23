@@ -1,4 +1,4 @@
-#include "wright_omega.h"
+#include <AP_Motors/ecos/include/wright_omega.h>
 
 /**
  * Santiago Akle

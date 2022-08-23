@@ -8,10 +8,10 @@
  * Stripped down by Alexander Domahidi, 2012.
  */
 
-#include "../../include/glblopts.h"
-#include "../../include/ecos.h"
+#include <AP_Motors/ecos/include/glblopts.h>
+#include <AP_Motors/ecos/include/ecos.h>
 
-#include "SuiteSparse_config.h"
+#include <AP_Motors/ecos/external/SuiteSparse_config/SuiteSparse_config.h>
 
 #ifdef LDL_LONG
 #define LDL_int SuiteSparse_long

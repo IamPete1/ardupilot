@@ -12,7 +12,7 @@
  * for details.  If the Info array is not present, nothing is printed.
  */
 
-#include "amd_internal.h"
+#include <AP_Motors/ecos/external/amd/include/amd_internal.h>
 
 #define PRI(format,x) { if (x >= 0) { PRINTF ((format, x)) ; }}
 

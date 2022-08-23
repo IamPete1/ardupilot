@@ -22,8 +22,8 @@
 
 #include <stdio.h>
 
-#include "ecos.h"
-#include "data.h"
+#include <AP_Motors/ecos/include/ecos.h>
+#include <AP_Motors/ecos/include/data.h>
 
 #ifdef EXPCONE
 int main(void)
