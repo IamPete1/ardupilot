@@ -254,95 +254,138 @@ void AP_MotorsMatrix_Optimal::init(motor_frame_class frame_class, motor_frame_ty
         A.min_throttle[i] =  1.0;
     }
 
+    // re-scale by weights to save runtime calculation
+    w[2] *= num_motors*0.25;
+    w[3] *= num_motors;
+    vec_scale(w, -1.0, w, 4);
+    per_element_mult_mv(motor_factors, w, motor_factors);
+
+}
+
+
+// output - sends commands to the motors, 
+void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
+{
+    if (!initialised_ok()) {
+        return;
+    }
+#if !APM_BUILD_TYPE(APM_BUILD_UNKNOWN)
+#if DISABLE_INTERRUPTS_FOR_TIMMING
+    void *istate = hal.scheduler->disable_interrupts_save();
+#endif
+    const uint32_t start_us = AP_HAL::micros();
+#endif
+
+    // apply voltage and air pressure compensation
+    const float compensation_gain = get_compensation_gain(); // compensation for battery voltage and altitude
+    inputs[0] = (_roll_in + _roll_in_ff) * compensation_gain;
+    inputs[1] = (_pitch_in + _pitch_in_ff) * compensation_gain;
+    inputs[2] = (_yaw_in + _yaw_in_ff) * compensation_gain;
+    inputs[3] = get_throttle() * compensation_gain;
+    float throttle_avg_max = _throttle_avg_max * compensation_gain;
+
+    // If thrust boost is active then do not limit maximum thrust
+    const float throttle_thrust_max = _thrust_boost_ratio + (1.0 - _thrust_boost_ratio) * _throttle_thrust_max * compensation_gain;
+
+    // sanity check throttle is above zero and below current limited throttle
+    inputs[3] = constrain_float(inputs[3], 0.0, throttle_thrust_max);
+
+    // ensure that throttle_avg_max is between the input throttle and the maximum throttle
+    throttle_avg_max = constrain_float(throttle_avg_max, inputs[3], throttle_thrust_max);
+
+    // calculate input vector
+    mat_vec_mult(motor_factors, inputs, f);
+
+    // inputs to ECOS format
     // hardcoded G matrix for octa X
     G.values[0] = 0.125;
     G.values[1] = 1;
     G.values[2] = -1;
-    G.values[3] = 2.08623;
-    G.values[4] = -0.00981516;
-    G.values[5] = 0.409963;
-    G.values[6] = -1.07216;
-    G.values[7] = 0.409963;
-    G.values[8] = -1.07216;
-    G.values[9] = 1.03821;
-    G.values[10] = 1.03821;
+    G.values[3] = 2.202;
+    G.values[4] = -1.62484;
+    G.values[5] = 1.28802;
+    G.values[6] = -1.41796;
+    G.values[7] = 1.28802;
+    G.values[8] = -1.41796;
+    G.values[9] = 0.28858;
+    G.values[10] = 0.28858;
     G.values[11] = 0.125;
     G.values[12] = 1;
     G.values[13] = -1;
-    G.values[14] = -0.00981516;
-    G.values[15] = 2.08623;
-    G.values[16] = -1.07216;
-    G.values[17] = 0.409963;
-    G.values[18] = -1.07216;
-    G.values[19] = 0.409963;
-    G.values[20] = 1.03821;
-    G.values[21] = 1.03821;
+    G.values[14] = -1.62484;
+    G.values[15] = 2.202;
+    G.values[16] = -1.41796;
+    G.values[17] = 1.28802;
+    G.values[18] = -1.41796;
+    G.values[19] = 1.28802;
+    G.values[20] = 0.28858;
+    G.values[21] = 0.28858;
     G.values[22] = 0.125;
     G.values[23] = 1;
     G.values[24] = -1;
-    G.values[25] = 0.409963;
-    G.values[26] = -1.07216;
-    G.values[27] = 2.08623;
-    G.values[28] = 1.03821;
-    G.values[29] = 1.03821;
-    G.values[30] = -0.00981515;
-    G.values[31] = -1.07216;
-    G.values[32] = 0.409963;
+    G.values[25] = 1.28802;
+    G.values[26] = -1.41796;
+    G.values[27] = 2.202;
+    G.values[28] = 0.28858;
+    G.values[29] = 0.28858;
+    G.values[30] = -1.62484;
+    G.values[31] = -1.41796;
+    G.values[32] = 1.28802;
     G.values[33] = 0.125;
     G.values[34] = 1;
     G.values[35] = -1;
-    G.values[36] = -1.07216;
-    G.values[37] = 0.409963;
-    G.values[38] = 1.03821;
-    G.values[39] = 2.08623;
-    G.values[40] = -0.00981516;
-    G.values[41] = 1.03821;
-    G.values[42] = -1.07216;
-    G.values[43] = 0.409963;
+    G.values[36] = -1.41796;
+    G.values[37] = 1.28802;
+    G.values[38] = 0.28858;
+    G.values[39] = 2.202;
+    G.values[40] = -1.62484;
+    G.values[41] = 0.28858;
+    G.values[42] = -1.41796;
+    G.values[43] = 1.28802;
     G.values[44] = 0.125;
     G.values[45] = 1;
     G.values[46] = -1;
-    G.values[47] = 0.409963;
-    G.values[48] = -1.07216;
-    G.values[49] = 1.03821;
-    G.values[50] = -0.00981516;
-    G.values[51] = 2.08623;
-    G.values[52] = 1.03821;
-    G.values[53] = 0.409963;
-    G.values[54] = -1.07216;
+    G.values[47] = 1.28802;
+    G.values[48] = -1.41796;
+    G.values[49] = 0.28858;
+    G.values[50] = -1.62484;
+    G.values[51] = 2.202;
+    G.values[52] = 0.28858;
+    G.values[53] = 1.28802;
+    G.values[54] = -1.41796;
     G.values[55] = 0.125;
     G.values[56] = 1;
     G.values[57] = -1;
-    G.values[58] = -1.07216;
-    G.values[59] = 0.409963;
-    G.values[60] = -0.00981515;
-    G.values[61] = 1.03821;
-    G.values[62] = 1.03821;
-    G.values[63] = 2.08623;
-    G.values[64] = 0.409963;
-    G.values[65] = -1.07216;
+    G.values[58] = -1.41796;
+    G.values[59] = 1.28802;
+    G.values[60] = -1.62484;
+    G.values[61] = 0.28858;
+    G.values[62] = 0.28858;
+    G.values[63] = 2.202;
+    G.values[64] = 1.28802;
+    G.values[65] = -1.41796;
     G.values[66] = 0.125;
     G.values[67] = 1;
     G.values[68] = -1;
-    G.values[69] = 1.03821;
-    G.values[70] = 1.03821;
-    G.values[71] = -1.07216;
-    G.values[72] = -1.07216;
-    G.values[73] = 0.409963;
-    G.values[74] = 0.409963;
-    G.values[75] = 2.08623;
-    G.values[76] = -0.00981515;
+    G.values[69] = 0.28858;
+    G.values[70] = 0.28858;
+    G.values[71] = -1.41796;
+    G.values[72] = -1.41796;
+    G.values[73] = 1.28802;
+    G.values[74] = 1.28802;
+    G.values[75] = 2.202;
+    G.values[76] = -1.62484;
     G.values[77] = 0.125;
     G.values[78] = 1;
     G.values[79] = -1;
-    G.values[80] = 1.03821;
-    G.values[81] = 1.03821;
-    G.values[82] = 0.409963;
-    G.values[83] = 0.409963;
-    G.values[84] = -1.07216;
-    G.values[85] = -1.07216;
-    G.values[86] = -0.00981515;
-    G.values[87] = 2.08623;
+    G.values[80] = 0.28858;
+    G.values[81] = 0.28858;
+    G.values[82] = 1.28802;
+    G.values[83] = 1.28802;
+    G.values[84] = -1.41796;
+    G.values[85] = -1.41796;
+    G.values[86] = -1.62484;
+    G.values[87] = 2.202;
     G.values[88] = -1;
     G.values[89] = 1;
 
@@ -463,49 +506,7 @@ void AP_MotorsMatrix_Optimal::init(motor_frame_class frame_class, motor_frame_ty
     // rest of input matrix is set at runtime
     F[8] = 1.0;
 
-    // re-scale by weights to save runtime calculation
-    w[2] *= num_motors*0.25;
-    w[3] *= num_motors;
-    vec_scale(w, -1.0, w, 4);
-    per_element_mult_mv(motor_factors, w, motor_factors);
 
-}
-
-
-// output - sends commands to the motors, 
-void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
-{
-    if (!initialised_ok()) {
-        return;
-    }
-#if !APM_BUILD_TYPE(APM_BUILD_UNKNOWN)
-#if DISABLE_INTERRUPTS_FOR_TIMMING
-    void *istate = hal.scheduler->disable_interrupts_save();
-#endif
-    const uint32_t start_us = AP_HAL::micros();
-#endif
-
-    // apply voltage and air pressure compensation
-    const float compensation_gain = get_compensation_gain(); // compensation for battery voltage and altitude
-    inputs[0] = (_roll_in + _roll_in_ff) * compensation_gain;
-    inputs[1] = (_pitch_in + _pitch_in_ff) * compensation_gain;
-    inputs[2] = (_yaw_in + _yaw_in_ff) * compensation_gain;
-    inputs[3] = get_throttle() * compensation_gain;
-    float throttle_avg_max = _throttle_avg_max * compensation_gain;
-
-    // If thrust boost is active then do not limit maximum thrust
-    const float throttle_thrust_max = _thrust_boost_ratio + (1.0 - _thrust_boost_ratio) * _throttle_thrust_max * compensation_gain;
-
-    // sanity check throttle is above zero and below current limited throttle
-    inputs[3] = constrain_float(inputs[3], 0.0, throttle_thrust_max);
-
-    // ensure that throttle_avg_max is between the input throttle and the maximum throttle
-    throttle_avg_max = constrain_float(throttle_avg_max, inputs[3], throttle_thrust_max);
-
-    // calculate input vector
-    mat_vec_mult(motor_factors, inputs, f);
-
-    // inputs to ECOS format
     for (uint8_t i = 0; i < num_motors; i++) {
         F[i] = f[i];
     }
@@ -545,7 +546,7 @@ void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
     ECOS_solve(solution);
 
     for (uint8_t i = 0; i < num_motors; i++) {
-        x[i] = solution->best_x[i];
+        x[i] = solution->x[i];
     }
 
     ECOS_cleanup(solution, 0);
