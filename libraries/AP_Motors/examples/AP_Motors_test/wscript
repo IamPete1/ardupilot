@@ -2,6 +2,17 @@
 # encoding: utf-8
 
 def build(bld):
-    bld.ap_example(
+
+    source = bld.path.ant_glob('*.cpp')
+    source += bld.path.ant_glob('../../ecos/src/*.c')
+    source += bld.path.ant_glob('../../ecos/external/amd/src/*.c')
+    source += bld.path.ant_glob('../../ecos/external/ldl/src/*.c')
+
+    print(source)
+
+    bld.ap_program(
         use='ap',
+        program_groups=['examples'],
+        source=source,
     )
+

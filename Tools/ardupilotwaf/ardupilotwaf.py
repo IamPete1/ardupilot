@@ -229,7 +229,9 @@ def ap_get_all_libraries(bld):
         if name == 'SITL':
             continue
         libraries.append(name)
-    libraries.extend(['AP_HAL', 'AP_HAL_Empty'])
+    libraries.extend(['AP_HAL', 'AP_HAL_Empty','AP_Motors/ecos/src',
+            'AP_Motors/ecos/external/amd/src',
+            'AP_Motors/ecos/external/ldl/src'])
     return libraries
 
 @conf
