@@ -31,6 +31,9 @@ def build(bld):
             'AP_OSD',
             'AC_AutoTune',
             'AP_KDECAN',
+            'AP_Motors/ecos/src',
+            'AP_Motors/ecos/external/amd/src',
+            'AP_Motors/ecos/external/ldl/src',
         ],
     )
 
