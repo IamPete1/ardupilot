@@ -165,6 +165,7 @@ enum LoggingParameters {
 #define FS_GCS_ENABLED_AUTO_RTL_OR_RTL         6
 
 // EKF failsafe definitions (FS_EKF_ACTION parameter)
+#define FS_EKF_ACTION_REPORT_ONLY           0
 #define FS_EKF_ACTION_LAND                  1       // switch to LAND mode on EKF failsafe
 #define FS_EKF_ACTION_ALTHOLD               2       // switch to ALTHOLD mode on EKF failsafe
 #define FS_EKF_ACTION_LAND_EVEN_STABILIZE   3       // switch to Land mode on EKF failsafe even if in a manual flight mode like stabilize
