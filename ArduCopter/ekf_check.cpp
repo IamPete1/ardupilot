@@ -158,6 +158,9 @@ void Copter::failsafe_ekf_event()
 
     // take action based on fs_ekf_action parameter
     switch (g.fs_ekf_action) {
+        case FS_EKF_ACTION_REPORT_ONLY:
+            gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF Failsafe");
+            return;
         case FS_EKF_ACTION_ALTHOLD:
             // AltHold
             if (failsafe.radio || !set_mode(Mode::Number::ALT_HOLD, ModeReason::EKF_FAILSAFE)) {
@@ -170,6 +173,8 @@ void Copter::failsafe_ekf_event()
             set_mode_land_with_pause(ModeReason::EKF_FAILSAFE);
             break;
     }
+
+    gcs().send_text(MAV_SEVERITY_CRITICAL, "EKF Failsafe: changed to %s Mode", flightmode->name());
 }
 
 // failsafe_ekf_off_event - actions to take when EKF failsafe is cleared
