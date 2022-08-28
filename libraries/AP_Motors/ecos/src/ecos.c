@@ -106,13 +106,17 @@ void saveIterateAsBest(ECOS_pwork* w)
 {
     idxint i;
     for (i=0; i<w->n; i++) { w->best_x[i] = w->x[i]; }
+#ifdef EQUALITY_CONSTRAINTS
     for (i=0; i<w->p; i++) { w->best_y[i] = w->y[i]; }
+#endif
     for (i=0; i<w->m; i++) { w->best_z[i] = w->z[i]; }
     for (i=0; i<w->m; i++) { w->best_s[i] = w->s[i]; }
     w->best_kap = w->kap;
     w->best_tau = w->tau;
     w->best_cx = w->cx;
+#ifdef EQUALITY_CONSTRAINTS
     w->best_by = w->by;
+#endif
     w->best_hz = w->hz;
     w->best_info->pcost = w->info->pcost;
 	w->best_info->dcost = w->info->dcost;
@@ -136,13 +140,17 @@ void restoreBestIterate(ECOS_pwork* w)
 {
     idxint i;
     for (i=0; i<w->n; i++) { w->x[i] = w->best_x[i]; }
+#ifdef EQUALITY_CONSTRAINTS
     for (i=0; i<w->p; i++) { w->y[i] = w->best_y[i]; }
+#endif
     for (i=0; i<w->m; i++) { w->z[i] = w->best_z[i]; }
     for (i=0; i<w->m; i++) { w->s[i] = w->best_s[i]; }
     w->kap = w->best_kap;
     w->tau = w->best_tau;
     w->cx = w->best_cx;
+#ifdef EQUALITY_CONSTRAINTS
     w->by = w->best_by;
+#endif
     w->hz = w->best_hz;
     w->info->pcost = w->best_info->pcost;
 	w->info->dcost = w->best_info->dcost;
@@ -196,17 +204,25 @@ idxint checkExitConditions(ECOS_pwork* w, idxint mode)
     }
 
     /* Optimal? */
-    if( ( -w->cx > 0 || -w->by - w->hz >= -abstol ) &&
+#ifdef EQUALITY_CONSTRAINTS
+    const pfloat by = -w->by;
+#else
+    const pfloat by = 0;
+#endif
+    if( ( -w->cx > 0 || by - w->hz >= -abstol ) &&
         ( w->info->pres < feastol && w->info->dres < feastol ) &&
         ( w->info->gap < abstol || w->info->relgap < reltol  )){
 #if PRINTLEVEL > 0
         if( w->stgs->verbose ) {
             if( mode == 0) {
-                PRINTTEXT("\nOPTIMAL (within feastol=%3.1e, reltol=%3.1e, abstol=%3.1e).", MAX(w->info->dres, w->info->pres), w->info->relgap, w->info->gap);
+                PRINTTEXT("\nOPTIMAL (within feastol=%3.1e, reltol=%3.1e, abstol=%3.1e).\n", MAX(w->info->dres, w->info->pres), w->info->relgap, w->info->gap);
             } else {
-                PRINTTEXT("\nClose to OPTIMAL (within feastol=%3.1e, reltol=%3.1e, abstol=%3.1e).", MAX(w->info->dres, w->info->pres), w->info->relgap, w->info->gap);
+                PRINTTEXT("\nClose to OPTIMAL (within feastol=%3.1e, reltol=%3.1e, abstol=%3.1e).\n", MAX(w->info->dres, w->info->pres), w->info->relgap, w->info->gap);
             }
         }
+#if DEBUG > 0
+        printDenseMatrix(w->x, w->n, 1, "X");
+#endif
 #endif
         w->info->pinf = 0;
         w->info->dinf = 0;
@@ -261,7 +277,11 @@ idxint init(ECOS_pwork* w)
 {
 	idxint i, j, k, l, KKT_FACTOR_RETURN_CODE;
 	idxint* Pinv = w->KKT->Pinv;
-    pfloat rx, ry, rz;
+    pfloat rx;
+#ifdef EQUALITY_CONSTRAINTS
+    pfloat ry;
+#endif
+    pfloat rz;
 
 #if PROFILING > 1
 	timer tfactor, tkktsolve;
@@ -281,7 +301,9 @@ idxint init(ECOS_pwork* w)
     /* initialize RHS1 */
 	k = 0; j = 0;
 	for( i=0; i<w->n; i++ ){ w->KKT->RHS1[w->KKT->Pinv[k++]] = 0; }
+#ifdef EQUALITY_CONSTRAINTS
 	for( i=0; i<w->p; i++ ){ w->KKT->RHS1[w->KKT->Pinv[k++]] = w->b[i]; }
+#endif
 	for( i=0; i<w->C->lpc->p; i++ ){ w->KKT->RHS1[w->KKT->Pinv[k++]] = w->h[i]; j++; }
 	for( l=0; l<w->C->nsoc; l++ ){
 		for( i=0; i < w->C->soc[l].p; i++ ){ w->KKT->RHS1[w->KKT->Pinv[k++]] = w->h[j++]; }
@@ -306,7 +328,9 @@ idxint init(ECOS_pwork* w)
 
 	/* get scalings of problem data */
 	rx = norm2(w->c, w->n); w->resx0 = MAX(1, rx);
+#ifdef EQUALITY_CONSTRAINTS
 	ry = norm2(w->b, w->p); w->resy0 = MAX(1, ry);
+#endif
 	rz = norm2(w->h, w->m); w->resz0 = MAX(1, rz);
 
 #ifdef EXPCONE
@@ -353,7 +377,11 @@ idxint init(ECOS_pwork* w)
 #if PROFILING > 1
 	tic(&tkktsolve);
 #endif
+#ifdef EQUALITY_CONSTRAINTS
 	w->info->nitref1 = kkt_solve(w->KKT, w->A, w->G, w->KKT->RHS1, w->KKT->dx1, w->KKT->dy1, w->KKT->dz1, w->n, w->p, w->m, w->C, 1, w->stgs->nitref);
+#else
+	w->info->nitref1 = kkt_solve(w->KKT, w->G, w->KKT->RHS1, w->KKT->dx1, w->KKT->dz1, w->n, w->m, w->C, 1, w->stgs->nitref);
+#endif
 #if PROFILING > 1
 	w->info->tkktsolve += toc(&tkktsolve);
 #endif
@@ -361,7 +389,9 @@ idxint init(ECOS_pwork* w)
 #if DEBUG > 0
 #if PRINTLEVEL > 3
     printDenseMatrix(w->KKT->dx1, w->n, 1, "dx1_init");
+#ifdef EQUALITY_CONSTRAINTS
     printDenseMatrix(w->KKT->dy1, w->p, 1, "dy1_init");
+#endif
     printDenseMatrix(w->KKT->dz1, w->m, 1, "dz1_init");
 #endif
 #endif
@@ -393,7 +423,11 @@ idxint init(ECOS_pwork* w)
 #if PROFILING > 1
 	tic(&tkktsolve);
 #endif
+#ifdef EQUALITY_CONSTRAINTS
 	w->info->nitref2 = kkt_solve(w->KKT, w->A, w->G, w->KKT->RHS2, w->KKT->dx2, w->KKT->dy2, w->KKT->dz2, w->n, w->p, w->m, w->C, 1, w->stgs->nitref);
+#else
+	w->info->nitref2 = kkt_solve(w->KKT, w->G, w->KKT->RHS2, w->KKT->dx2, w->KKT->dz2, w->n, w->m, w->C, 1, w->stgs->nitref);
+#endif
 #if PROFILING > 1
 	w->info->tkktsolve += toc(&tkktsolve);
 #endif
@@ -401,13 +435,17 @@ idxint init(ECOS_pwork* w)
 #if DEBUG > 0
 #if PRINTLEVEL > 3
     printDenseMatrix(w->KKT->dx2, w->n, 1, "dx2_init");
+#ifdef EQUALITY_CONSTRAINTS
     printDenseMatrix(w->KKT->dy2, w->p, 1, "dy2_init");
+#endif
     printDenseMatrix(w->KKT->dz2, w->m, 1, "dz2_init");
 #endif
 #endif
 
     /* Copy out initial value of y */
+#ifdef EQUALITY_CONSTRAINTS
 	for( i=0; i<w->p; i++ ){ w->y[i] = w->KKT->dy2[i]; }
+#endif
 
 	/* Bring variable to cone */
 	bring2cone(w->C, w->KKT->dz2, w->z );
@@ -455,16 +493,20 @@ idxint init(ECOS_pwork* w)
 void computeResiduals(ECOS_pwork *w)
 {
 	/* rx = -A'*y - G'*z - c.*tau */
+#ifdef EQUALITY_CONSTRAINTS
 	if( w->p > 0 ) {
         sparseMtVm(w->A, w->y, w->rx, 1, 0);
         sparseMtVm(w->G, w->z, w->rx, 0, 0);
-    } else {
+    } else
+#endif
+           {
         sparseMtVm(w->G, w->z, w->rx, 1, 0);
     }
 	w->hresx = norm2(w->rx, w->n);
 	vsubscale(w->n, w->tau, w->c, w->rx);
 
 	/* ry = A*x - b.*tau */
+#ifdef EQUALITY_CONSTRAINTS
 	if( w->p > 0 ){
         sparseMV(w->A, w->x, w->ry, 1, 1);
         w->hresy = norm2(w->ry, w->p);
@@ -473,6 +515,7 @@ void computeResiduals(ECOS_pwork *w)
         w->hresy = 0;
         w->ry = NULL;
 	}
+#endif
 
 	/* rz = s + G*x - h.*tau */
 	sparseMV(w->G, w->x, w->rz, 1, 1);
@@ -482,13 +525,21 @@ void computeResiduals(ECOS_pwork *w)
 
 	/* rt = kappa + c'*x + b'*y + h'*z; */
 	w->cx = eddot(w->n, w->c, w->x);
+#ifdef EQUALITY_CONSTRAINTS
 	w->by = w->p > 0 ? eddot(w->p, w->b, w->y) : 0.0;
+#endif
 	w->hz = eddot(w->m, w->h, w->z);
+#ifdef EQUALITY_CONSTRAINTS
 	w->rt = w->kap + w->cx + w->by + w->hz;
+#else
+	w->rt = w->kap + w->cx + w->hz;
+#endif
 
     /* Norms of x y z */
     w->nx = norm2(w->x,w->n);
+#ifdef EQUALITY_CONSTRAINTS
     w->ny = norm2(w->y,w->p);
+#endif
     w->ns = norm2(w->s,w->m);
     w->nz = norm2(w->z,w->m);
 
@@ -501,7 +552,10 @@ void computeResiduals(ECOS_pwork *w)
  */
 void updateStatistics(ECOS_pwork* w)
 {
-	pfloat nry, nrz;
+#ifdef EQUALITY_CONSTRAINTS
+	pfloat nry;
+#endif
+    pfloat nrz;
 
 	ECOS_stats* info = w->info;
 
@@ -511,7 +565,11 @@ void updateStatistics(ECOS_pwork* w)
 
 	info->kapovert = w->kap / w->tau;
 	info->pcost = w->cx / w->tau;
+#ifdef EQUALITY_CONSTRAINTS
 	info->dcost = -(w->hz + w->by) / w->tau;
+#else
+	info->dcost = -w->hz / w->tau;
+#endif
 
     /* relative duality gap */
 	if( info->pcost < 0 ){ info->relgap = info->gap / (-info->pcost); }
@@ -519,10 +577,17 @@ void updateStatistics(ECOS_pwork* w)
 	else info->relgap = ECOS_NAN;
 
     /* residuals */
+#ifdef EQUALITY_CONSTRAINTS
     nry = w->p > 0 ? norm2(w->ry, w->p)/MAX(w->resy0+w->nx,1) : 0.0;
+#endif
     nrz = norm2(w->rz, w->m)/MAX(w->resz0+w->nx+w->ns,1);
+#ifdef EQUALITY_CONSTRAINTS
 	info->pres = MAX(nry, nrz) / w->tau;
 	info->dres = norm2(w->rx, w->n)/MAX(w->resx0+w->ny+w->nz,1) / w->tau;
+#else
+	info->pres = nrz / w->tau;
+	info->dres = norm2(w->rx, w->n)/MAX(w->resx0+w->nz,1) / w->tau;
+#endif
 
 	/* infeasibility measures
      *
@@ -530,9 +595,13 @@ void updateStatistics(ECOS_pwork* w)
      * info->pinfres = w->hz + w->by < 0 ? w->hresx / w->resx0 / (-w->hz - w->by) : NAN;
      * info->dinfres = w->cx < 0 ? MAX(w->hresy/w->resy0, w->hresz/w->resz0) / (-w->cx) : NAN;
      */
+#ifdef EQUALITY_CONSTRAINTS
     info->pinfres = (w->hz + w->by)/MAX(w->ny+w->nz,1) < -w->stgs->reltol ? w->hresx / MAX(w->ny+w->nz,1) : ECOS_NAN;
     info->dinfres = w->cx/MAX(w->nx,1) < -w->stgs->reltol ? MAX(w->hresy/MAX(w->nx,1), w->hresz/MAX(w->nx+w->ns,1)) : ECOS_NAN;
-
+#else
+    info->pinfres = w->hz/MAX(w->nz,1) < -w->stgs->reltol ? w->hresx / MAX(w->nz,1) : ECOS_NAN;
+    info->dinfres = w->cx/MAX(w->nx,1) < -w->stgs->reltol ? w->hresz/MAX(w->nx+w->ns,1) : ECOS_NAN;
+#endif
 
 
 #if PRINTLEVEL > 2
@@ -649,13 +718,17 @@ void RHS_affine(ECOS_pwork* w)
 {
 	pfloat* RHS = w->KKT->RHS2;
 	idxint n = w->n;
+#ifdef EQUALITY_CONSTRAINTS
 	idxint p = w->p;
+#endif
 	idxint i, j, k, l;
 	idxint* Pinv = w->KKT->Pinv;
 
 	j = 0;
 	for( i=0; i < n; i++ ){ RHS[Pinv[j++]] = w->rx[i]; }
+#ifdef EQUALITY_CONSTRAINTS
 	for( i=0; i < p; i++ ){ RHS[Pinv[j++]] = -w->ry[i]; }
+#endif
 	for( i=0; i < w->C->lpc->p; i++ ){ RHS[Pinv[j++]] = w->s[i] - w->rz[i]; }
 	k = w->C->lpc->p;
 	for( l=0; l < w->C->nsoc; l++ ){
@@ -714,7 +787,9 @@ void RHS_combined(ECOS_pwork* w)
 	/* copy in RHS */
 	j = 0;
 	for( i=0; i < w->n; i++ ){ w->KKT->RHS2[Pinv[j++]] *= one_minus_sigma; }
+#ifdef EQUALITY_CONSTRAINTS
 	for( i=0; i < w->p; i++ ){ w->KKT->RHS2[Pinv[j++]] *= one_minus_sigma; }
+#endif
     for( i=0; i < w->C->lpc->p; i++) { w->KKT->RHS2[Pinv[j++]] = -one_minus_sigma*w->rz[i] + ds1[i]; }
 	k = w->C->lpc->p;
 	for( l=0; l < w->C->nsoc; l++ ){
@@ -1054,14 +1129,18 @@ void backscale(ECOS_pwork *w)
 #if defined EQUILIBRATE && EQUILIBRATE > 0
     /* We performed a change of variables on x so this unsets the equilibration */
 	for( i=0; i < w->n; i++ ){ w->x[i] /= (w->xequil[i] * w->tau); }
+#ifdef EQUALITY_CONSTRAINTS
     for( i=0; i < w->p; i++ ){ w->y[i] /= (w->Aequil[i] * w->tau); }
+#endif
 	for( i=0; i < w->m; i++ ){ w->z[i] /= (w->Gequil[i] * w->tau); }
 	for( i=0; i < w->m; i++ ){ w->s[i] *= (w->Gequil[i] / w->tau); }
     for( i=0; i < w->n; i++ ){ w->c[i] *= w->xequil[i]; }
 #else
     /* standard back scaling without equilibration */
     for( i=0; i < w->n; i++ ){ w->x[i] /= w->tau; }
+#ifdef EQUALITY_CONSTRAINTS
     for( i=0; i < w->p; i++ ){ w->y[i] /= w->tau; }
+#endif
 	for( i=0; i < w->m; i++ ){ w->z[i] /= w->tau; }
 	for( i=0; i < w->m; i++ ){ w->s[i] /= w->tau; }
 #endif
@@ -1346,7 +1425,11 @@ idxint ECOS_solve(ECOS_pwork* w)
 #if PROFILING > 1
 		tic(&tkktsolve);
 #endif
+#ifdef EQUALITY_CONSTRAINTS
 		w->info->nitref1 = kkt_solve(w->KKT, w->A, w->G, w->KKT->RHS1, w->KKT->dx1, w->KKT->dy1, w->KKT->dz1, w->n, w->p, w->m, w->C, 0, w->stgs->nitref);
+#else
+		w->info->nitref1 = kkt_solve(w->KKT, w->G, w->KKT->RHS1, w->KKT->dx1, w->KKT->dz1, w->n, w->m, w->C, 0, w->stgs->nitref);
+#endif
 #if PROFILING > 1
 		w->info->tkktsolve += toc(&tkktsolve);
 #endif
@@ -1363,16 +1446,28 @@ idxint ECOS_solve(ECOS_pwork* w)
 #if PROFILING > 1
 		tic(&tkktsolve);
 #endif
+#ifdef EQUALITY_CONSTRAINTS
 		w->info->nitref2 = kkt_solve(w->KKT, w->A, w->G, w->KKT->RHS2, w->KKT->dx2, w->KKT->dy2, w->KKT->dz2, w->n, w->p, w->m, w->C, 0, w->stgs->nitref);
+#else
+		w->info->nitref2 = kkt_solve(w->KKT, w->G, w->KKT->RHS2, w->KKT->dx2, w->KKT->dz2, w->n, w->m, w->C, 0, w->stgs->nitref);
+#endif
 #if PROFILING > 1
 		w->info->tkktsolve += toc(&tkktsolve);
 #endif
 
+#ifdef EQUALITY_CONSTRAINTS
 		/* dtau_denom = kap/tau - (c'*x1 + by1 + h'*z1); */
 		dtau_denom = w->kap/w->tau - eddot(w->n, w->c, w->KKT->dx1) - eddot(w->p, w->b, w->KKT->dy1) - eddot(w->m, w->h, w->KKT->dz1);
 
         /* dtauaff = (dt + c'*x2 + by2 + h'*z2) / dtau_denom; */
 		dtauaff = (w->rt - w->kap + eddot(w->n, w->c, w->KKT->dx2) + eddot(w->p, w->b, w->KKT->dy2) + eddot(w->m, w->h, w->KKT->dz2)) / dtau_denom;
+#else
+		/* dtau_denom = kap/tau - (c'*x1 + h'*z1); */
+		dtau_denom = w->kap/w->tau - eddot(w->n, w->c, w->KKT->dx1) - eddot(w->m, w->h, w->KKT->dz1);
+
+        /* dtauaff = (dt + c'*x2 + h'*z2) / dtau_denom; */
+		dtauaff = (w->rt - w->kap + eddot(w->n, w->c, w->KKT->dx2) + eddot(w->m, w->h, w->KKT->dz2)) / dtau_denom;
+#endif
 
 		/* dzaff = dz2 + dtau_aff*dz1 */
         /* let dz2   = dzaff  we use this in the linesearch for unsymmetric cones*/
@@ -1474,7 +1569,11 @@ idxint ECOS_solve(ECOS_pwork* w)
 #if PROFILING > 1
 		tic(&tkktsolve);
 #endif
+#ifdef EQUALITY_CONSTRAINTS
 		w->info->nitref3 = kkt_solve(w->KKT, w->A, w->G, w->KKT->RHS2, w->KKT->dx2, w->KKT->dy2, w->KKT->dz2, w->n, w->p, w->m, w->C, 0, w->stgs->nitref);
+#else
+		w->info->nitref3 = kkt_solve(w->KKT, w->G, w->KKT->RHS2, w->KKT->dx2, w->KKT->dz2, w->n, w->m, w->C, 0, w->stgs->nitref);
+#endif
 #if PROFILING > 1
 		w->info->tkktsolve += toc(&tkktsolve);
 #endif
@@ -1483,11 +1582,17 @@ idxint ECOS_solve(ECOS_pwork* w)
 		bkap = w->kap*w->tau + dkapaff*dtauaff - sigma*w->info->mu;
 
 		/* dtau = ((1-sigma)*rt - bkap/tau + c'*x2 + by2 + h'*z2) / dtau_denom; */
+#ifdef EQUALITY_CONSTRAINTS
 		dtau = ((1-sigma)*w->rt - bkap/w->tau + eddot(w->n, w->c, w->KKT->dx2) + eddot(w->p, w->b, w->KKT->dy2) + eddot(w->m, w->h, w->KKT->dz2)) / dtau_denom;
+#else
+		dtau = ((1-sigma)*w->rt - bkap/w->tau + eddot(w->n, w->c, w->KKT->dx2) + eddot(w->m, w->h, w->KKT->dz2)) / dtau_denom;
+#endif
 
 		/* dx = x2 + dtau*x1;     dy = y2 + dtau*y1;       dz = z2 + dtau*z1; */
 		for( i=0; i < w->n; i++ ){ w->KKT->dx2[i] += dtau*w->KKT->dx1[i]; }
+#ifdef EQUALITY_CONSTRAINTS
 		for( i=0; i < w->p; i++ ){ w->KKT->dy2[i] += dtau*w->KKT->dy1[i]; }
+#endif
 		for( i=0; i < w->m; i++ ){ w->KKT->dz2[i] += dtau*w->KKT->dz1[i]; }
 
 		/*  ds_by_W = -(lambda \ bs + conelp_timesW(scaling,dz,dims)); */
@@ -1587,7 +1692,9 @@ idxint ECOS_solve(ECOS_pwork* w)
 
 		/* Update variables */
 		for( i=0; i < w->n; i++ ){ w->x[i] += w->info->step * w->KKT->dx2[i]; }
+#ifdef EQUALITY_CONSTRAINTS
 		for( i=0; i < w->p; i++ ){ w->y[i] += w->info->step * w->KKT->dy2[i]; }
+#endif
 		for( i=0; i < w->m; i++ ){ w->z[i] += w->info->step * w->KKT->dz2[i]; }
 		for( i=0; i < w->m; i++ ){ w->s[i] += w->info->step * w->dsaff[i]; }
 		w->kap += w->info->step * dkap;
@@ -1670,10 +1777,12 @@ void ECOS_updateData(ECOS_pwork *w, pfloat *Gpr, pfloat *Apr,
         w->G->pr = Gpr;
         w->h = h;
     }
+#ifdef EQUALITY_CONSTRAINTS
     if(w->A){
         w->A->pr = Apr;
         w->b = b;
     }
+#endif
     w->c = c;
 
 #if defined EQUILIBRATE && EQUILIBRATE > 0
@@ -1682,11 +1791,13 @@ void ECOS_updateData(ECOS_pwork *w, pfloat *Gpr, pfloat *Apr,
 #endif
 
     /* update KKT matrix */
+#ifdef EQUALITY_CONSTRAINTS
     if(w->A){
         for (k=0; k<w->A->nnz; k++){
             w->KKT->PKPt->pr[w->KKT->PK[w->AtoK[k]]] = Apr[k];
         }
     }
+#endif
     if(w->G){
         for (k=0; k<w->G->nnz; k++){
             w->KKT->PKPt->pr[w->KKT->PK[w->GtoK[k]]] = Gpr[k];

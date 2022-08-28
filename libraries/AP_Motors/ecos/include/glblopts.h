@@ -24,7 +24,7 @@
 #define __GLBLOPTS_H__
 
 /* SET PRINT LEVEL ----------------------------------------------------- */
-#define PRINTLEVEL (0)     /* 0: no prints					             */
+#define PRINTLEVEL (0)      /* 0: no prints					             */
 						   /* 1: only final info				         */
                            /* 2: progress print per iteration            */
 						   /* 3: debug level, enables print & dump fcns. */
@@ -41,7 +41,7 @@
                            /* 2: detailed profiling                      */
 
 /* SET DEBUG LEVEL ----------------------------------------------------- */
-#define DEBUG (0)          /* 0: no debugging information                */
+#define DEBUG (0)           /* 0: no debugging information                */
                            /* 1: debug info & dump intermediate results  */
                            /* (flag used only for development)           */
 
@@ -63,21 +63,27 @@ typedef double pfloat;              /* for numerical values  */
 /* Exponential cone */
 //#define EXPCONE      /*When defined the exponential cone solver code is enabled*/
 
+//#define EQUALITY_CONSTRAINTS /*When defined equality constraint are enabled*/
+
 /* SYSTEM INCLUDES FOR PRINTING ---------------------------------------- */
-#if PRINTLEVEL > 0
-#ifdef MATLAB_MEX_FILE
-#include "mex.h"
-#define PRINTTEXT mexPrintf
+//#if PRINTLEVEL > 0
+//#ifdef MATLAB_MEX_FILE
+//#include "mex.h"
+//#define PRINTTEXT mexPrintf
 // #elif defined PYTHON
 // #include <Python.h>
 // #define PRINTTEXT PySys_WriteStdout
-#else
-#define PRINTTEXT printf
-#endif
+//#else
+//#define PRINTTEXT printf
+//#endif
+//#include <stdio.h>
+//#else
+//#define PRINTTEXT(...)
+//#endif
+
 #include <stdio.h>
-#else
-#define PRINTTEXT(...)
-#endif
+#define PRINTTEXT printf
+//#define PRINTTEXT(...)
 
 //#include "SuiteSparse_config.h"
 #include <AP_Motors/ecos/external/SuiteSparse_config/SuiteSparse_config.h>

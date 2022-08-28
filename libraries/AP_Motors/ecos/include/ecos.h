@@ -42,23 +42,23 @@ extern "C" {
 #define ECOS_VERSION ("2.0.10")
 
 /* DEFAULT SOLVER PARAMETERS AND SETTINGS STRUCT ----------------------- */
-#define MAXIT      (100)          /* maximum number of iterations         */
-#define FEASTOL    (1E-8)        /* primal/dual infeasibility tolerance  */
-#define ABSTOL     (1E-8)        /* absolute tolerance on duality gap    */
-#define RELTOL     (1E-8)        /* relative tolerance on duality gap    */
+#define MAXIT      (50)          /* maximum number of iterations         */
+#define FEASTOL    (1E-5)        /* primal/dual infeasibility tolerance  */
+#define ABSTOL     (1E-5)        /* absolute tolerance on duality gap    */
+#define RELTOL     (1E-5)        /* relative tolerance on duality gap    */
 #define FTOL_INACC (1E-4)        /* inaccurate solution feasibility tol. */
 #define ATOL_INACC (5E-5)        /* inaccurate solution absolute tol.    */
 #define RTOL_INACC (5E-5)        /* inaccurate solution relative tol.    */
 #define GAMMA      (0.99)        /* scaling the final step length        */
-#define STATICREG  (1)           /* static regularization: 0:off, 1:on   */
+#define STATICREG  (0)           /* static regularization: 0:off, 1:on   */
 #define DELTASTAT  (7E-8)        /* regularization parameter             */
 #define DELTA      (2E-7)        /* dyn. regularization parameter        */
 #define EPS        (1E-13)  /* dyn. regularization threshold (do not 0!) */
 #define VERBOSE    (1)           /* bool for verbosity; PRINTLEVEL < 3   */
-#define NITREF     (9)       	 /* number of iterative refinement steps */
+#define NITREF     (1)       	 /* number of iterative refinement steps */
 #define IRERRFACT  (6)           /* factor by which IR should reduce err */
 #define LINSYSACC  (1E-14)       /* rel. accuracy of search direction    */
-#define SIGMAMIN   (1E-4)        /* always do some centering             */
+#define SIGMAMIN   (0.25)        /* always do some centering             */
 #define SIGMAMAX   (1.0)         /* never fully center                   */
 #define STEPMIN    (1E-6)        /* smallest step that we do take        */
 #define STEPMAX    (0.999)  /* largest step allowed, also in affine dir. */
@@ -77,7 +77,7 @@ extern "C" {
 
 
 /* EQUILIBRATION METHOD ------------------------------------------------ */
-#define EQUILIBRATE (1)     /* use equlibration of data matrices? >0: yes */
+#define EQUILIBRATE (0)     /* use equlibration of data matrices? >0: yes */
 #define EQUIL_ITERS (3)         /* number of equilibration iterations  */
 #define RUIZ_EQUIL      /* define algorithm to use - if both are ... */
 /*#define ALTERNATING_EQUIL*/ /* ... commented out no equlibration is used */
@@ -108,7 +108,9 @@ typedef struct ECOS_settings{
 	pfloat reltol_inacc;  /* relative relaxed tolerance on duality gap   */
 	idxint nitref;				 /* number of iterative refinement steps */
 	idxint maxit;                /* maximum number of iterations         */
+#if PRINTLEVEL > 0
     idxint verbose;              /* verbosity bool for PRINTLEVEL < 3    */
+#endif
 #ifdef EXPCONE /*Exponential cone settings*/
     idxint max_bk_iter;      /* Maximum backtracking iterations */
     pfloat bk_scale;         /* Backtracking scaling */
@@ -171,16 +173,20 @@ typedef struct ECOS_stats{
 
 
 /* ALL DATA NEEDED BY SOLVER ------------------------------------------- */
-typedef struct ECOS_pwork{
+typedef struct pwork{
 	/* dimensions */
 	idxint n;	/* number of primal variables x */
 	idxint m;   /* number of conically constrained variables s */
+#ifdef EQUALITY_CONSTRAINTS
 	idxint p;   /* number of equality constraints */
+#endif
     idxint D;   /* degree of the cone */
 
     /* variables */
     pfloat* x;  /* primal variables                    */
+#ifdef EQUALITY_CONSTRAINTS
     pfloat* y;  /* multipliers for equality constaints */
+#endif
     pfloat* z;  /* multipliers for conic inequalities  */
     pfloat* s;  /* slacks for conic inequalities       */
 	pfloat* lambda; /* scaled variable                 */
@@ -190,13 +196,17 @@ typedef struct ECOS_pwork{
     /* best iterate seen so far */
     /* variables */
     pfloat* best_x;  /* primal variables                    */
+#ifdef EQUALITY_CONSTRAINTS
     pfloat* best_y;  /* multipliers for equality constaints */
+#endif
     pfloat* best_z;  /* multipliers for conic inequalities  */
     pfloat* best_s;  /* slacks for conic inequalities       */
     pfloat best_kap; /* kappa (homogeneous embedding)       */
 	pfloat best_tau; /* tau (homogeneous embedding)         */
     pfloat best_cx;
+#ifdef EQUALITY_CONSTRAINTS
     pfloat best_by;
+#endif
     pfloat best_hz;
     ECOS_stats* best_info; /* info of best iterate               */
 
@@ -212,7 +222,15 @@ typedef struct ECOS_pwork{
     cone* C;
 
     /* problem data */
-    spmat* A;  spmat* G;  pfloat* c;  pfloat* b;  pfloat* h;
+#ifdef EQUALITY_CONSTRAINTS
+    spmat* A;
+#endif
+    spmat* G;
+    pfloat* c;
+#ifdef EQUALITY_CONSTRAINTS
+    pfloat* b;
+#endif
+    pfloat* h;
 
     /* indices that map entries of A and G to the KKT matrix */
     idxint *AtoK; idxint *GtoK;
@@ -228,14 +246,31 @@ typedef struct ECOS_pwork{
 	pfloat resx0;  pfloat resy0;  pfloat resz0;
 
 	/* residuals */
-	pfloat *rx;   pfloat *ry;   pfloat *rz;   pfloat rt;
-	pfloat hresx;  pfloat hresy;  pfloat hresz;
+	pfloat *rx;
+    pfloat hresx;
+#ifdef EQUALITY_CONSTRAINTS
+    pfloat *ry;
+    pfloat hresy;
+#endif
+    pfloat *rz;
+    pfloat rt;
+    pfloat hresz;
 
     /* norm iterates */
-    pfloat nx,ny,nz,ns;
+    pfloat nx;
+#ifdef EQUALITY_CONSTRAINTS
+    pfloat ny;
+#endif
+    pfloat nz;
+    pfloat ns;
 
 	/* temporary storage */
-	pfloat cx;  pfloat by;  pfloat hz;  pfloat sz;
+	pfloat cx;
+#ifdef EQUALITY_CONSTRAINTS
+    pfloat by;
+#endif
+    pfloat hz;
+    pfloat sz;
 
 	/* KKT System */
 	ECOS_kkt* KKT;
@@ -278,10 +313,22 @@ typedef struct ECOS_pwork{
  * pfloat* h       Array of size m, RHS vector of cone constraint
  * pfloat* b       Array of size p, RHS vector of equalities (can be NULL if no equalities are present)
  */
+#ifdef EQUALITY_CONSTRAINTS
 ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint* q, idxint nex,
                    pfloat* Gpr, idxint* Gjc, idxint* Gir,
                    pfloat* Apr, idxint* Ajc, idxint* Air,
                    pfloat* c, pfloat* h, pfloat* b);
+#else
+#ifdef EXPCONE
+ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint l, idxint ncones, idxint* q, idxint nexc,
+                   pfloat* Gpr, idxint* Gjc, idxint* Gir,
+                   pfloat* c, pfloat* h);
+#else
+ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint l, idxint ncones, idxint* q,
+                   pfloat* Gpr, idxint* Gjc, idxint* Gir,
+                   pfloat* c, pfloat* h);
+#endif
+#endif
 
 
 #ifdef EXPCONE

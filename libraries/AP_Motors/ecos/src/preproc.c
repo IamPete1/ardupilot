@@ -74,13 +74,22 @@
  *         idxint* AttoK - vector of indices such that K[AtoK[i]] = A[i]
  *         idxint* GttoK - vector of indices such that K[GtoK[i]] = G[i]
  */
+#ifdef EQUALITY_CONSTRAINTS
 void createKKT_U(spmat* Gt, spmat* At, cone* C, idxint** S, spmat** K,
                  idxint* AttoK, idxint* GttoK)
+#else
+void createKKT_U(spmat* Gt, cone* C, idxint** S, spmat** K, idxint* GttoK)
+#endif
 {
 	idxint i, j, k, l, r, row_stop, row, cone_strt, ks, conesize;
 	idxint n = Gt->m;
 	idxint m = Gt->n;
-	idxint p = At ? At->n : 0;
+#ifdef EQUALITY_CONSTRAINTS
+	const idxint p = At ? At->n : 0;
+#else
+    // trust compiler to remove this varable
+    const idxint p = 0;
+#endif
 	idxint nK, nnzK;
 	pfloat *Kpr = NULL;
 	idxint *Kjc = NULL, *Kir = NULL;
@@ -107,7 +116,11 @@ void createKKT_U(spmat* Gt, spmat* At, cone* C, idxint** S, spmat** K,
      *     + 3*[sum(C->soc[i].p)+1] (nnz of expanded soc scalings)
      *     + 6*C->nexc (3x3 hessian of the exponential cone)
      */
+#ifdef EQUALITY_CONSTRAINTS
 	nnzK = (At ? At->nnz : 0) + Gt->nnz + C->lpc->p;
+#else
+    nnzK = Gt->nnz + C->lpc->p;
+#endif
 #if STATICREG == 1
     nnzK += n+p;
 #endif
@@ -143,9 +156,11 @@ void createKKT_U(spmat* Gt, spmat* At, cone* C, idxint** S, spmat** K,
     for( ks=0; ks < n; ks++ ){
         Sign[ks] = +1; /* (1,1) block */
     }
+#ifdef EQUALITY_CONSTRAINTS
     for( ks=n; ks < n+p; ks++){
         Sign[ks] = -1; /* (2,2) block */
     }
+#endif
 #if CONEMODE == 0
     for( ks=n+p; ks < n+p+C->lpc->p; ks++){
         Sign[ks] = -1; /* (3,3) block: LP cone */
@@ -197,6 +212,7 @@ void createKKT_U(spmat* Gt, spmat* At, cone* C, idxint** S, spmat** K,
 
     /* Fill upper triangular part of K with values */
     /* (1,2) block: A' */
+#ifdef EQUALITY_CONSTRAINTS
 	i = 0; /* counter for non-zero entries in A or G, respectively */
 	for( j=0; j<p; j++ ){
         /* A' */
@@ -215,6 +231,7 @@ void createKKT_U(spmat* Gt, spmat* At, cone* C, idxint** S, spmat** K,
         Kpr[k++] = -DELTASTAT;
 #endif
     }
+#endif
 	/* (1,3) and (3,3) block: [G'; 0; -Vinit]
      * where
      *
@@ -456,8 +473,10 @@ void ECOS_cleanup(ECOS_pwork* w, idxint keepvars)
 	FREE(w->KKT->D);                /* mywork->KKT->D = (pfloat *)MALLOC(nK*sizeof(pfloat));          */
 	FREE(w->KKT->dx1);              /* mywork->KKT->dx1 = (pfloat *)MALLOC(mywork->n*sizeof(pfloat)); */
 	FREE(w->KKT->dx2);              /* mywork->KKT->dx2 = (pfloat *)MALLOC(mywork->n*sizeof(pfloat)); */
+#ifdef EQUALITY_CONSTRAINTS
 	FREE(w->KKT->dy1);              /* mywork->KKT->dy1 = (pfloat *)MALLOC(mywork->p*sizeof(pfloat)); */
 	FREE(w->KKT->dy2);              /* mywork->KKT->dy2 = (pfloat *)MALLOC(mywork->p*sizeof(pfloat)); */
+#endif
 	FREE(w->KKT->dz1);              /* mywork->KKT->dz1 = (pfloat *)MALLOC(mywork->m*sizeof(pfloat)); */
 	FREE(w->KKT->dz2);              /* mywork->KKT->dz2 = (pfloat *)MALLOC(mywork->m*sizeof(pfloat)); */
 	FREE(w->KKT->Flag);             /* mywork->KKT->Flag = (idxint *)MALLOC(nK*sizeof(idxint));       */
@@ -479,9 +498,11 @@ void ECOS_cleanup(ECOS_pwork* w, idxint keepvars)
     FREE(w->KKT->work5);            /* mywork->KKT->work5 = (pfloat *)MALLOC(nK*sizeof(pfloat));      */
     FREE(w->KKT->work6);            /* mywork->KKT->work6 = (pfloat *)MALLOC(nK*sizeof(pfloat));      */
 	FREE(w->KKT);                   /* mywork->KKT = (kkt *)MALLOC(sizeof(kkt));                      */
+#ifdef EQUALITY_CONSTRAINTS
 	if (w->A) {
 		FREE(w->AtoK);
 	}
+#endif
 	FREE(w->GtoK);
 
 	/* Free memory for cones */
@@ -525,18 +546,26 @@ void ECOS_cleanup(ECOS_pwork* w, idxint keepvars)
     FREE(w->best_info);
 	FREE(w->lambda);
 	FREE(w->rx);
+#ifdef EQUALITY_CONSTRAINTS
 	FREE(w->ry);
+#endif
 	FREE(w->rz);
 	FREE(w->stgs);
 	FREE(w->G);
+#ifdef EQUALITY_CONSTRAINTS
 	if( w->A ) FREE(w->A);
+#endif
     FREE(w->best_z);
     FREE(w->best_s);
+#ifdef EQUALITY_CONSTRAINTS
     FREE(w->best_y);
+#endif
     FREE(w->best_x);
 	if( keepvars < 4 ) { FREE(w->z); }
 	if( keepvars < 3 ) { FREE(w->s); }
+#ifdef EQUALITY_CONSTRAINTS
 	if( keepvars < 2 ) { FREE(w->y); }
+#endif
 	if( keepvars < 1 ) { FREE(w->x); }
 #if defined EQUILIBRATE && EQUILIBRATE > 0
     FREE(w->xequil);
@@ -551,17 +580,35 @@ void ECOS_cleanup(ECOS_pwork* w, idxint keepvars)
  * Sets up all data structures needed.
  * Replace by codegen
  */
+#ifdef EQUALITY_CONSTRAINTS
 ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, idxint* q, idxint nexc,
                    pfloat* Gpr, idxint* Gjc, idxint* Gir,
                    pfloat* Apr, idxint* Ajc, idxint* Air,
                    pfloat* c, pfloat* h, pfloat* b)
+#else
+#ifdef EXPCONE
+ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint l, idxint ncones, idxint* q, idxint nexc,
+                   pfloat* Gpr, idxint* Gjc, idxint* Gir,
+                   pfloat* c, pfloat* h)
+#else
+ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint l, idxint ncones, idxint* q,
+                   pfloat* Gpr, idxint* Gjc, idxint* Gir,
+                   pfloat* c, pfloat* h)
+#endif
+#endif
 {
     idxint i, cidx, conesize, lnz, amd_result, nK, *Ljc, *Lir, *P, *Pinv, *Sign;
     ECOS_pwork* mywork;
 	double Control [AMD_CONTROL], Info [AMD_INFO];
 	pfloat *Lpr;
-	spmat *At, *Gt, *KU;
-	idxint *AtoAt, *GtoGt, *AttoK, *GttoK;
+#ifdef EQUALITY_CONSTRAINTS
+	spmat *At; 
+    idxint *AtoAt;
+    idxint *AttoK;
+#endif
+    spmat *Gt;
+    spmat *KU;
+	idxint *GtoGt, *GttoK;
 
 #if PROFILING > 0
 	timer tsetup;
@@ -623,7 +670,9 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
 	/* dimensions */
 	mywork->n = n;
 	mywork->m = m;
+#ifdef EQUALITY_CONSTRAINTS
 	mywork->p = p;
+#endif
     mywork->D = l + ncones;
 #ifdef EXPCONE
     mywork->D = mywork->D + 3*nexc;
@@ -634,7 +683,9 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
 
 	/* variables */
     mywork->x = (pfloat *)MALLOC(n*sizeof(pfloat));
+#ifdef EQUALITY_CONSTRAINTS
     mywork->y = (pfloat *)MALLOC(p*sizeof(pfloat));
+#endif
     mywork->z = (pfloat *)MALLOC(m*sizeof(pfloat));
     mywork->s = (pfloat *)MALLOC(m*sizeof(pfloat));
   	mywork->lambda = (pfloat *)MALLOC(m*sizeof(pfloat));
@@ -650,7 +701,9 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
 
     /* best iterates so far */
     mywork->best_x = (pfloat *)MALLOC(n*sizeof(pfloat));
+#ifdef EQUALITY_CONSTRAINTS
     mywork->best_y = (pfloat *)MALLOC(p*sizeof(pfloat));
+#endif
     mywork->best_z = (pfloat *)MALLOC(m*sizeof(pfloat));
     mywork->best_s = (pfloat *)MALLOC(m*sizeof(pfloat));
     mywork->best_info = (ECOS_stats *)MALLOC(sizeof(ECOS_stats));
@@ -770,8 +823,10 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
     mywork->stgs->abstol_inacc = ATOL_INACC;
 	mywork->stgs->feastol_inacc = FTOL_INACC;
 	mywork->stgs->reltol_inacc = RTOL_INACC;
+#if PRINTLEVEL > 0
     mywork->stgs->verbose = VERBOSE;
-    #ifdef EXPCONE
+#endif
+#ifdef EXPCONE
    	mywork->stgs->max_bk_iter = MAX_BK;
     mywork->stgs->bk_scale    = BK_SCALE;
     mywork->stgs->centrality  = CENTRALITY;
@@ -780,23 +835,59 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
 
 #if PRINTLEVEL > 2
     PRINTTEXT("Written settings\n");
+#if DEBUG > 0
+    PRINTTEXT("SETTINGS:\n");
+        PRINTTEXT("        gamma: %g\n", mywork->stgs->gamma);
+        PRINTTEXT("        delta: %g\n", mywork->stgs->delta);
+        PRINTTEXT("          eps: %g\n", mywork->stgs->eps);
+        PRINTTEXT("      feastol: %g\n", mywork->stgs->feastol);
+        PRINTTEXT("       abstol: %g\n", mywork->stgs->abstol);
+        PRINTTEXT("       reltol: %g\n", mywork->stgs->reltol);
+        PRINTTEXT("feastol_inacc: %g\n", mywork->stgs->feastol_inacc);
+        PRINTTEXT(" abstol_inacc: %g\n", mywork->stgs->abstol_inacc);
+        PRINTTEXT(" reltol_inacc: %g\n", mywork->stgs->reltol_inacc);
+        PRINTTEXT("       nitref: %li\n", mywork->stgs->nitref);
+        PRINTTEXT("        maxit: %li\n", mywork->stgs->maxit);
+        PRINTTEXT("      verbose: %li\n", mywork->stgs->verbose);
+#ifdef EXPCONE
+        PRINTTEXT("    max_bk_iter: %g\n", mywork->stgs->max_bk_iter);
+        PRINTTEXT("    bk_scale: %g\n", mywork->stgs->bk_scale);
+        PRINTTEXT("    centrality: %g\n", mywork->stgs->centrality);
+#endif
+#endif
 #endif
 
     mywork->c = c;
     mywork->h = h;
+#ifdef EQUALITY_CONSTRAINTS
     mywork->b = b;
+#endif
 #if PRINTLEVEL > 2
     PRINTTEXT("Hung pointers for c, h and b into WORK struct\n");
 #endif
+#if (DEBUG > 0) && (PRINTLEVEL >= 3)
+    printDenseMatrix(mywork->c, n, 1, "C");
+    printDenseMatrix(mywork->h, m, 1, "h");
+    printDenseMatrix(mywork->b, p, 1, "b");
+#endif
 
     /* Store problem data */
+#ifdef EQUALITY_CONSTRAINTS
   if(Apr && Ajc && Air) {
     mywork->A = ecoscreateSparseMatrix(p, n, Ajc[n], Ajc, Air, Apr);
+#if (DEBUG > 0) && (PRINTLEVEL >= 3)
+    printSparseMatrix(mywork->A, "A");
+#endif
   } else {
     mywork->A = NULL;
   }
+#endif
   if (Gpr && Gjc && Gir) {
 	  mywork->G = ecoscreateSparseMatrix(m, n, Gjc[n], Gjc, Gir, Gpr);
+#if (DEBUG > 0) && (PRINTLEVEL >= 3)
+      PRINTTEXT("GPR size = %i x %i = %i\n", Gjc[n], sizeof(pfloat), Gjc[n] * sizeof(pfloat));
+      printSparseMatrix(mywork->G, "G");
+#endif
   } else {
     /* create an empty sparse matrix */
 	mywork->G = ecoscreateSparseMatrix(m, n, 0, Gjc, Gir, Gpr);
@@ -813,6 +904,7 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
 	mywork->info->ttranspose = 0;
 	tic(&tmattranspose);
 #endif
+#ifdef EQUALITY_CONSTRAINTS
   if(mywork->A) {
       AtoAt = MALLOC(mywork->A->nnz*sizeof(idxint));
 	  At = transposeSparseMatrix(mywork->A, AtoAt);
@@ -821,6 +913,7 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
     At = NULL;
     AtoAt = NULL;
   }
+#endif
 #if PROFILING > 1
 	mywork->info->ttranspose += toc(&tmattranspose);
 #endif
@@ -845,12 +938,18 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
 #if PROFILING > 1
 	tic(&tcreatekkt);
 #endif
+#ifdef EQUALITY_CONSTRAINTS
 	if (mywork->A)
 		AttoK = MALLOC(mywork->A->nnz*sizeof(idxint));
 	else
 		AttoK = NULL;
+#endif
 	GttoK = MALLOC(mywork->G->nnz*sizeof(idxint));
+#ifdef EQUALITY_CONSTRAINTS
 	createKKT_U(Gt, At, mywork->C, &Sign, &KU, AttoK, GttoK);
+#else
+	createKKT_U(Gt, mywork->C, &Sign, &KU, GttoK);
+#endif
 #if PROFILING > 1
 	mywork->info->tkktcreate = toc(&tcreatekkt);
 #endif
@@ -859,12 +958,14 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
 #endif
 
     /* Save a mapping from data in A and G to the KKT matrix */
+#ifdef EQUALITY_CONSTRAINTS
     if (mywork->A){
         mywork->AtoK = MALLOC(mywork->A->nnz*sizeof(idxint));
         for(i=0; i<mywork->A->nnz; i++){ mywork->AtoK[i] = AttoK[AtoAt[i]]; }
     }
     else
         mywork->AtoK = NULL;
+#endif
     mywork->GtoK = MALLOC(mywork->G->nnz*sizeof(idxint));
     for(i=0; i<mywork->G->nnz; i++){ mywork->GtoK[i] = GttoK[GtoGt[i]]; }
 
@@ -903,8 +1004,10 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
 	mywork->KKT->RHS2 = (pfloat *)MALLOC(nK*sizeof(pfloat));
 	mywork->KKT->dx1 = (pfloat *)MALLOC(mywork->n*sizeof(pfloat));
 	mywork->KKT->dx2 = (pfloat *)MALLOC(mywork->n*sizeof(pfloat));
+#ifdef EQUALITY_CONSTRAINTS
 	mywork->KKT->dy1 = (pfloat *)MALLOC(mywork->p*sizeof(pfloat));
 	mywork->KKT->dy2 = (pfloat *)MALLOC(mywork->p*sizeof(pfloat));
+#endif
 	mywork->KKT->dz1 = (pfloat *)MALLOC(mywork->m*sizeof(pfloat));
 	mywork->KKT->dz2 = (pfloat *)MALLOC(mywork->m*sizeof(pfloat));
     mywork->KKT->Sign = (idxint *)MALLOC(nK*sizeof(idxint));
@@ -1006,17 +1109,21 @@ ECOS_pwork* ECOS_setup(idxint n, idxint m, idxint p, idxint l, idxint ncones, id
 
 	/* get memory for residuals */
 	mywork->rx = (n == 0) ? NULL : (pfloat *)MALLOC(n*sizeof(pfloat));
+#ifdef EQUALITY_CONSTRAINTS
 	mywork->ry = (p == 0) ? NULL : (pfloat *)MALLOC(p*sizeof(pfloat));
+#endif
 	mywork->rz = (m == 0) ? NULL : (pfloat *)MALLOC(m*sizeof(pfloat));
 
     /* clean up */
     mywork->KKT->P = P;
 	FREE(Sign);
+#ifdef EQUALITY_CONSTRAINTS
     if(At) {
         freeSparseMatrix(At);
         FREE(AtoAt);
         FREE(AttoK);
     }
+#endif
 	freeSparseMatrix(Gt);
 	freeSparseMatrix(KU);
     FREE(GtoGt);

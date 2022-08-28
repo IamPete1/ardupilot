@@ -49,8 +49,10 @@ typedef struct ECOS_kkt{
 	pfloat* RHS2;    /* Right hand side 2           			  */	
 	pfloat* dx1;     /* search direction of size n				  */
 	pfloat* dx2;     /* search direction of size n				  */
+#ifdef EQUALITY_CONSTRAINTS
 	pfloat* dy1;     /* search direction of size p				  */
 	pfloat* dy2;     /* search direction of size p				  */
+#endif
 	pfloat* dz1;     /* search direction of size m				  */
 	pfloat* dz2;     /* search direction of size m				  */	
 	
@@ -101,6 +103,7 @@ idxint kkt_factor(ECOS_kkt* KKT, pfloat eps, pfloat delta);
  *
  * Returns the number of iterative refinement steps really taken.
  */
+#ifdef EQUALITY_CONSTRAINTS
 idxint kkt_solve(ECOS_kkt* KKT,
                  spmat* A, spmat* G,
                  pfloat* Pb,
@@ -109,6 +112,16 @@ idxint kkt_solve(ECOS_kkt* KKT,
                  cone* C,
                  idxint isinit,
                  idxint nitref);
+#else
+idxint kkt_solve(ECOS_kkt* KKT,
+                 spmat* G,
+                 pfloat* Pb,
+                 pfloat* dx, pfloat* dz,
+                 idxint n, idxint m,
+                 cone* C,
+                 idxint isinit,
+                 idxint nitref);
+#endif
 
 
 /**

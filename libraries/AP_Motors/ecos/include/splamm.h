@@ -98,7 +98,7 @@ void printDenseMatrix_i(idxint *M, idxint dim1, idxint dim2, char *name);
 /**
  * Prints a sparse matrix.
  */
-void printSparseMatrix(spmat* M);
+void printSparseMatrix(spmat* M, char *name);
 
 
 /**

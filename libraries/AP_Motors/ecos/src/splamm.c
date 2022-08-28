@@ -216,17 +216,22 @@ spmat* copySparseMatrix(spmat* A)
  */
 void printDenseMatrix(pfloat *M, idxint dim1, idxint dim2, char *name)
 {
+    if (M == NULL) {
+        PRINTTEXT("%s = NULL\n",name);
+        return;
+    }
+
     idxint i,j;
-    PRINTTEXT("%s = \n\t",name);
+    PRINTTEXT("%s = \n    ",name);
     for( i=0; i<dim1; i++ ){
         for( j=0; j<dim2; j++ ){
             if( j<dim2-1 )
-                PRINTTEXT("% 14.12e,  ",M[i*dim2+j]);
+                PRINTTEXT("% 20.18e,  ",M[i*dim2+j]);
             else
-                PRINTTEXT("% 14.12e;  ",M[i*dim2+j]);
+                PRINTTEXT("% 20.18e;",M[i*dim2+j]);
         }
         if( i<dim1-1){
-            PRINTTEXT("\n\t");
+            PRINTTEXT("\n    ");
         }
     }
     PRINTTEXT("\n");
@@ -238,17 +243,22 @@ void printDenseMatrix(pfloat *M, idxint dim1, idxint dim2, char *name)
  */
 void printDenseMatrix_i(idxint *M, idxint dim1, idxint dim2, char *name)
 {
+    if (M == NULL) {
+        PRINTTEXT("%s = NULL\n",name);
+        return;
+    }
+
     idxint i,j;
-    PRINTTEXT("%s = \n\t",name);
+    PRINTTEXT("%s = \n    ",name);
     for( i=0; i<dim1; i++ ){
         for( j=0; j<dim2; j++ ){
             if( j<dim2-1 )
                 PRINTTEXT("%d,  ",(int)M[i*dim2+j]);
             else
-                PRINTTEXT("%d;  ",(int)M[i*dim2+j]);
+                PRINTTEXT("%d;",(int)M[i*dim2+j]);
         }
         if( i<dim1-1){
-            PRINTTEXT("\n\t");
+            PRINTTEXT("\n    ");
         }
     }
     PRINTTEXT("\n");
@@ -258,10 +268,11 @@ void printDenseMatrix_i(idxint *M, idxint dim1, idxint dim2, char *name)
 /*
  * Prints a sparse matrix.
  */
-void printSparseMatrix(spmat* M)
+void printSparseMatrix(spmat* M, char *name)
 {
     idxint j, i, row_strt, row_stop;
     idxint k = 0;
+    PRINTTEXT("%s = \n",name);
     for(j=0; j<M->n; j++){
         row_strt = M->jc[j];
         row_stop = M->jc[j+1];        
@@ -269,7 +280,7 @@ void printSparseMatrix(spmat* M)
             continue;
         else {
             for(i=row_strt; i<row_stop; i++ ){                
-                PRINTTEXT("\t(%3u,%3u) = %g\n", (int)M->ir[i]+1, (int)j+1, M->pr[k++]);
+                PRINTTEXT("    (%3u,%3u) = % 20.18e\n", (int)M->ir[i]+1, (int)j+1, M->pr[k++]);
             }
         }
     }
@@ -291,11 +302,11 @@ void dumpSparseMatrix(spmat* M, char* fn)
 				continue;
 			else {
 				for(i=row_strt; i<row_stop; i++ ){                
-					fprintf(f,"%d\t%d\t%20.18e\n", (int)M->ir[i]+1, (int)j+1, M->pr[k++]);
+					fprintf(f,"%d    %d    % 20.18e\n", (int)M->ir[i]+1, (int)j+1, M->pr[k++]);
 				}
 			}
 		}
-        fprintf(f,"%d\t%d\t%20.18e\n", (int)M->m, (int)M->n, 0.0);
+        fprintf(f,"%d    %d    %20.18e\n", (int)M->m, (int)M->n, 0.0);
 		fclose(f);
 		PRINTTEXT("File %s successfully written.\n", fn);
 	} else {
@@ -332,9 +343,9 @@ void dumpDenseMatrix(pfloat *M, int dim1, int dim2, char *fn)
             }                
         }
         fclose(f);
-        printf("Written %d x %d matrix to '%s'.\n",i,dim2,fn);
+        PRINTTEXT("Written %d x %d matrix to '%s'.\n",i,dim2,fn);
     } else {
-        printf("ERROR: file %s could not be opened. Exiting.",fn);
+        PRINTTEXT("ERROR: file %s could not be opened. Exiting.",fn);
         exit(1);
     }    
 }
@@ -368,9 +379,9 @@ void dumpDenseMatrix_i(idxint *M, int dim1, int dim2, char *fn)
             }                
         }
         fclose(f);
-        printf("Written %d x %d matrix to '%s'.\n",i,dim2,fn);
+        PRINTTEXT("Written %d x %d matrix to '%s'.\n",i,dim2,fn);
     } else {
-        printf("ERROR: file %s could not be opened. Exiting.",fn);
+        PRINTTEXT("ERROR: file %s could not be opened. Exiting.",fn);
         exit(1);
     }    
 }

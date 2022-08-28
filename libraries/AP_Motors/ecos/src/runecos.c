@@ -25,6 +25,8 @@
 #include <AP_Motors/ecos/include/ecos.h>
 #include <AP_Motors/ecos/include/data.h>
 
+#if 0
+
 int main(void)
 {
 	/*char ver[7];*/
@@ -91,3 +93,5 @@ int main(void)
     /* explicitly truncate exit code */
 	return (int)exitflag;
 }
+
+#endif

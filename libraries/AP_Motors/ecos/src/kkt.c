@@ -84,7 +84,11 @@ idxint kkt_factor(ECOS_kkt* KKT, pfloat eps, pfloat delta)
  *
  * Returns the number of iterative refinement steps really taken.
  */
+#ifdef EQUALITY_CONSTRAINTS
 idxint kkt_solve(ECOS_kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pfloat* dy, pfloat* dz, idxint n, idxint p, idxint m, cone* C, idxint isinit, idxint nitref)
+#else
+idxint kkt_solve(ECOS_kkt* KKT,           spmat* G, pfloat* Pb, pfloat* dx,             pfloat* dz, idxint n,           idxint m, cone* C, idxint isinit, idxint nitref)
+#endif
 {
 
 #if CONEMODE == 0
@@ -105,11 +109,18 @@ idxint kkt_solve(ECOS_kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pflo
     pfloat* truez = KKT->work5;
     pfloat*   Gdx = KKT->work6;
     pfloat* ex = e;
+#ifdef EQUALITY_CONSTRAINTS
     pfloat* ey = e + n;
     pfloat* ez = e + n+p;
     pfloat bnorm = 1.0 + norminf(Pb, n+p+MTILDE);
+#else
+    pfloat* ez = e + n;
+    pfloat bnorm = 1.0 + norminf(Pb, n+MTILDE);
+#endif
     pfloat nex = 0;
+#ifdef EQUALITY_CONSTRAINTS
     pfloat ney = 0;
+#endif
     pfloat nez = 0;
     pfloat nerr;
     pfloat nerr_prev = (pfloat)ECOS_NAN;
@@ -135,7 +146,11 @@ idxint kkt_solve(ECOS_kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pflo
 	for( kItRef=0; kItRef <= nitref; kItRef++ ){
 
         /* unpermute x & copy into arrays */
+#ifdef EQUALITY_CONSTRAINTS
         unstretch(n, p, C, Pinv, Px, dx, dy, dz);
+#else
+        unstretch(n, C, Pinv, Px, dx, dz);
+#endif
 
 		/* compute error term */
         k=0; j=0;
@@ -148,11 +163,14 @@ idxint kkt_solve(ECOS_kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pflo
 		/* ex = bx - A'*dy - G'*dz */
 		for( i=0; i<n; i++ ){ ex[i] = Pb[Pinv[k++]]; }
 #endif
+#ifdef EQUALITY_CONSTRAINTS
         if(A) sparseMtVm(A, dy, ex, 0, 0);
+#endif
         sparseMtVm(G, dz, ex, 0, 0);
         nex = norminf(ex,n);
 
         /* error on dy */
+#ifdef EQUALITY_CONSTRAINTS
         if( p > 0 ){
 #if (defined STATICREG) && (STATICREG > 0)
 			/* ey = by - A*dx + DELTASTAT*dy */
@@ -164,6 +182,7 @@ idxint kkt_solve(ECOS_kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pflo
             sparseMV(A, dx, ey, -1, 0);
             ney = norminf(ey,p);
         }
+#endif
 
 
 		/* --> 3. ez = bz - G*dx + V*dz_true */
@@ -207,7 +226,14 @@ idxint kkt_solve(ECOS_kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pflo
             }
         }
 #endif
-        for( i=0; i<MTILDE; i++) { truez[i] = Px[Pinv[n+p+i]]; }
+        for( i=0; i<MTILDE; i++) { 
+#ifdef EQUALITY_CONSTRAINTS
+            truez[i] = Px[Pinv[n+p+i]];
+#else
+            truez[i] = Px[Pinv[n+i]];
+#endif
+        }
+
         if( isinit == 0 ){
             scale2add(truez, ez, C);
         } else {
@@ -217,16 +243,21 @@ idxint kkt_solve(ECOS_kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pflo
 
 
 #if PRINTLEVEL > 2
+#ifdef EQUALITY_CONSTRAINTS
         if( p > 0 ){
             PRINTTEXT("    %2d  %3.1e  %3.1e  %3.1e\n", (int)kItRef, nex, ney, nez);
-        } else {
+        } else 
+#endif
+               {
             PRINTTEXT("    %2d  %3.1e  %3.1e\n", (int)kItRef, nex, nez);
         }
 #endif
 
         /* maximum error (infinity norm of e) */
         nerr = MAX( nex, nez);
+#ifdef EQUALITY_CONSTRAINTS
         if( p > 0 ){ nerr = MAX( nerr, ney ); }
+#endif
 
         /* CHECK WHETHER REFINEMENT BROUGHT DECREASE - if not undo and quit! */
         if( kItRef > 0 && nerr > nerr_prev ){
@@ -259,7 +290,11 @@ idxint kkt_solve(ECOS_kkt* KKT, spmat* A, spmat* G, pfloat* Pb, pfloat* dx, pflo
 #endif
 
 	/* copy solution out into the different arrays, permutation included */
+#ifdef EQUALITY_CONSTRAINTS
 	unstretch(n, p, C, Pinv, Px, dx, dy, dz);
+#else
+	unstretch(n, C, Pinv, Px, dx, dz);
+#endif
 
     return kItRef;
 }

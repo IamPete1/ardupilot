@@ -166,6 +166,10 @@ void getSOCDetails(socone *soc, idxint *conesize, pfloat* eta_square, pfloat* d1
  * Returns dx, dy and dz from the expanded and permuted version of
  * a search direction vector.
  */
+#ifdef EQUALITY_CONSTRAINTS
 void unstretch(idxint n, idxint p, cone *C, idxint *Pinv, pfloat *Px, pfloat *dx, pfloat *dy, pfloat *dz);
+#else
+void unstretch(idxint n, cone *C, idxint *Pinv, pfloat *Px, pfloat *dx, pfloat *dz);
+#endif
 
 #endif
