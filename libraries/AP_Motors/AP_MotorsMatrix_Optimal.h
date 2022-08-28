@@ -36,16 +36,16 @@ private:
     uint8_t num_constraints;
 
     // motor output factors
-    Matrix motor_factors;
-    float motor_factors_data[max_num_motors*4];
-    Matrix motor_factors_trans;
-    float motor_factors_trans_data[max_num_motors*4];
+    MatrixD motor_factors;
+    double motor_factors_data[max_num_motors*4];
+    MatrixD motor_factors_trans;
+    double motor_factors_trans_data[max_num_motors*4];
 
     // Hessian matrix
-    Matrix H;
-    float H_data[max_num_motors*max_num_motors];
-    Matrix H_bar;
-    float H_bar_data[max_num_motors*max_num_motors];
+    MatrixD H;
+    double H_data[max_num_motors*max_num_motors];
+    MatrixD H_bar;
+    double H_bar_data[max_num_motors*max_num_motors];
 
     // sparse representation of constraints matrix
     // full size matrix would be [num_motors, num_constraints]
@@ -62,15 +62,15 @@ private:
     } A;
 
     // sparse constraints matrix handling
-    void A_mult(const float*B, float*dest) const;
-    void At_mult(const float*B, float*dest) const;
-    void H_plus_A_mult_b_mult_At();
+    //void A_mult(const float*B, float*dest) const;
+    //void At_mult(const float*B, float*dest) const;
+    //void H_plus_A_mult_b_mult_At();
 
     // solver
-    void interior_point_solve();
+    //void interior_point_solve();
 
     // interior_point_solve function local variables
-    float x[max_num_motors];
+    double x[max_num_motors];
     float z[max_num_constraints];
     float s[max_num_constraints];
     float s_inv[max_num_constraints];
@@ -87,8 +87,8 @@ private:
     float temp_mot[max_num_motors];
 
     // input and output to optimisation
-    float inputs[4];
-    float outputs[4];
+    double inputs[4];
+    double outputs[4];
 
     // set points and constraints
     float f[max_num_motors];

@@ -54,8 +54,8 @@ void AP_MotorsMatrix_Optimal::init(motor_frame_class frame_class, motor_frame_ty
     // there may be some way to derive from the motor matrix, but I can't work it out
     // these are still not a perfect conversion, I'm not sure why....
     // may also need a yaw conversion for the A V and tail frames... but there quads so this mixer won't help much in anycase
-    float roll_conversion;
-    float pitch_conversion;
+    double roll_conversion;
+    double pitch_conversion;
     switch (frame_class) {
         case MOTOR_FRAME_QUAD: {
             switch (frame_type) {
@@ -117,8 +117,10 @@ void AP_MotorsMatrix_Optimal::init(motor_frame_class frame_class, motor_frame_ty
                 case MOTOR_FRAME_TYPE_X:
                 case MOTOR_FRAME_TYPE_DJI_X:
                 case MOTOR_FRAME_TYPE_CW_X:
-                    roll_conversion = 1.1715728;
-                    pitch_conversion = 1.1715728;
+                    *reinterpret_cast<uint64_t *>(&roll_conversion)  = 0x3FF2BEC33301885E;
+                    *reinterpret_cast<uint64_t *>(&pitch_conversion) = 0x3FF2BEC33301885E;
+                    //roll_conversion = 1.1715728;
+                    //pitch_conversion = 1.1715728;
                     break;
                 case MOTOR_FRAME_TYPE_V:
                     roll_conversion = 1.1939;
@@ -223,25 +225,25 @@ void AP_MotorsMatrix_Optimal::init(motor_frame_class frame_class, motor_frame_ty
     init_mat(motor_factors, num_motors, 4, motor_factors_data);
     init_mat(motor_factors_trans, 4, num_motors, motor_factors_trans_data);
     for (uint8_t i = 0; i < num_motors; i++) {
-        motor_factors_data[i*4 + 0] = _roll_factor[i] / roll_conversion;
-        motor_factors_data[i*4 + 1] = _pitch_factor[i] / pitch_conversion;
-        motor_factors_data[i*4 + 2] = _yaw_factor[i];
-        motor_factors_data[i*4 + 3] = _throttle_factor[i];
+        motor_factors_data[i*4 + 0] = double(_roll_factor[i]) / roll_conversion;
+        motor_factors_data[i*4 + 1] = double(_pitch_factor[i]) / pitch_conversion;
+        motor_factors_data[i*4 + 2] = double(_yaw_factor[i]);
+        motor_factors_data[i*4 + 3] = double(_throttle_factor[i]);
     }
     mat_trans(motor_factors, motor_factors_trans);
 
     // Weighting vector defines the relative weighting of roll, pitch, yaw and throttle
     // may want to change this on the fly in the future, but in that case we can no longer pre-compute the hessian
     // roll, pitch, yaw, throttle
-    float w[4] = {50.0, 50.0, 1.0, 0.1};
+    double w[4] = {50.0, 50.0, 1.0, 0.1};
 
     // setup hessian matrix
     // H = motor_factors * diag(w) * motor_factors'
     init_mat(H, num_motors, num_motors, H_data);
     init_mat(H_bar, num_motors, num_motors, H_bar_data);
 
-    Matrix motor_factors_tmp;
-    float tmp_A[12*4];
+    MatrixD motor_factors_tmp;
+    double tmp_A[12*4];
     init_mat(motor_factors_tmp, num_motors, 4, tmp_A);
     per_element_mult_mv(motor_factors, w, motor_factors_tmp);
 
@@ -260,134 +262,162 @@ void AP_MotorsMatrix_Optimal::init(motor_frame_class frame_class, motor_frame_ty
     vec_scale(w, -1.0, w, 4);
     per_element_mult_mv(motor_factors, w, motor_factors);
 
-}
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[0]) = 0x4021AD7BC01366C1;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[1]) = 0xC03556BDE009B366;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[2]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[3]) = 0xBFE999999999999A;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[4]) = 0xC021AD7BC01366C1;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[5]) = 0x403556BDE009B366;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[6]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[7]) = 0xBFE999999999999A;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[8]) = 0x403556BDE009B366;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[9]) = 0xC021AD7BC01366C1;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[10]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[11]) = 0xBFE999999999999A;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[12]) = 0x4021AD7BC01366C1;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[13]) = 0x403556BDE009B366;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[14]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[15]) = 0xBFE999999999999A;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[16]) = 0xC021AD7BC01366C1;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[17]) = 0xC03556BDE009B366;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[18]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[19]) = 0xBFE999999999999A;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[20]) = 0xC03556BDE009B366;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[21]) = 0x4021AD7BC01366C1;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[22]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[23]) = 0xBFE999999999999A;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[24]) = 0xC03556BDE009B366;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[25]) = 0xC021AD7BC01366C1;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[26]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[27]) = 0xBFE999999999999A;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[28]) = 0x403556BDE009B366;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[29]) = 0x4021AD7BC01366C1;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[30]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[31]) = 0xBFE999999999999A;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[32]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[33]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[34]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[35]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[36]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[37]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[38]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[39]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[40]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[41]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[42]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[43]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[44]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[45]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[46]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&motor_factors_data[47]) = 0x0000000000000000;
 
+    // rest of h array is populated from constraints matrix
+    *reinterpret_cast<uint64_t *>(&h[17]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&h[18]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&h[19]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&h[20]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&h[21]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&h[22]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&h[23]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&h[24]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&h[25]) = 0x0000000000000000;
+    *reinterpret_cast<uint64_t *>(&h[26]) = 0x0000000000000000;
 
-// output - sends commands to the motors, 
-void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
-{
-    if (!initialised_ok()) {
-        return;
-    }
-#if !APM_BUILD_TYPE(APM_BUILD_UNKNOWN)
-#if DISABLE_INTERRUPTS_FOR_TIMMING
-    void *istate = hal.scheduler->disable_interrupts_save();
-#endif
-    const uint32_t start_us = AP_HAL::micros();
-#endif
-
-    // apply voltage and air pressure compensation
-    const float compensation_gain = get_compensation_gain(); // compensation for battery voltage and altitude
-    inputs[0] = (_roll_in + _roll_in_ff) * compensation_gain;
-    inputs[1] = (_pitch_in + _pitch_in_ff) * compensation_gain;
-    inputs[2] = (_yaw_in + _yaw_in_ff) * compensation_gain;
-    inputs[3] = get_throttle() * compensation_gain;
-    float throttle_avg_max = _throttle_avg_max * compensation_gain;
-
-    // If thrust boost is active then do not limit maximum thrust
-    const float throttle_thrust_max = _thrust_boost_ratio + (1.0 - _thrust_boost_ratio) * _throttle_thrust_max * compensation_gain;
-
-    // sanity check throttle is above zero and below current limited throttle
-    inputs[3] = constrain_float(inputs[3], 0.0, throttle_thrust_max);
-
-    // ensure that throttle_avg_max is between the input throttle and the maximum throttle
-    throttle_avg_max = constrain_float(throttle_avg_max, inputs[3], throttle_thrust_max);
-
-    // calculate input vector
-    mat_vec_mult(motor_factors, inputs, f);
+    // rest of input matrix is set at runtime
+    *reinterpret_cast<uint64_t *>(&F[8]) = 0x3FF0000000000000;
 
     // inputs to ECOS format
     // hardcoded G matrix for octa X
-    G.values[0] = 0.125;
-    G.values[1] = 1;
-    G.values[2] = -1;
-    G.values[3] = 2.202;
-    G.values[4] = -1.62484;
-    G.values[5] = 1.28802;
-    G.values[6] = -1.41796;
-    G.values[7] = 1.28802;
-    G.values[8] = -1.41796;
-    G.values[9] = 0.28858;
-    G.values[10] = 0.28858;
-    G.values[11] = 0.125;
-    G.values[12] = 1;
-    G.values[13] = -1;
-    G.values[14] = -1.62484;
-    G.values[15] = 2.202;
-    G.values[16] = -1.41796;
-    G.values[17] = 1.28802;
-    G.values[18] = -1.41796;
-    G.values[19] = 1.28802;
-    G.values[20] = 0.28858;
-    G.values[21] = 0.28858;
-    G.values[22] = 0.125;
-    G.values[23] = 1;
-    G.values[24] = -1;
-    G.values[25] = 1.28802;
-    G.values[26] = -1.41796;
-    G.values[27] = 2.202;
-    G.values[28] = 0.28858;
-    G.values[29] = 0.28858;
-    G.values[30] = -1.62484;
-    G.values[31] = -1.41796;
-    G.values[32] = 1.28802;
-    G.values[33] = 0.125;
-    G.values[34] = 1;
-    G.values[35] = -1;
-    G.values[36] = -1.41796;
-    G.values[37] = 1.28802;
-    G.values[38] = 0.28858;
-    G.values[39] = 2.202;
-    G.values[40] = -1.62484;
-    G.values[41] = 0.28858;
-    G.values[42] = -1.41796;
-    G.values[43] = 1.28802;
-    G.values[44] = 0.125;
-    G.values[45] = 1;
-    G.values[46] = -1;
-    G.values[47] = 1.28802;
-    G.values[48] = -1.41796;
-    G.values[49] = 0.28858;
-    G.values[50] = -1.62484;
-    G.values[51] = 2.202;
-    G.values[52] = 0.28858;
-    G.values[53] = 1.28802;
-    G.values[54] = -1.41796;
-    G.values[55] = 0.125;
-    G.values[56] = 1;
-    G.values[57] = -1;
-    G.values[58] = -1.41796;
-    G.values[59] = 1.28802;
-    G.values[60] = -1.62484;
-    G.values[61] = 0.28858;
-    G.values[62] = 0.28858;
-    G.values[63] = 2.202;
-    G.values[64] = 1.28802;
-    G.values[65] = -1.41796;
-    G.values[66] = 0.125;
-    G.values[67] = 1;
-    G.values[68] = -1;
-    G.values[69] = 0.28858;
-    G.values[70] = 0.28858;
-    G.values[71] = -1.41796;
-    G.values[72] = -1.41796;
-    G.values[73] = 1.28802;
-    G.values[74] = 1.28802;
-    G.values[75] = 2.202;
-    G.values[76] = -1.62484;
-    G.values[77] = 0.125;
-    G.values[78] = 1;
-    G.values[79] = -1;
-    G.values[80] = 0.28858;
-    G.values[81] = 0.28858;
-    G.values[82] = 1.28802;
-    G.values[83] = 1.28802;
-    G.values[84] = -1.41796;
-    G.values[85] = -1.41796;
-    G.values[86] = -1.62484;
-    G.values[87] = 2.202;
-    G.values[88] = -1;
-    G.values[89] = 1;
+    *reinterpret_cast<uint64_t *>(&G.values[0]) = 0x3FC0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[1]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[2]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[3]) = 0x3FFEBF9C62A1B5C8;
+    *reinterpret_cast<uint64_t *>(&G.values[4]) = 0xBFF5839042D8C2A4;
+    *reinterpret_cast<uint64_t *>(&G.values[5]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[6]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[7]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[8]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[9]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[10]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[11]) = 0x3FC0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[12]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[13]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[14]) = 0xBFF5839042D8C2A4;
+    *reinterpret_cast<uint64_t *>(&G.values[15]) = 0x3FFEBF9C62A1B5C8;
+    *reinterpret_cast<uint64_t *>(&G.values[16]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[17]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[18]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[19]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[20]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[21]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[22]) = 0x3FC0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[23]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[24]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[25]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[26]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[27]) = 0x3FFEBF9C62A1B5C8;
+    *reinterpret_cast<uint64_t *>(&G.values[28]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[29]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[30]) = 0xBFF5839042D8C2A4;
+    *reinterpret_cast<uint64_t *>(&G.values[31]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[32]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[33]) = 0x3FC0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[34]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[35]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[36]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[37]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[38]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[39]) = 0x3FFEBF9C62A1B5C8;
+    *reinterpret_cast<uint64_t *>(&G.values[40]) = 0xBFF5839042D8C2A4;
+    *reinterpret_cast<uint64_t *>(&G.values[41]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[42]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[43]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[44]) = 0x3FC0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[45]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[46]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[47]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[48]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[49]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[50]) = 0xBFF5839042D8C2A4;
+    *reinterpret_cast<uint64_t *>(&G.values[51]) = 0x3FFEBF9C62A1B5C8;
+    *reinterpret_cast<uint64_t *>(&G.values[52]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[53]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[54]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[55]) = 0x3FC0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[56]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[57]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[58]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[59]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[60]) = 0xBFF5839042D8C2A4;
+    *reinterpret_cast<uint64_t *>(&G.values[61]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[62]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[63]) = 0x3FFEBF9C62A1B5C8;
+    *reinterpret_cast<uint64_t *>(&G.values[64]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[65]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[66]) = 0x3FC0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[67]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[68]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[69]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[70]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[71]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[72]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[73]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[74]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[75]) = 0x3FFEBF9C62A1B5C8;
+    *reinterpret_cast<uint64_t *>(&G.values[76]) = 0xBFF5839042D8C2A4;
+    *reinterpret_cast<uint64_t *>(&G.values[77]) = 0x3FC0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[78]) = 0x3FF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[79]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[80]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[81]) = 0x3FD278183F91E647;
+    *reinterpret_cast<uint64_t *>(&G.values[82]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[83]) = 0x3FF1702602C9081C;
+    *reinterpret_cast<uint64_t *>(&G.values[84]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[85]) = 0xBFF38461F9F01B86;
+    *reinterpret_cast<uint64_t *>(&G.values[86]) = 0xBFF5839042D8C2A4;
+    *reinterpret_cast<uint64_t *>(&G.values[87]) = 0x3FFEBF9C62A1B5C8;
+    *reinterpret_cast<uint64_t *>(&G.values[88]) = 0xBFF0000000000000;
+    *reinterpret_cast<uint64_t *>(&G.values[89]) = 0x3FF0000000000000;
 
     G.rows[0] = 0;
     G.rows[1] = 1;
@@ -491,40 +521,7 @@ void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
     G.column[8] = 88;
     G.column[9] = 90;
 
-    // rest of h array is populated from constraints matrix
-    h[17] = 1.0;
-    h[18] = 0.0;
-    h[19] = 0.0;
-    h[20] = 0.0;
-    h[21] = 0.0;
-    h[22] = 0.0;
-    h[23] = 0.0;
-    h[24] = 0.0;
-    h[25] = 0.0;
-    h[26] = 0.0;
-
-    // rest of input matrix is set at runtime
-    F[8] = 1.0;
-
-
-    for (uint8_t i = 0; i < num_motors; i++) {
-        F[i] = f[i];
-    }
-
-    // constraints, average throttle, 1 and 0
-    //b[0] = -throttle_avg_max;
-    //for (uint8_t i = 0; i < num_motors; i++) {
-    //    b[1+i] = -1.0; // could set this to 0 if a failed motor is detected
-    //    b[1+num_motors+i] = 0.0;
-    //}
-
-    // constraints, average throttle, 1 and 0
-    h[0] = throttle_avg_max;
-    for (uint8_t i = 0; i < num_motors; i++) {
-        h[1+i] = 1.0; // could set this to 0 if a failed motor is detected
-        h[1+num_motors+i] = 0.0;
-    }
-
+/*
     idxint cone_dim[1] = {num_motors + 2};
     solution = ECOS_setup(num_motors + 1,                   // Number of variables
                           num_constraints + num_motors + 2, // Number of inequalities, number of rows of G
@@ -543,16 +540,75 @@ void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
                           h,                                // Array of size m, RHS vector of cone constraint
                           nullptr);                         // Array of size p, RHS vector of equalities (can be NULL if no equalities are present)
 
+*/
+    idxint cone_dim[1] = {num_motors + 2};
+    solution = ECOS_setup(num_motors + 1,                   // Number of variables
+                          num_constraints + num_motors + 2, // Number of inequalities, number of rows of G
+                          num_constraints,                  // Dimension of positive orthant
+                          1,                                // Number of second order cones
+                          cone_dim,                         // Array of length 'ncones', defines the dimension of each cone
+                          G.values,                         // Sparse G matrix data array (column compressed storage)
+                          G.column,                         // Sparse G matrix column index array (column compressed storage)
+                          G.rows,                           // Sparse G matrix row index array (column compressed storage)
+                          F,                                // Array of size n, cost function weights
+                          h);                               // Array of size m, RHS vector of cone constraint
+}
+
+
+// output - sends commands to the motors, 
+void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
+{
+    if (!initialised_ok()) {
+        return;
+    }
+#if !APM_BUILD_TYPE(APM_BUILD_UNKNOWN)
+#if DISABLE_INTERRUPTS_FOR_TIMMING
+    void *istate = hal.scheduler->disable_interrupts_save();
+#endif
+    const uint32_t start_us = AP_HAL::micros();
+#endif
+
+    // apply voltage and air pressure compensation
+    const float compensation_gain = get_compensation_gain(); // compensation for battery voltage and altitude
+    inputs[0] = (_roll_in + _roll_in_ff) * compensation_gain;
+    inputs[1] = (_pitch_in + _pitch_in_ff) * compensation_gain;
+    inputs[2] = (_yaw_in + _yaw_in_ff) * compensation_gain;
+    inputs[3] = get_throttle() * compensation_gain;
+    float throttle_avg_max = _throttle_avg_max * compensation_gain;
+
+    // If thrust boost is active then do not limit maximum thrust
+    const float throttle_thrust_max = _thrust_boost_ratio + (1.0 - _thrust_boost_ratio) * _throttle_thrust_max * compensation_gain;
+
+    // sanity check throttle is above zero and below current limited throttle
+    inputs[3] = constrain_float(inputs[3], 0.0, throttle_thrust_max);
+
+    // ensure that throttle_avg_max is between the input throttle and the maximum throttle
+    throttle_avg_max = constrain_float(throttle_avg_max, inputs[3], throttle_thrust_max);
+
+    //throttle_avg_max = 0.5;
+
+    //inputs[0] = 0.0;
+    //inputs[1] = 0.0;
+    //inputs[2] = 0.0;
+    //inputs[3] = 0.5;
+
+    // calculate input vector
+    mat_vec_mult(motor_factors, inputs, F);
+
+    // constraints, average throttle, 1 and 0
+    h[0] = throttle_avg_max;
+    for (uint8_t i = 0; i < num_motors; i++) {
+        h[1+i] = 1.0; // could set this to 0 if a failed motor is detected
+        h[1+num_motors+i] = 0.0;
+    }
+
     ECOS_solve(solution);
 
     for (uint8_t i = 0; i < num_motors; i++) {
         x[i] = solution->x[i];
     }
 
-    ECOS_cleanup(solution, 0);
-
-    // the clever bit
-    // interior_point_solve();
+    //ECOS_cleanup(solution, 0);
 
     // workout what output was achieved
     mat_vec_mult(motor_factors_trans, x, outputs);
@@ -605,7 +661,10 @@ void AP_MotorsMatrix_Optimal::output_armed_stabilizing()
                                            inputs[0],inputs[1],inputs[2],inputs[3],
                                            outputs[0],outputs[1],outputs[2],outputs[3]);
 #endif
+
+    //set_initialised_ok(false);
 }
+/*
 
 // sparse A matrix handling
 // x = A * B
@@ -793,7 +852,7 @@ void AP_MotorsMatrix_Optimal::interior_point_solve()
 
     }
 }
-
+*/
 const char* AP_MotorsMatrix_Optimal::_get_frame_string() const
 {
     if (frame_string != nullptr) {
