@@ -352,7 +352,7 @@ void SITL_State::_parse_command_line(int argc, char * const argv[])
     if (asprintf(&autotest_dir, SKETCHBOOK "/Tools/autotest") <= 0) {
         AP_HAL::panic("out of memory");
     }
-    _set_signal_handlers();
+    //_set_signal_handlers();
 
     setvbuf(stdout, (char *)0, _IONBF, 0);
     setvbuf(stderr, (char *)0, _IONBF, 0);
