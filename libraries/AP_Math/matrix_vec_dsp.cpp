@@ -21,8 +21,31 @@ void init_mat(Matrix &S, uint16_t numRows, uint16_t numCols, float *pData)
 #endif
 }
 
+// setup matrix struct
+void init_mat(MatrixD &S, uint16_t numRows, uint16_t numCols, double *pData)
+{
+    S.numRows = numRows;
+    S.numCols = numCols;
+    S.pData = pData;
+}
+
 // element wise matrix vector multiplication
 void per_element_mult_mv(const Matrix &A, float *B, Matrix &dest)
+{
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    if ((A.numRows != dest.numRows) || (A.numCols != dest.numCols)) {
+        AP_HAL::panic("element wise matrices miss match");
+    }
+#endif
+    for (uint8_t i = 0; i < A.numRows; i++) {
+        for (uint8_t j = 0; j < A.numCols; j++) {
+            dest.pData[i*A.numCols + j] = A.pData[i*A.numCols + j] * B[j];
+        }
+    }
+}
+
+// element wise matrix vector multiplication
+void per_element_mult_mv(const MatrixD &A, double *B, MatrixD &dest)
 {
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
     if ((A.numRows != dest.numRows) || (A.numCols != dest.numCols)) {
@@ -55,8 +78,47 @@ void mat_trans(const Matrix &A, Matrix &dest)
 #endif
 }
 
+// transpose
+void mat_trans(const MatrixD &A, MatrixD &dest)
+{
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    if ((A.numRows != dest.numCols) || (A.numCols != dest.numRows)) {
+        AP_HAL::panic("element wise matrices miss match");
+    }
+#endif
+    for (uint8_t i = 0; i < A.numRows; i++) {
+        for (uint8_t j = 0; j < A.numCols; j++) {
+            dest.pData[j*dest.numCols + i] = A.pData[i*A.numCols + j];
+        }
+    }
+}
+
+
 // multiply two matrixes
 void mat_mult(const Matrix &A, const Matrix &B, Matrix &dest)
+{
+#if use_DSP
+    arm_mat_mult_f32(&A,&B,&dest);
+#else
+#if CONFIG_HAL_BOARD == HAL_BOARD_SITL
+    if ((A.numCols != B.numRows) || (A.numRows != dest.numRows) || (B.numCols != dest.numCols)) {
+        AP_HAL::panic("matrix mult size mis-match");
+        return;
+    }
+#endif
+    for (uint8_t i = 0; i < A.numRows; i++) {
+        for (uint8_t j = 0; j < B.numCols; j++) {
+            dest.pData[i*dest.numCols + j] = 0;
+            for (uint8_t k = 0; k < A.numCols; k++) {
+                dest.pData[i*dest.numCols + j] += A.pData[i*A.numCols + k] * B.pData[k*B.numCols + j];
+            }
+        }
+    }
+#endif
+}
+
+// multiply two matrixes
+void mat_mult(const MatrixD &A, const MatrixD &B, MatrixD &dest)
 {
 #if use_DSP
     arm_mat_mult_f32(&A,&B,&dest);
@@ -88,6 +150,14 @@ void vec_scale(const float *A, const float scale, float *dest, uint8_t size)
         dest[i] =  A[i] * scale;
     }
 #endif
+}
+
+// scale by constant
+void vec_scale(const double *A, const double scale, double *dest, uint8_t size)
+{
+    for (uint16_t i = 0; i < size; i++) {
+        dest[i] =  A[i] * scale;
+    }
 }
 
 // set all values
@@ -173,6 +243,17 @@ void vec_inv(const float *A, float *dest, uint8_t size)
 
 // matrix multiplied by vector
 void mat_vec_mult(const Matrix &A, const float *B, float *dest)
+{
+    for (uint8_t i = 0; i < A.numRows; i++) {
+        dest[i] = 0;
+        for (uint8_t j = 0; j < A.numCols; j++) {
+            dest[i] += A.pData[i*A.numCols + j] * B[j];
+        }
+    }
+}
+
+// matrix multiplied by vector
+void mat_vec_mult(const MatrixD &A, const double *B, double *dest)
 {
     for (uint8_t i = 0; i < A.numRows; i++) {
         dest[i] = 0;
