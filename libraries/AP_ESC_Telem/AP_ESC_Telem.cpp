@@ -247,6 +247,18 @@ bool AP_ESC_Telem::get_usage_seconds(uint8_t esc_index, uint32_t& usage_s) const
     return true;
 }
 
+// get an individual ESC's power precentage in seconds if available, returns true on success
+bool AP_ESC_Telem::get_power_percent(uint8_t esc_index, uint8_t& power_pct) const
+{
+    if (esc_index >= ESC_TELEM_MAX_ESCS
+        || AP_HAL::millis() - _telem_data[esc_index].last_update_ms > ESC_TELEM_DATA_TIMEOUT_MS
+        || !(_telem_data[esc_index].types & AP_ESC_Telem_Backend::TelemetryType::POWER_PCT)) {
+        return false;
+    }
+    power_pct = _telem_data[esc_index].power_pct;
+    return true;
+}
+
 // send ESC telemetry messages over MAVLink
 void AP_ESC_Telem::send_esc_telemetry_mavlink(uint8_t mav_chan)
 {
@@ -392,6 +404,9 @@ void AP_ESC_Telem::update_telem_data(const uint8_t esc_index, const AP_ESC_Telem
     if (data_mask & AP_ESC_Telem_Backend::TelemetryType::USAGE) {
         _telem_data[esc_index].usage_s = new_data.usage_s;
     }
+    if (data_mask & AP_ESC_Telem_Backend::TelemetryType::POWER_PCT) {
+        _telem_data[esc_index].power_pct = new_data.power_pct;
+    }
 
     _telem_data[esc_index].count++;
     _telem_data[esc_index].types |= data_mask;
@@ -461,7 +476,8 @@ void AP_ESC_Telem::update()
                     esc_temp    : _telem_data[i].temperature_cdeg,
                     current_tot : _telem_data[i].consumption_mah,
                     motor_temp  : _telem_data[i].motor_temp_cdeg,
-                    error_rate  : _rpm_data[i].error_rate
+                    error_rate  : _rpm_data[i].error_rate,
+                    power_pct   : _telem_data[i].power_pct
                 };
                 AP::logger().WriteBlock(&pkt, sizeof(pkt));
                 _last_telem_log_ms[i] = _telem_data[i].last_update_ms;

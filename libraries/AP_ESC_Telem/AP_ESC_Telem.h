@@ -63,6 +63,9 @@ public:
     // get an individual ESC's consumption in milli-Ampere.hour if available, returns true on success
     bool get_consumption_mah(uint8_t esc_index, float& consumption_mah) const;
 
+    // get an individual ESC's power precentage in seconds if available, returns true on success
+    bool get_power_percent(uint8_t esc_index, uint8_t& power_pct) const;
+
     // return the average motor frequency in Hz for dynamic filtering
     float get_average_motor_frequency_hz(uint32_t servo_channel_mask) const { return get_average_motor_rpm(servo_channel_mask) * (1.0f / 60.0f); };
 

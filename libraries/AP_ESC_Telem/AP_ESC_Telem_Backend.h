@@ -25,6 +25,7 @@ public:
         uint32_t last_update_ms;    // last update time in milliseconds, determines whether active
         uint16_t types;             // telemetry types present
         uint16_t count;             // number of times updated
+        uint8_t power_pct;          // Current percentage of rated power
     };
 
     struct RpmData {
@@ -41,7 +42,8 @@ public:
         VOLTAGE     = 1 << 2,
         CURRENT     = 1 << 3,
         CONSUMPTION = 1 << 4,
-        USAGE       = 1 << 5
+        USAGE       = 1 << 5,
+        POWER_PCT   = 1 << 6,
     };
 
 
