@@ -1081,6 +1081,11 @@ esc_telem = {}
 -- desc
 ---@param instance integer
 ---@return uint32_t_ud|nil
+function esc_telem:get_power_percent(instance) end
+
+-- desc
+---@param instance integer
+---@return uint32_t_ud|nil
 function esc_telem:get_usage_seconds(instance) end
 
 -- desc
