@@ -19,6 +19,7 @@ public:
         uint32_t last_update_ms;    // last update time in milliseconds, determines whether active
         uint16_t types;             // telemetry types present
         uint16_t count;             // number of times updated
+        uint8_t power_pct;          // Current percentage of rated power
     };
 
     struct RpmData {
@@ -38,6 +39,7 @@ public:
         USAGE       = 1 << 5,
         TEMPERATURE_EXTERNAL = 1 << 6,
         MOTOR_TEMPERATURE_EXTERNAL  = 1 << 7,
+        POWER_PCT   = 1 << 8,
     };
 
 
