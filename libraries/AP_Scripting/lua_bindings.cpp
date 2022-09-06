@@ -199,14 +199,12 @@ int AP_Logger_Write(lua_State *L) {
             case 'L':
             case 'e': {
                 const lua_Integer tmp1 = luaL_checkinteger(L, arg_index);
-                luaL_argcheck(L, ((tmp1 >= INT32_MIN) && (tmp1 <= INT32_MAX)), arg_index, "argument out of range");
                 int32_t tmp = tmp1;
                 luaL_addlstring(&buffer, (char *)&tmp, sizeof(int32_t));
                 break;
             }
             case 'f': {
                 float tmp = luaL_checknumber(L, arg_index);
-                luaL_argcheck(L, ((tmp >= -INFINITY) && (tmp <= INFINITY)), arg_index, "argument out of range");
                 luaL_addlstring(&buffer, (char *)&tmp, sizeof(float));
                 break;
             }
@@ -216,8 +214,7 @@ int AP_Logger_Write(lua_State *L) {
             }
             case 'M':
             case 'B': {
-                const lua_Integer tmp1 = luaL_checkinteger(L, arg_index);
-                luaL_argcheck(L, ((tmp1 >= 0) && (tmp1 <= UINT8_MAX)), arg_index, "argument out of range");
+                const lua_Integer tmp1 = get_integer(L, arg_index, 0, UINT8_MAX, "argument out of range");
                 uint8_t tmp = static_cast<uint8_t>(tmp1);
                 luaL_addlstring(&buffer, (char *)&tmp, sizeof(uint8_t));
                 break;
@@ -276,12 +273,10 @@ int lua_get_i2c_device(lua_State *L) {
         return luaL_argerror(L, args, "too many arguments");
     }
 
-    const lua_Integer bus_in = luaL_checkinteger(L, 1 + arg_offset);
-    luaL_argcheck(L, ((bus_in >= 0) && (bus_in <= 4)), 1 + arg_offset, "bus out of range");
+    const lua_Integer bus_in = get_integer(L, 1 + arg_offset, 0, 4, "bus out of range");
     const uint8_t bus = static_cast<uint8_t>(bus_in);
 
-    const lua_Integer address_in = luaL_checkinteger(L, 2 + arg_offset);
-    luaL_argcheck(L, ((address_in >= 0) && (address_in <= 128)), 2 + arg_offset, "address out of range");
+    const lua_Integer address_in = get_integer(L, 2 + arg_offset, 0, 128, "address out of range");
     const uint8_t address = static_cast<uint8_t>(address_in);
 
     // optional arguments, use the same defaults as the hal get_device function
@@ -328,8 +323,7 @@ int lua_get_CAN_device(lua_State *L) {
 
     binding_argcheck(L, 1 + arg_offset);
 
-    const uint32_t raw_buffer_len = coerce_to_uint32_t(L, 1 + arg_offset);
-    luaL_argcheck(L, ((raw_buffer_len >= 1U) && (raw_buffer_len <= 25U)), 1 + arg_offset, "argument out of range");
+    const uint32_t raw_buffer_len = get_uint32(L, 1 + arg_offset, 1, 25, "argument out of range");
     const uint32_t buffer_len = static_cast<uint32_t>(raw_buffer_len);
 
     if (AP::scripting()->_CAN_dev == nullptr) {
@@ -352,8 +346,7 @@ int lua_get_CAN_device2(lua_State *L) {
 
     binding_argcheck(L, 1 + arg_offset);
 
-    const uint32_t raw_buffer_len = coerce_to_uint32_t(L, 1 + arg_offset);
-    luaL_argcheck(L, ((raw_buffer_len >= 1U) && (raw_buffer_len <= 25U)), 1 + arg_offset, "argument out of range");
+    const uint32_t raw_buffer_len = get_uint32(L, 1 + arg_offset, 1, 25, "argument out of range");
     const uint32_t buffer_len = static_cast<uint32_t>(raw_buffer_len);
 
     if (AP::scripting()->_CAN_dev2 == nullptr) {
