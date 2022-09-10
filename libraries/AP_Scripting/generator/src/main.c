@@ -2279,7 +2279,7 @@ void emit_loaders(void) {
   fprintf(source, "        lua_setmetatable(L, -2);\n");
   fprintf(source, "        lua_setglobal(L, singleton_fun[i].name);\n");
   fprintf(source, "    }\n");
-
+  fprintf(source, "    load_boxed_numerics(L);\n");
   fprintf(source, "\n");
   fprintf(source, "}\n\n");
 }
@@ -2334,7 +2334,7 @@ void emit_sandbox(void) {
   fprintf(source, "        lua_pushcfunction(L, new_userdata[i].fun);\n");
   fprintf(source, "        lua_settable(L, -3);\n");
   fprintf(source, "    }\n");
-
+  fprintf(source, "    load_boxed_numerics_sandbox(L);\n");
   fprintf(source, "\n");
   fprintf(source, "}\n");
 }
