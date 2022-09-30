@@ -83,6 +83,7 @@ public:
         // LOWEHEISER = 4,
         DroneCAN = 5,
         CurrawongECU = 6,
+        SCRIPTING  = 7,
     };
 
     static AP_EFI *get_singleton(void) {
@@ -91,6 +92,10 @@ public:
 
     // send EFI_STATUS
     void send_mavlink_status(mavlink_channel_t chan);
+
+#if AP_SCRIPTING_ENABLED
+    AP_EFI_Backend* get_backend() { return backend; }
+#endif
 
 protected:
 

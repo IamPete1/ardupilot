@@ -31,6 +31,10 @@ public:
     // Update the state structure
     virtual void update() = 0;
 
+#if AP_SCRIPTING_ENABLED
+    virtual bool handle_scripting(const EFI_State &efi_state) { return false; }
+#endif
+
 protected:
     // Copies internal state to the frontend state
     void copy_to_frontend();
