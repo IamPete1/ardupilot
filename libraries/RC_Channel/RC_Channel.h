@@ -272,6 +272,7 @@ public:
 
 #if !HAL_MINIMIZE_FEATURES
     const char *string_for_aux_function(AUX_FUNC function) const;
+    const char *string_for_aux_pos(AuxSwitchPos pos) const;
 #endif
     // pwm value under which we consider that Radio value is invalid
     static const uint16_t RC_MIN_LIMIT_PWM = 800;
