@@ -21,6 +21,8 @@
 #include <GCS_MAVLink/GCS_MAVLink.h>
 #include <GCS_MAVLink/GCS.h>
 
+#include <AP_Logger/AP_Logger.h>
+
 // very crude debounce method
 #define DEBOUNCE_MS 50
 
@@ -183,6 +185,23 @@ void AP_Button::update(void)
             continue;
         }
         const uint16_t pwm_us = pwm_pin_source[i].get_pwm_us();
+
+        // @LoggerMessage: BTN
+        // @Description: Button PWM logging
+        // @Field: TimeUS: Time since system startup
+        // @Field: Instance: button number
+        // @Field: pwm: last pulse width received
+        AP::logger().Write(
+            "BTN",
+            "TimeUS,Instance,pwm",
+            "s#Y",
+            "F--",
+            "QBH",
+            AP_HAL::micros64(),
+            i+1,
+            pwm_us);
+
+
         if (pwm_us < RC_Channel::RC_MIN_LIMIT_PWM || pwm_us > RC_Channel::RC_MAX_LIMIT_PWM) {
             // invalid pulse width, trigger low
             if (pwm_state & mask) {
