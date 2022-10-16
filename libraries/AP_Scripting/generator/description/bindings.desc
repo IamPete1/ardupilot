@@ -491,8 +491,8 @@ include AP_HAL/AP_HAL.h
 userdata AP_HAL::CANFrame depends HAL_MAX_CAN_PROTOCOL_DRIVERS
 userdata AP_HAL::CANFrame rename CANFrame
 userdata AP_HAL::CANFrame field id uint32_t'skip_check read write
-userdata AP_HAL::CANFrame field data'array int(ARRAY_SIZE(ud->data)) uint8_t read write 0 UINT8_MAX
-userdata AP_HAL::CANFrame field dlc uint8_t read write 0 int(ARRAY_SIZE(ud->data))
+userdata AP_HAL::CANFrame field data'array int(ARRAY_SIZE(AP_HAL::CANFrame::data)) uint8_t read write 0 UINT8_MAX
+userdata AP_HAL::CANFrame field dlc uint8_t read write 0 int(ARRAY_SIZE(AP_HAL::CANFrame::data))
 userdata AP_HAL::CANFrame method id_signed int32_t
 userdata AP_HAL::CANFrame method isExtended boolean
 userdata AP_HAL::CANFrame method isRemoteTransmissionRequest boolean

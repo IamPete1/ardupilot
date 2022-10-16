@@ -409,3 +409,102 @@ int lua_get_CAN_device2(lua_State *L) {
     return 1;
 }
 #endif // HAL_MAX_CAN_PROTOCOL_DRIVERS
+
+int lua_userdata_field(lua_State *L, const char *userdata_name, size_t offset, uint8_t type, uint8_t max_array_len, int32_t min_val, int32_t max_val)
+{
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpointer-arith"
+    void *data = luaL_checkudata(L, 1, userdata_name) + offset;
+#pragma GCC diagnostic pop
+
+    const uint8_t num_args = lua_gettop(L);
+
+    // might have to index like array
+    const bool index = max_array_len != 0;
+
+    // check for correct number of arguments
+    bool get = true;
+    if (num_args == (index?3:2)) {
+        get = false; // set value
+    } else if (num_args != (index?2:1)) {
+        return luaL_argerror(L, num_args, "too many arguments");
+    }
+
+    // get index if one is needed
+    uint8_t index_offset = 0;
+    if (index) {
+        // indexing uses first argument to index array
+        index_offset = get_integer(L, 2, 0, max_array_len);
+    }
+
+    // get or set value
+    switch (type) {
+        case 1: {
+            if (get) {
+                lua_pushnumber(L, *((float*)data+index_offset));
+                return 1;
+            } else {
+                *((float*)data+index_offset) = luaL_checknumber(L, num_args);
+                return 0;
+            }
+        }
+        case 2: {
+            if (get) {
+                lua_pushinteger(L, *((int8_t*)data+index_offset));
+                return 1;
+            } else {
+                *((int8_t*)data+index_offset) = get_integer(L, num_args, min_val, max_val);
+                return 0;
+            }
+        }
+        case 3: {
+            if (get) {
+                lua_pushinteger(L, *((int16_t*)data+index_offset));
+                return 1;
+            } else {
+                *((int16_t*)data+index_offset) = get_integer(L, num_args, min_val, max_val);
+                return 0;
+            }
+        }
+        case 4: {
+            if (get) {
+                lua_pushinteger(L, *((int32_t*)data+index_offset));
+                return 1;
+            } else {
+                *((int32_t*)data+index_offset) = luaL_checkinteger(L, num_args);
+                return 0;
+            }
+        }
+        case 5: {
+            if (get) {
+                lua_pushinteger(L, *((uint8_t*)data+index_offset));
+                return 1;
+            } else {
+                *((uint8_t*)data+index_offset) = get_integer(L, num_args, min_val, max_val);
+                return 0;
+            }
+        }
+        case 6: {
+            if (get) {
+                lua_pushinteger(L, *((uint16_t*)data+index_offset));
+                return 1;
+            } else {
+                *((uint16_t*)data+index_offset) = get_integer(L, num_args, min_val, max_val);
+                return 0;
+            }
+        }
+        case 10: {
+            if (get) {
+                new_uint32_t(L);
+                *static_cast<uint32_t *>(luaL_checkudata(L, -1, "uint32_t")) = *((uint32_t*)data+index_offset);
+                return 1;
+            } else {
+                *((uint32_t*)data+index_offset) = get_uint32(L, num_args, min_val, max_val);
+                return 0;
+            }
+        }
+    }
+
+    return 0;
+}
+

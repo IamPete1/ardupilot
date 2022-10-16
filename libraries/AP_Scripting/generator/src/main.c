@@ -1655,6 +1655,78 @@ void emit_field(const struct userdata_field *field, const char* object_name, con
 
 void emit_userdata_field(const struct userdata *data, const struct userdata_field *field) {
   fprintf(source, "static int %s_%s(lua_State *L) {\n", data->sanatized_name, field->name);
+
+  // select minimums
+  char * forced_min;
+  char * forced_max;
+  switch (field->type.type) {
+    case TYPE_FLOAT:
+      forced_min = "-UINT32_MAX"; // not ideal!
+      forced_max = "UINT32_MAX"; // not ideal!
+      break;
+    case TYPE_INT8_T:
+      forced_min = "INT8_MIN";
+      forced_max = "INT8_MAX";
+      break;
+    case TYPE_INT16_T:
+      forced_min = "INT16_MIN";
+      forced_max = "INT16_MAX";
+      break;
+    case TYPE_INT32_T:
+      forced_min = "INT32_MIN";
+      forced_max = "INT32_MAX";
+      break;
+    case TYPE_UINT8_T:
+      forced_min = "0";
+      forced_max = "UINT8_MAX";
+      break;
+    case TYPE_UINT16_T:
+      forced_min = "0";
+      forced_max = "UINT16_MAX";
+      break;
+    case TYPE_UINT32_T:
+      forced_min = "0U";
+      forced_max = "UINT32_MAX";
+      break;
+    case TYPE_ENUM:
+      forced_min = forced_max = NULL;
+      break;
+    case TYPE_NONE:
+      return; // nothing to do here, this should potentially be checked outside of this, but it makes an easier implementation to accept it
+    case TYPE_AP_OBJECT:
+    case TYPE_STRING:
+    case TYPE_BOOLEAN:
+    case TYPE_USERDATA:
+    case TYPE_LITERAL:
+    break;
+  }
+
+  switch (field->type.type) {
+      case TYPE_FLOAT:
+      case TYPE_INT8_T:
+      case TYPE_INT16_T:
+      case TYPE_INT32_T:
+      case TYPE_UINT8_T:
+      case TYPE_UINT16_T:
+      case TYPE_UINT32_T:
+        fprintf(source, "    return lua_userdata_field(L, \"%s\", offsetof(%s, %s), %i, ", data->rename ? data->rename : data->name, data->name, field->name, field->type.type);
+        if (field->array_len != NULL) {
+          fprintf(source, "MIN(int(ARRAY_SIZE(%s::%s))-1, UINT8_MAX), ", data->name, field->name);
+        } else {
+          fprintf(source, "0, ");
+        }
+        if (field->type.range == NULL) {
+          fprintf(source, "%s, %s", forced_min, forced_max);
+        } else {
+          fprintf(source, "MAX(%s, %s), MIN(%s, %s)", forced_min, field->type.range->low, forced_max, field->type.range->high);
+        }
+        fprintf(source, ");\n");
+        fprintf(source, "}\n");
+        return;
+      default:
+        break;
+  }
+
   fprintf(source, "    %s *ud = check_%s(L, 1);\n", data->name, data->sanatized_name);
   emit_field(field, "ud", "->");
 }
