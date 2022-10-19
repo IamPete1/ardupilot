@@ -1,6 +1,8 @@
 #include "AC_AttitudeControl_Heli.h"
 #include <AP_HAL/AP_HAL.h>
 
+// This is a libary change
+
 // table of user settable parameters
 const AP_Param::GroupInfo AC_AttitudeControl_Heli::var_info[] = {
     // parameters from parent vehicle
