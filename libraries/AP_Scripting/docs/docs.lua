@@ -736,6 +736,27 @@ function mount:get_mode(instance) end
 ---@class motors
 motors = {}
 
+-- get lateral motor output
+---@return number
+function motors:get_lateral() end
+
+-- get forward motor output
+---@return number
+function motors:get_forward() end
+
+-- get throttle motor output
+---@return number
+function motors:get_throttle() end
+
+-- get throttle motor output
+---@return integer
+---| '0' # Shut down
+---| '1' # Ground idle
+---| '2' # Spooling up
+---| '3' # Throttle unlimited
+---| '4' # Spooling down
+function motors:get_spool_state() end
+
 -- desc
 ---@param param1 string
 function motors:set_frame_string(param1) end
