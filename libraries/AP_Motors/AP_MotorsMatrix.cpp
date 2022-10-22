@@ -216,6 +216,18 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     float   yaw_allowed = 1.0f;         // amount of yaw we can fit in
     float   thr_adj;                    // the difference between the pilot's desired throttle and throttle_thrust_best_rpy
 
+    // Calculate output limits
+    const float max_slew_down = get_max_slew_down();
+    const float max_slew_up = get_max_slew_up();
+    float actuator_max[AP_MOTORS_MAX_NUM_MOTORS];
+    float actuator_min[AP_MOTORS_MAX_NUM_MOTORS];
+    for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
+        if (motor_enabled[i]) {
+            actuator_min[i] = MAX(_actuator[i] - max_slew_down, 0.0);
+            actuator_max[i] = MIN(_actuator[i] + max_slew_up, 1.0);
+        }
+    }
+
     // apply voltage and air pressure compensation
     const float compensation_gain = get_compensation_gain(); // compensation for battery voltage and altitude
     roll_thrust = (_roll_in + _roll_in_ff) * compensation_gain;
@@ -240,8 +252,19 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     // ensure that throttle_avg_max is between the input throttle and the maximum throttle
     throttle_avg_max = constrain_float(throttle_avg_max, throttle_thrust, throttle_thrust_max);
 
+    // Calculate throttle that gives best control power, with no slew limit this is 0.5
+    float low_lim = 0.0;
+    float high_lim = 1.0;
+    for (i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
+        if (motor_enabled[i] && (!_thrust_boost || i != _motor_lost_index)) {
+            // ignore failed motors
+            low_lim = MAX(low_lim, actuator_min[i]);
+            high_lim = MIN(high_lim, actuator_max[i]);
+        }
+    }
+
     // calculate the highest allowed average thrust that will provide maximum control range
-    throttle_thrust_best_rpy = MIN(0.5f, throttle_avg_max);
+    throttle_thrust_best_rpy = MIN((low_lim + high_lim) * 0.5, throttle_avg_max);
 
     // calculate throttle that gives most possible room for yaw which is the lower of:
     //      1. 0.5f - (rpy_low+rpy_high)/2.0 - this would give the maximum possible margin above the highest motor and below the lowest
@@ -284,10 +307,12 @@ void AP_MotorsMatrix::output_armed_stabilizing()
             // Check the maximum yaw control that can be used on this channel
             // Exclude any lost motors if thrust boost is enabled
             if (!is_zero(_yaw_factor[i]) && (!_thrust_boost || i != _motor_lost_index)){
+                // roll, pitch and throttle output
+                const float rpt_out = throttle_thrust_best_rpy + _thrust_rpyt_out[i];
                 if (is_positive(yaw_thrust * _yaw_factor[i])) {
-                    yaw_allowed = MIN(yaw_allowed, fabsf(MAX(1.0f - (throttle_thrust_best_rpy + _thrust_rpyt_out[i]), 0.0f)/_yaw_factor[i]));
+                    yaw_allowed = MIN(yaw_allowed, fabsf(MAX(actuator_max[i] - rpt_out, 0.0f)/_yaw_factor[i]));
                 } else {
-                    yaw_allowed = MIN(yaw_allowed, fabsf(MAX(throttle_thrust_best_rpy + _thrust_rpyt_out[i], 0.0f)/_yaw_factor[i]));
+                    yaw_allowed = MIN(yaw_allowed, fabsf(MAX(rpt_out - actuator_min[i], 0.0f)/_yaw_factor[i]));
                 }
             }
         }
@@ -304,7 +329,9 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     yaw_allowed = MAX(yaw_allowed, yaw_allowed_min);
 
     // Include the lost motor scaled by _thrust_boost_ratio to smoothly transition this motor in and out of the calculation
-    if (_thrust_boost && motor_enabled[_motor_lost_index]) {
+    if (_thrust_boost && motor_enabled[_motor_lost_index] && (_thrust_boost_ratio < 1.0)) {
+        // _thrust_boost_ratio of 1 means this calculation has no effect
+
         // record highest roll + pitch command
         if (_thrust_rpyt_out[_motor_lost_index] > rp_high) {
             rp_high = _thrust_boost_ratio * rp_high + (1.0f - _thrust_boost_ratio) * _thrust_rpyt_out[_motor_lost_index];
@@ -313,10 +340,12 @@ void AP_MotorsMatrix::output_armed_stabilizing()
         // Check the maximum yaw control that can be used on this channel
         // Exclude any lost motors if thrust boost is enabled
         if (!is_zero(_yaw_factor[_motor_lost_index])){
+            // roll, pitch and throttle output
+            const float rpt_out = throttle_thrust_best_rpy + _thrust_rpyt_out[_motor_lost_index];
             if (is_positive(yaw_thrust * _yaw_factor[_motor_lost_index])) {
-                yaw_allowed = _thrust_boost_ratio * yaw_allowed + (1.0f - _thrust_boost_ratio) * MIN(yaw_allowed, fabsf(MAX(1.0f - (throttle_thrust_best_rpy + _thrust_rpyt_out[_motor_lost_index]), 0.0f)/_yaw_factor[_motor_lost_index]));
+                yaw_allowed = _thrust_boost_ratio * yaw_allowed + (1.0f - _thrust_boost_ratio) * MIN(yaw_allowed, fabsf(MAX(actuator_max[i] - rpt_out, 0.0f)/_yaw_factor[_motor_lost_index]));
             } else {
-                yaw_allowed = _thrust_boost_ratio * yaw_allowed + (1.0f - _thrust_boost_ratio) * MIN(yaw_allowed, fabsf(MAX(throttle_thrust_best_rpy + _thrust_rpyt_out[_motor_lost_index], 0.0f)/_yaw_factor[_motor_lost_index]));
+                yaw_allowed = _thrust_boost_ratio * yaw_allowed + (1.0f - _thrust_boost_ratio) * MIN(yaw_allowed, fabsf(MAX(rpt_out - actuator_min[i], 0.0f)/_yaw_factor[_motor_lost_index]));
             }
         }
     }
@@ -346,7 +375,7 @@ void AP_MotorsMatrix::output_armed_stabilizing()
         }
     }
     // Include the lost motor scaled by _thrust_boost_ratio to smoothly transition this motor in and out of the calculation
-    if (_thrust_boost) {
+    if (_thrust_boost && (_thrust_boost_ratio < 1.0)) {
         // record highest roll + pitch + yaw command
         if (_thrust_rpyt_out[_motor_lost_index] > rpy_high && motor_enabled[_motor_lost_index]) {
             rpy_high = _thrust_boost_ratio * rpy_high + (1.0f - _thrust_boost_ratio) * _thrust_rpyt_out[_motor_lost_index];
@@ -354,11 +383,13 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     }
 
     // calculate any scaling needed to make the combined thrust outputs fit within the output range
-    if (rpy_high - rpy_low > 1.0f) {
-        rpy_scale = 1.0f / (rpy_high - rpy_low);
+    const float required_range = rpy_high - rpy_low;
+    const float available_range = high_lim - low_lim;
+    if (required_range > available_range) {
+        rpy_scale = available_range / required_range;
     }
-    if (throttle_avg_max + rpy_low < 0) {
-        rpy_scale = MIN(rpy_scale, -throttle_avg_max / rpy_low);
+    if ((throttle_avg_max + rpy_low) < low_lim) {
+        rpy_scale = MIN(rpy_scale, -(throttle_avg_max-low_lim) / rpy_low);
     }
 
     // calculate how close the motors can come to the desired throttle

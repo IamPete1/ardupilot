@@ -470,34 +470,36 @@ float AP_MotorsMulticopter::actuator_to_thrust(float actuator) const
     return constrain_float(remove_thrust_curve_and_volt_scaling(actuator), 0.0f, 1.0f);
 }
 
-// adds slew rate limiting to actuator output
-void AP_MotorsMulticopter::set_actuator_with_slew(float& actuator_output, float input)
+// get max slew up change
+float AP_MotorsMulticopter::get_max_slew_up() const
 {
-    /*
-    If MOT_SLEW_UP_TIME is 0 (default), no slew limit is applied to increasing output.
-    If MOT_SLEW_DN_TIME is 0 (default), no slew limit is applied to decreasing output.
-    MOT_SLEW_UP_TIME and MOT_SLEW_DN_TIME are constrained to 0.0~0.5 for sanity.
-    If spool mode is shutdown, no slew limit is applied to allow immediate disarming of motors.
-    */
-
-    // Output limits with no slew time applied
-    float output_slew_limit_up = 1.0f;
-    float output_slew_limit_dn = 0.0f;
-
-    // If MOT_SLEW_UP_TIME is set, calculate the highest allowed new output value, constrained 0.0~1.0
+    // If MOT_SLEW_UP_TIME is set, calculate max change
     if (is_positive(_slew_up_time)) {
-        float output_delta_up_max = 1.0f / (constrain_float(_slew_up_time, 0.0f, 0.5f) * _loop_rate);
-        output_slew_limit_up = constrain_float(actuator_output + output_delta_up_max, 0.0f, 1.0f);
+        // MOT_SLEW_UP_TIME and MOT_SLEW_DN_TIME are constrained to 0.0~0.5 for sanity.
+        return 1.0 / (constrain_float(_slew_up_time, 0.0, 0.5) * _loop_rate);
     }
 
-    // If MOT_SLEW_DN_TIME is set, calculate the lowest allowed new output value, constrained 0.0~1.0
+    // Default to max change of 1, this is no contraint
+    return 1.0;
+}
+
+// get max slew down change
+float AP_MotorsMulticopter::get_max_slew_down() const
+{
+    // If MOT_SLEW_DN_TIME is set, calculate max change
     if (is_positive(_slew_dn_time)) {
-        float output_delta_dn_max = 1.0f / (constrain_float(_slew_dn_time, 0.0f, 0.5f) * _loop_rate);
-        output_slew_limit_dn = constrain_float(actuator_output - output_delta_dn_max, 0.0f, 1.0f);
+        // MOT_SLEW_UP_TIME and MOT_SLEW_DN_TIME are constrained to 0.0~0.5 for sanity.
+        return 1.0 / (constrain_float(_slew_dn_time, 0.0, 0.5) * _loop_rate);
     }
 
-    // Constrain change in output to within the above limits
-    actuator_output = constrain_float(input, output_slew_limit_dn, output_slew_limit_up);
+    // Default to max change of 1, this is no contraint
+    return 1.0;
+}
+
+// adds slew rate limiting to actuator output
+void AP_MotorsMulticopter::set_actuator_with_slew(float& actuator_output, float input) const
+{
+    actuator_output = constrain_float(input, actuator_output - get_max_slew_down(), actuator_output + get_max_slew_up());
 }
 
 // gradually increase actuator output to spin_min

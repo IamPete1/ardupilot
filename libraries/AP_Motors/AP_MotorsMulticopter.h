@@ -137,7 +137,13 @@ protected:
     int16_t             output_to_pwm(float _actuator_output);
 
     // adds slew rate limiting to actuator output if MOT_SLEW_TIME > 0 and not shutdown
-    void                set_actuator_with_slew(float& actuator_output, float input);
+    void                set_actuator_with_slew(float& actuator_output, float input) const;
+
+    // get max slew up change
+    float               get_max_slew_up() const;
+
+    // get max slew down change
+    float               get_max_slew_down() const;
 
     // gradually increase actuator output to ground idle
     float               actuator_spin_up_to_ground_idle() const;
