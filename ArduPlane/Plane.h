@@ -905,6 +905,7 @@ private:
     void exit_mission_callback();
     bool start_command(const AP_Mission::Mission_Command& cmd);
     bool verify_command(const AP_Mission::Mission_Command& cmd);
+    bool get_next_wp_dest(const AP_Mission::Mission_Command& current_cmd, Location &next_dest)
     void do_takeoff(const AP_Mission::Mission_Command& cmd);
     void do_nav_wp(const AP_Mission::Mission_Command& cmd);
     void do_land(const AP_Mission::Mission_Command& cmd);

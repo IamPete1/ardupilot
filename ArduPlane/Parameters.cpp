@@ -233,7 +233,6 @@ const AP_Param::Info Plane::var_info[] = {
     // @Range: 0 32767
     // @Increment: 1
     // @User: Standard
-    GSCALAR(waypoint_max_radius,        "WP_MAX_RADIUS",      0),
 
     // @Param: WP_LOITER_RAD
     // @DisplayName: Waypoint Loiter Radius

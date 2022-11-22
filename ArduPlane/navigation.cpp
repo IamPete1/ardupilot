@@ -315,7 +315,7 @@ void Plane::update_loiter_update_nav(uint16_t radius)
 
     if ((loiter.start_time_ms == 0 &&
          (control_mode == &mode_auto || control_mode == &mode_guided) &&
-         auto_state.crosstrack &&
+         nav_controller->should_crosstrack() &&
          current_loc.get_distance(next_WP_loc) > radius*3) ||
         quadplane_qrtl_switch) {
         /*

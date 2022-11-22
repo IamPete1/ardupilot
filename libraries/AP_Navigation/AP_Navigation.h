@@ -9,7 +9,7 @@
  */
 #pragma once
 
-#include <AP_Common/AP_Common.h>
+#include <AP_Common/Location.h>
 
 class AP_Navigation {
 public:
@@ -67,7 +67,9 @@ public:
     // main flight code will call an output function (such as
     // nav_roll_cd()) after this function to ask for the new required
     // navigation attitude/steering.
-    virtual void update_waypoint(const struct Location &prev_WP, const struct Location &next_WP, float dist_min = 0.0f) = 0;
+    virtual void _update_waypoint(const Location &prev_WP, const Location &next_WP, float dist_min = 0.0) = 0;
+    virtual void _update_waypoint(const Vector2F &current_loc, const Vector2F &prev_WP, const Vector2F &next_WP, float dist_min = 0.0) = 0;
+    void update_waypoint(const Location &prev_WP, const Location &next_WP);
 
     // update the internal state of the navigation controller for when
     // the vehicle has been commanded to circle about a point.  This
@@ -76,7 +78,8 @@ public:
     // main flight code will call an output function (such as
     // nav_roll_cd()) after this function to ask for the new required
     // navigation attitude/steering.
-    virtual void update_loiter(const struct Location &center_WP, float radius, int8_t loiter_direction) = 0;
+    virtual void update_loiter(const Vector2F &current_loc, const Vector2F &center_WP, float radius, int8_t loiter_direction) = 0;
+    virtual void update_loiter(const Location &center_WP, float radius, int8_t loiter_direction) = 0;
 
     // update the internal state of the navigation controller, given a
     // fixed heading. This is the step function for navigation control
@@ -116,11 +119,67 @@ public:
 
     virtual void set_reverse(bool reverse) = 0;
 
-    // add new navigation controllers to this enum. Users can then
-    // select which navigation controller to use by setting the
-    // NAV_CONTROLLER parameter
-    enum ControllerType {
-        CONTROLLER_DEFAULT      = 0,
-        CONTROLLER_L1           = 1
+    void set_should_crosstrack(bool b) { _should_crosstrack = b; }
+
+    bool should_crosstrack() { return _should_crosstrack; }
+
+        enum class TURN_TYPE {
+        FILLET,
+        TEARDROP,
+        LATE,
     };
+
+    // Set destination and next location
+    // negative turn point turns before waypoint, positive turns after (only used for late turn type)
+    void set_destination(const Location &dest, const Location &next_dest, TURN_TYPE type, float turn_dist);
+
+protected:
+
+    struct DUBINS_TURN {
+        Vector2F center;
+        float start_angle;
+        float end_angle;
+    };
+
+    struct DUBINS_STRAIGHT {
+        Vector2F start;
+        Vector2F vec;
+    };
+
+    struct DUBINS_PATH {
+        enum class SEGMENT {
+            LEFT,
+            RIGHT,
+            STRAIGHT,
+        };
+
+        Location origin;
+        struct {
+            SEGMENT type;
+            union {
+                DUBINS_TURN turn;
+                DUBINS_STRAIGHT straight;
+            } path;
+        } segments[4]; // path takes upto three turns + straight before turn
+        uint8_t num_segments;
+    };
+
+    // We don't build path for whole mission, just next two waypoints
+    // waypoints advance when passed, not when there path are complete
+    // so we need to cache the current path until it is complete and we advance to the next path.
+    DUBINS_PATH _current_path;
+    DUBINS_PATH _next_path;
+
+private:
+
+    bool _should_crosstrack;
+
+    Location _prev_dest;
+    Location _dest;
+    Location _next_dest;
+
+    TURN_TYPE _turn_type;
+
+    float _dest_turn_point;
+
 };

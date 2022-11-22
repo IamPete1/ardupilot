@@ -334,6 +334,40 @@ bool Plane::verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
     }
 }
 
+bool Plane::get_next_wp_dest(const AP_Mission::Mission_Command& current_cmd, Location &next_dest)
+{
+    // could switch on current cmd type
+
+    // do not add next wp if there are no more navigation commands
+    AP_Mission::Mission_Command next_cmd;
+    if (!mission.get_next_nav_cmd(current_cmd.index+1, next_cmd)) {
+        return false;
+    }
+
+    // whether vehicle should stop at the target position depends upon the next command
+    switch (next_cmd.id) {
+    case MAV_CMD_NAV_WAYPOINT: {
+        if ((next_cmd.content.location.lat == 0) || (next_cmd.content.location.lng == 0)) {
+            // location invalid
+            return false;
+        }
+        next_dest = next_cmd.content.location;
+
+        // convert relative alt to absolute alt, see set_next_WP
+        if (next_dest.relative_alt) {
+            next_dest.relative_alt = false;
+            next_dest.alt += home.alt;
+        }
+
+        return true;
+    }
+    default:
+        break;
+    }
+
+    return false;
+}
+
 /********************************************************************************/
 //  Nav (Must) commands
 /********************************************************************************/
@@ -341,7 +375,7 @@ bool Plane::verify_command(const AP_Mission::Mission_Command& cmd)        // Ret
 void Plane::do_RTL(int32_t rtl_altitude_AMSL_cm)
 {
     auto_state.next_wp_crosstrack = false;
-    auto_state.crosstrack = false;
+    nav_controller->set_should_crosstrack(false);
     prev_WP_loc = current_loc;
     next_WP_loc = rally.calc_best_rally_or_home_location(current_loc, rtl_altitude_AMSL_cm);
     setup_terrain_target_alt(next_WP_loc);
@@ -389,6 +423,26 @@ void Plane::do_takeoff(const AP_Mission::Mission_Command& cmd)
 void Plane::do_nav_wp(const AP_Mission::Mission_Command& cmd)
 {
     set_next_WP(cmd.content.location);
+
+    Location next_dest;
+    if (!get_next_wp_dest(cmd, next_dest)) {
+        // A to B navigation
+        return;
+    }
+
+    // A to B to C navigation
+    const uint8_t cmd_passby = HIGHBYTE(cmd.p1); // distance in meters to pass beyond the wp
+    const uint8_t cmd_acceptance_distance = LOWBYTE(cmd.p1); // radius in meters to accept reaching the wp
+
+    float turn_point = 0;
+    if (cmd_acceptance_distance > 0) {
+        turn_point = -cmd_acceptance_distance;
+    } else if (cmd_passby > 0) {
+        turn_point = cmd_passby;
+    }
+
+    nav_controller->set_destination(next_WP_loc, turn_point, next_dest);
+
 }
 
 void Plane::do_land(const AP_Mission::Mission_Command& cmd)
