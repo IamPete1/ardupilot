@@ -304,6 +304,9 @@ void AP_Baro::calibrate(bool save)
         hal.scheduler->delay(100);
     }
 
+    // External AHRS takes ages to come up, wait a while
+    hal.scheduler->delay(3000);
+
     // now average over 5 values for the ground pressure settings
     float sum_pressure[BARO_MAX_INSTANCES] = {0};
     uint8_t count[BARO_MAX_INSTANCES] = {0};
