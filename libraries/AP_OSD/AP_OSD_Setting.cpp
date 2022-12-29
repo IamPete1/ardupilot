@@ -51,7 +51,9 @@ const AP_Param::GroupInfo AP_OSD_Setting::var_info[] = {
 // constructor
 AP_OSD_Setting::AP_OSD_Setting(bool _enabled, uint8_t x, uint8_t y)
 {
-    enabled.set(_enabled);
-    xpos.set(x);
-    ypos.set(y);
+    AP_Param::setup_object_defaults(this, var_info);
+
+    enabled.set_and_default(_enabled);
+    xpos.set_and_default(x);
+    ypos.set_and_default(y);
 }

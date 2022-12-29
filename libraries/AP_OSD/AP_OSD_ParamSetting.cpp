@@ -94,7 +94,7 @@ const AP_Param::GroupInfo AP_OSD_ParamSetting::var_info[] = {
     // @DisplayName: Parameter type
     // @Description: Type of the parameter to be displayed and modified
     // @User: Standard
-    AP_GROUPINFO("_TYPE", 10, AP_OSD_ParamSetting, _type, 0),
+    AP_GROUPINFO("_TYPE", 10, AP_OSD_ParamSetting, _type, OSD_PARAM_NONE),
 
     AP_GROUPEND
 };
@@ -240,34 +240,35 @@ extern const AP_HAL::HAL& hal;
 AP_OSD_ParamSetting::AP_OSD_ParamSetting(uint8_t param_number, bool _enabled, uint8_t x, uint8_t y,  int16_t key, int8_t idx, int32_t group, int8_t type, float min, float max, float incr)
     : AP_OSD_Setting(_enabled, x, y), _param_number(param_number)
 {
-    _param_group.set(group);
-    _param_idx.set(idx);
-    _param_key.set(key);
-    _param_min.set(min);
-    _param_max.set(max);
-    _param_incr.set(incr);
-    _type.set(type);
+    AP_Param::setup_object_defaults(this, var_info);
+
+    _param_group.set_and_default(group);
+    _param_idx.set_and_default(idx);
+    _param_key.set_and_default(key);
+    _param_min.set_and_default(min);
+    _param_max.set_and_default(max);
+    _param_incr.set_and_default(incr);
+    _type.set_and_default(type);
 }
 
 // default constructor that just sets some sensible defaults that exist on all platforms
 AP_OSD_ParamSetting::AP_OSD_ParamSetting(uint8_t param_number)
     : AP_OSD_Setting(false, 2, param_number + 1), _param_number(param_number)
 {
-    _param_min.set(0.0f);
-    _param_max.set(1.0f);
-    _param_incr.set(0.001f);
-    _type.set(OSD_PARAM_NONE);
+    AP_Param::setup_object_defaults(this, var_info);
 }
 
 // construct a setting from a compact static initializer structure
 AP_OSD_ParamSetting::AP_OSD_ParamSetting(const Initializer& initializer)
     : AP_OSD_ParamSetting(initializer.index)
 {
-    _param_group.set(initializer.token.group_element);
-    _param_idx.set(initializer.token.idx);
-    _param_key.set(initializer.token.key);
-    _type.set(initializer.type);
-    enabled.set(true);
+    AP_Param::setup_object_defaults(this, var_info);
+
+    _param_group.set_and_default(initializer.token.group_element);
+    _param_idx.set_and_default(initializer.token.idx);
+    _param_key.set_and_default(initializer.token.key);
+    _type.set_and_default(initializer.type);
+    enabled.set_and_default(true);
 }
 
 // update the contained parameter
