@@ -8,29 +8,29 @@ const AP_Param::GroupInfo AC_PID::var_info[] = {
     // @Param: P
     // @DisplayName: PID Proportional Gain
     // @Description: P Gain which produces an output value that is proportional to the current error value
-    AP_GROUPINFO("P", 0, AC_PID, _kp, 0),
+    AP_GROUPINFO("P", 0, AC_PID, _kp, 0.135),
 
     // @Param: I
     // @DisplayName: PID Integral Gain
     // @Description: I Gain which produces an output that is proportional to both the magnitude and the duration of the error
-    AP_GROUPINFO("I", 1, AC_PID, _ki, 0),
+    AP_GROUPINFO("I", 1, AC_PID, _ki, 0.135),
 
     // @Param: D
     // @DisplayName: PID Derivative Gain
     // @Description: D Gain which produces an output that is proportional to the rate of change of the error
-    AP_GROUPINFO("D", 2, AC_PID, _kd, 0),
+    AP_GROUPINFO("D", 2, AC_PID, _kd, 0.0036),
 
     // 3 was for uint16 IMAX
 
     // @Param: FF
     // @DisplayName: FF FeedForward Gain
     // @Description: FF Gain which produces an output value that is proportional to the demanded input
-    AP_GROUPINFO("FF", 4, AC_PID, _kff, 0),
+    AP_GROUPINFO("FF", 4, AC_PID, _kff, 0.0),
 
     // @Param: IMAX
     // @DisplayName: PID Integral Maximum
     // @Description: The maximum/minimum value that the I term can output
-    AP_GROUPINFO("IMAX", 5, AC_PID, _kimax, 0),
+    AP_GROUPINFO("IMAX", 5, AC_PID, _kimax, 0.5),
 
     // 6 was for float FILT
 
@@ -42,19 +42,19 @@ const AP_Param::GroupInfo AC_PID::var_info[] = {
     // @DisplayName: PID Target filter frequency in Hz
     // @Description: Target filter frequency in Hz
     // @Units: Hz
-    AP_GROUPINFO("FLTT", 9, AC_PID, _filt_T_hz, AC_PID_TFILT_HZ_DEFAULT),
+    AP_GROUPINFO("FLTT", 9, AC_PID, _filt_T_hz, 20.0),
 
     // @Param: FLTE
     // @DisplayName: PID Error filter frequency in Hz
     // @Description: Error filter frequency in Hz
     // @Units: Hz
-    AP_GROUPINFO("FLTE", 10, AC_PID, _filt_E_hz, AC_PID_EFILT_HZ_DEFAULT),
+    AP_GROUPINFO("FLTE", 10, AC_PID, _filt_E_hz, 0.0),
 
     // @Param: FLTD
     // @DisplayName: PID Derivative term filter frequency in Hz
     // @Description: Derivative filter frequency in Hz
     // @Units: Hz
-    AP_GROUPINFO("FLTD", 11, AC_PID, _filt_D_hz, AC_PID_DFILT_HZ_DEFAULT),
+    AP_GROUPINFO("FLTD", 11, AC_PID, _filt_D_hz, 20.0),
 
     // @Param: SMAX
     // @DisplayName: Slew rate limit
@@ -74,16 +74,16 @@ AC_PID::AC_PID(float initial_p, float initial_i, float initial_d, float initial_
     // load parameter values from eeprom
     AP_Param::setup_object_defaults(this, var_info);
 
-    _kp.set_and_default(initial_p);
-    _ki.set_and_default(initial_i);
-    _kd.set_and_default(initial_d);
-    _kff.set_and_default(initial_ff);
-    _kimax.set_and_default(initial_imax);
-    _filt_T_hz.set_and_default(initial_filt_T_hz);
-    _filt_E_hz.set_and_default(initial_filt_E_hz);
-    _filt_D_hz.set_and_default(initial_filt_D_hz);
-    _slew_rate_max.set_and_default(initial_srmax);
-    _slew_rate_tau.set_and_default(initial_srtau);
+    AP_Param::set_and_default(this, var_info, &_kp, initial_p);
+    AP_Param::set_and_default(this, var_info, &_ki, initial_i);
+    AP_Param::set_and_default(this, var_info, &_kd, initial_d);
+    AP_Param::set_and_default(this, var_info, &_kff, initial_ff);
+    AP_Param::set_and_default(this, var_info, &_kimax, initial_imax);
+    AP_Param::set_and_default(this, var_info, &_filt_T_hz, initial_filt_T_hz);
+    AP_Param::set_and_default(this, var_info, &_filt_E_hz, initial_filt_E_hz);
+    AP_Param::set_and_default(this, var_info, &_filt_D_hz, initial_filt_D_hz);
+    AP_Param::set_and_default(this, var_info, &_slew_rate_max, initial_srmax);
+    _slew_rate_tau.set_and_default(initial_srtau); // _slew_rate_tau is not in the param table
 
     // reset input filter to first value received
     _flags._reset_filter = true;

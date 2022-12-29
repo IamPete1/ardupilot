@@ -8,7 +8,7 @@ const AP_Param::GroupInfo AC_P_1D::var_info[] = {
     // @Param: P
     // @DisplayName: P Proportional Gain
     // @Description: P Gain which produces an output value that is proportional to the current error value
-    AP_GROUPINFO("P",    0, AC_P_1D, _kp, 0),
+    AP_GROUPINFO("P",    0, AC_P_1D, _kp, 1.0),
     AP_GROUPEND
 };
 
@@ -18,7 +18,7 @@ AC_P_1D::AC_P_1D(float initial_p)
     // load parameter values from eeprom
     AP_Param::setup_object_defaults(this, var_info);
 
-    _kp.set_and_default(initial_p);
+    AP_Param::set_and_default(this, var_info, &_kp, initial_p);
 }
 
 // update_all - set target and measured inputs to P controller and calculate outputs

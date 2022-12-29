@@ -239,10 +239,6 @@ void AP_Vehicle::setup()
     tramp.init();
 #endif
 
-#if AP_PARAM_KEY_DUMP
-    AP_Param::show_all(hal.console, true);
-#endif
-
     send_watchdog_reset_statustext();
 
 #if HAL_GENERATOR_ENABLED
@@ -276,6 +272,10 @@ void AP_Vehicle::setup()
     for (uint8_t i = 0; i<ESC_TELEM_MAX_ESCS; i++) {
         esc_noise[i].set_cutoff_frequency(2);
     }
+#endif
+
+#if AP_PARAM_KEY_DUMP
+    AP_Param::show_all(hal.console, true);
 #endif
 
     gcs().send_text(MAV_SEVERITY_INFO, "ArduPilot Ready");

@@ -8,23 +8,23 @@ const AP_Param::GroupInfo AC_PI_2D::var_info[] = {
     // @Param: P
     // @DisplayName: PI Proportional Gain
     // @Description: P Gain which produces an output value that is proportional to the current error value
-    AP_GROUPINFO("P",    0, AC_PI_2D, _kp, 0),
+    AP_GROUPINFO("P",    0, AC_PI_2D, _kp, 0.2),
 
     // @Param: I
     // @DisplayName: PI Integral Gain
     // @Description: I Gain which produces an output that is proportional to both the magnitude and the duration of the error
-    AP_GROUPINFO("I",    1, AC_PI_2D, _ki, 0),
+    AP_GROUPINFO("I",    1, AC_PI_2D, _ki, 0.3),
 
     // @Param: IMAX
     // @DisplayName: PI Integral Maximum
     // @Description: The maximum/minimum value that the I term can output
-    AP_GROUPINFO("IMAX", 2, AC_PI_2D, _imax, 0),
+    AP_GROUPINFO("IMAX", 2, AC_PI_2D, _imax, 3000.0),
 
     // @Param: FILT_HZ
     // @DisplayName: PI Input filter frequency in Hz
     // @Description: Input filter frequency in Hz
     // @Units: Hz
-    AP_GROUPINFO("FILT_HZ", 3, AC_PI_2D, _filt_hz, AC_PI_2D_FILT_HZ_DEFAULT),
+    AP_GROUPINFO("FILT_HZ", 3, AC_PI_2D, _filt_hz, 5.0),
 
     AP_GROUPEND
 };
@@ -36,10 +36,10 @@ AC_PI_2D::AC_PI_2D(float initial_p, float initial_i, float initial_imax, float i
     // load parameter values from eeprom
     AP_Param::setup_object_defaults(this, var_info);
 
-    _kp.set_and_default(initial_p);
-    _ki.set_and_default(initial_i);
-    _imax.set_and_default(initial_imax);
-    _filt_hz.set_and_default(initial_filt_hz);
+    AP_Param::set_and_default(this, var_info, &_kp, initial_p);
+    AP_Param::set_and_default(this, var_info, &_imax, initial_imax);
+    AP_Param::set_and_default(this, var_info, &_filt_hz, initial_filt_hz);
+
     filt_hz(initial_filt_hz);
 
     // reset input filter to first value received

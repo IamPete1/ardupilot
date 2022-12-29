@@ -5,32 +5,27 @@
 #include <AP_InternalError/AP_InternalError.h>
 #include "AC_PID_Basic.h"
 
-#define AC_PID_Basic_FILT_E_HZ_DEFAULT 20.0f   // default input filter frequency
-#define AC_PID_Basic_FILT_E_HZ_MIN     0.01f   // minimum input filter frequency
-#define AC_PID_Basic_FILT_D_HZ_DEFAULT 10.0f   // default input filter frequency
-#define AC_PID_Basic_FILT_D_HZ_MIN     0.005f  // minimum input filter frequency
-
 const AP_Param::GroupInfo AC_PID_Basic::var_info[] = {
     // @Param: P
     // @DisplayName: PID Proportional Gain
     // @Description: P Gain which produces an output value that is proportional to the current error value
-    AP_GROUPINFO("P",    0, AC_PID_Basic, _kp, 0),
+    AP_GROUPINFO("P",    0, AC_PID_Basic, _kp, 5.0),
 
     // @Param: I
     // @DisplayName: PID Integral Gain
     // @Description: I Gain which produces an output that is proportional to both the magnitude and the duration of the error
-    AP_GROUPINFO("I",    1, AC_PID_Basic, _ki, 0),
+    AP_GROUPINFO("I",    1, AC_PID_Basic, _ki, 0.0),
 
     // @Param: IMAX
     // @DisplayName: PID Integral Maximum
     // @Description: The maximum/minimum value that the I term can output
-    AP_GROUPINFO("IMAX", 2, AC_PID_Basic, _kimax, 0),
+    AP_GROUPINFO("IMAX", 2, AC_PID_Basic, _kimax, 1000.0),
 
     // @Param: FLTE
     // @DisplayName: PID Error filter frequency in Hz
     // @Description: Error filter frequency in Hz
     // @Units: Hz
-    AP_GROUPINFO("FLTE", 3, AC_PID_Basic, _filt_E_hz, AC_PID_Basic_FILT_E_HZ_DEFAULT),
+    AP_GROUPINFO("FLTE", 3, AC_PID_Basic, _filt_E_hz, 5.0),
 
     // @Param: D
     // @DisplayName: PID Derivative Gain
@@ -41,12 +36,12 @@ const AP_Param::GroupInfo AC_PID_Basic::var_info[] = {
     // @DisplayName: D term filter frequency in Hz
     // @Description: D term filter frequency in Hz
     // @Units: Hz
-    AP_GROUPINFO("FLTD", 5, AC_PID_Basic, _filt_D_hz, AC_PID_Basic_FILT_D_HZ_DEFAULT),
+    AP_GROUPINFO("FLTD", 5, AC_PID_Basic, _filt_D_hz, 5.0),
 
     // @Param: FF
     // @DisplayName: PID Feed Forward Gain
     // @Description: FF Gain which produces an output that is proportional to the magnitude of the target
-    AP_GROUPINFO("FF",   6, AC_PID_Basic, _kff, 0),
+    AP_GROUPINFO("FF",   6, AC_PID_Basic, _kff, 0.0),
 
     AP_GROUPEND
 };
@@ -57,13 +52,13 @@ AC_PID_Basic::AC_PID_Basic(float initial_p, float initial_i, float initial_d, fl
     // load parameter values from eeprom
     AP_Param::setup_object_defaults(this, var_info);
 
-    _kp.set_and_default(initial_p);
-    _ki.set_and_default(initial_i);
-    _kd.set_and_default(initial_d);
-    _kff.set_and_default(initial_ff);
-    _kimax.set_and_default(initial_imax);
-    _filt_E_hz.set_and_default(initial_filt_E_hz);
-    _filt_D_hz.set_and_default(initial_filt_D_hz);
+    AP_Param::set_and_default(this, var_info, &_kp, initial_p);
+    AP_Param::set_and_default(this, var_info, &_ki, initial_i);
+    AP_Param::set_and_default(this, var_info, &_kd, initial_d);
+    AP_Param::set_and_default(this, var_info, &_kff, initial_ff);
+    AP_Param::set_and_default(this, var_info, &_kimax, initial_imax);
+    AP_Param::set_and_default(this, var_info, &_filt_E_hz, initial_filt_E_hz);
+    AP_Param::set_and_default(this, var_info, &_filt_D_hz, initial_filt_D_hz);
 
     // reset input filter to first value received
     _reset_filter = true;

@@ -47,19 +47,19 @@ const AP_Param::GroupInfo AC_HELI_PID::var_info[] = {
     // @DisplayName: PID Target filter frequency in Hz
     // @Description: Target filter frequency in Hz
     // @Units: Hz
-    AP_GROUPINFO("FLTT", 9, AC_HELI_PID, _filt_T_hz, AC_PID_TFILT_HZ_DEFAULT),
+    AP_GROUPINFO("FLTT", 9, AC_HELI_PID, _filt_T_hz, 0.0),
 
     // @Param: FLTE
     // @DisplayName: PID Error filter frequency in Hz
     // @Description: Error filter frequency in Hz
     // @Units: Hz
-    AP_GROUPINFO("FLTE", 10, AC_HELI_PID, _filt_E_hz, AC_PID_EFILT_HZ_DEFAULT),
+    AP_GROUPINFO("FLTE", 10, AC_HELI_PID, _filt_E_hz, 0.0),
 
     // @Param: FLTD
     // @DisplayName: PID D term filter frequency in Hz
     // @Description: Derivative filter frequency in Hz
     // @Units: Hz
-    AP_GROUPINFO("FLTD", 11, AC_HELI_PID, _filt_D_hz, AC_PID_DFILT_HZ_DEFAULT),
+    AP_GROUPINFO("FLTD", 11, AC_HELI_PID, _filt_D_hz, 0.0),
 
     // @Param: SMAX
     // @DisplayName: Slew rate limit

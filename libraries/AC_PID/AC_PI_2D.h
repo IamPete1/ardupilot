@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <cmath>
 
-#define AC_PI_2D_FILT_HZ_DEFAULT  20.0f   // default input filter frequency
 #define AC_PI_2D_FILT_HZ_MIN      0.01f   // minimum input filter frequency
 
 /// @class	AC_PI_2D

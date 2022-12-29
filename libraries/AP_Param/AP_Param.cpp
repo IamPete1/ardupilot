@@ -1470,6 +1470,35 @@ void AP_Param::setup_object_defaults(const void *object_pointer, const struct Gr
     }
 }
 
+// Set and default for this parameter, checks if new default matches old original to remove un-needed entries in default list
+void AP_Param::set_and_default(const void *object_pointer, const struct GroupInfo *group_info, AP_Param* param_pointer, const float new_value)
+{
+    ptrdiff_t base = (ptrdiff_t)object_pointer;
+    uint8_t type;
+    for (uint8_t i=0;
+         (type=group_info[i].type) != AP_PARAM_NONE;
+         i++) {
+
+        void *ptr = (void *)(base + group_info[i].offset);
+        if (ptr == param_pointer) {
+#if AP_PARAM_DEFAULTS_ENABLED
+            if (!is_equal(group_info[i].def_value, new_value)) {
+                // Change in default, must add to list
+                add_default((AP_Param*)ptr, new_value);
+            }
+#endif
+            // Found correct param
+            if (type <= AP_PARAM_FLOAT) {
+                set_value((enum ap_var_type)type, ptr, new_value);
+            } else if (type == AP_PARAM_VECTOR3F) {
+                ((AP_Vector3f *)ptr)->set(Vector3f{new_value, new_value, new_value});
+            }
+            return;
+        }
+    }
+    AP_HAL::panic("AP_Param: Failed find param in group");
+}
+
 // set a value directly in an object. This should only be used by
 // example code, not by mainline vehicle code
 bool AP_Param::set_object_value(const void *object_pointer,
@@ -2718,6 +2747,17 @@ void AP_Param::check_default(AP_Param *ap, float *default_value)
 
 void AP_Param::add_default(AP_Param *ap, float v, defaults_list*& list)
 {
+#if AP_PARAM_MAX_EMBEDDED_PARAM > 0
+    // embedded default always trumps run-time default, no point in adding if already embedded
+    if (embedded_default_list != nullptr) {
+        for (defaults_list *item = embedded_default_list; item; item = item->next) {
+            if (item->ap == ap) {
+                return;
+            }
+        }
+    }
+#endif
+
     if (list != nullptr) {
         // check is param is already in list
         for (defaults_list *item = list; item; item = item->next) {
@@ -2798,6 +2838,15 @@ void AP_Param::show_all(AP_HAL::BetterStream *port, bool showKeyValues)
         show(ap, token, type, port);
         hal.scheduler->delay(1);
     }
+
+    uint16_t list_len = 0;
+    if (default_list != nullptr) {
+        for (defaults_list *item = default_list; item; item = item->next) {
+            list_len++;
+        }
+    }
+    ::printf("Defaults list containts %i params (%li bytes)", list_len, list_len*sizeof(defaults_list));
+
 }
 #endif // AP_PARAM_KEY_DUMP
 

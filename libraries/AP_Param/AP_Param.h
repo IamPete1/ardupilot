@@ -33,7 +33,7 @@
 #define AP_MAX_NAME_SIZE 16
 
 // optionally enable debug code for dumping keys
-#define AP_PARAM_KEY_DUMP 0
+#define AP_PARAM_KEY_DUMP 1
 
 #if defined(HAL_GCS_ENABLED)
     #define AP_PARAM_DEFAULTS_ENABLED HAL_GCS_ENABLED
@@ -421,6 +421,9 @@ public:
 
     // load default values for scalars in a group
     static void         setup_object_defaults(const void *object_pointer, const struct GroupInfo *group_info);
+
+    // Set and default for this parameter, checks if new default matches old original to remove un-needed entries in default list
+    static void set_and_default(const void *object_pointer, const struct GroupInfo *group_info, AP_Param* param_pointer, const float new_value);
 
     // set a value directly in an object.
     // return true if the name was found and set, else false.

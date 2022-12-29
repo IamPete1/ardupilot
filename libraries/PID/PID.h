@@ -19,10 +19,10 @@ public:
         const int16_t & initial_imax = 0)
     {
 		AP_Param::setup_object_defaults(this, var_info);
-        _kp.set_and_default(initial_p);
-        _ki.set_and_default(initial_i);
-        _kd.set_and_default(initial_d);
-        _imax.set_and_default(initial_imax);
+        AP_Param::set_and_default(this, var_info, &_kp, initial_p);
+        AP_Param::set_and_default(this, var_info, &_ki, initial_i);
+        AP_Param::set_and_default(this, var_info, &_kd, initial_d);
+        AP_Param::set_and_default(this, var_info, &_imax, initial_imax);
 
 		// set _last_derivative as invalid when we startup
 		_last_derivative = NAN;

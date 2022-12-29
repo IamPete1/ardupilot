@@ -23,7 +23,7 @@ public:
     AC_P(const float &initial_p = 0.0f)
     {
 		AP_Param::setup_object_defaults(this, var_info);
-        _kp.set_and_default(initial_p);
+        AP_Param::set_and_default(this, var_info, &_kp, initial_p);
     }
 
     CLASS_NO_COPY(AC_P);
