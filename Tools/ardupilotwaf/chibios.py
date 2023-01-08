@@ -14,6 +14,7 @@ import re
 import pickle
 import struct
 import base64
+import subprocess
 
 _dynamic_env_data = {}
 def _load_dynamic_env_data(bld):
@@ -618,6 +619,9 @@ def pre_build(bld):
 
 def build(bld):
 
+    # Create and embed param metadata
+    param_gen_cmd = [bld.env.get_flat('PYTHON'), "./Tools/autotest/param_metadata/param_parse.py",  "--vehicle", bld.cmd, "--board", bld.env.BOARD, "--format", "xml"]
+    subprocess.check_call(param_gen_cmd, cwd=bld.top_dir)
 
     hwdef_rule="%s '%s/hwdef/scripts/chibios_hwdef.py' -D '%s' --params '%s' '%s'" % (
             bld.env.get_flat('PYTHON'),

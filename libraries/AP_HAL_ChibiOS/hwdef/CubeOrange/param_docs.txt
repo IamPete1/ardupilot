@@ -1,0 +1,44 @@
+
+// @Param: SERVO1_FUNCTION
+// @DisplayName: Main 1 Servo output function
+
+// @Param: SERVO2_FUNCTION
+// @DisplayName: Main 2 Servo output function
+
+// @Param: SERVO3_FUNCTION
+// @DisplayName: Main 3 Servo output function
+
+// @Param: SERVO4_FUNCTION
+// @DisplayName: Main 4 Servo output function
+
+// @Param: SERVO5_FUNCTION
+// @DisplayName: Main 5 Servo output function
+
+// @Param: SERVO6_FUNCTION
+// @DisplayName: Main 6 Servo output function
+
+// @Param: SERVO7_FUNCTION
+// @DisplayName: Main 7 Servo output function
+
+// @Param: SERVO8_FUNCTION
+// @DisplayName: Main 8 Servo output function
+
+// @Param: SERVO9_FUNCTION
+// @DisplayName: Aux 1 Servo output function
+
+// @Param: SERVO10_FUNCTION
+// @DisplayName: Aux 2 Servo output function
+
+// @Param: SERVO11_FUNCTION
+// @DisplayName: Aux 3 Servo output function
+
+// @Param: SERVO12_FUNCTION
+// @DisplayName: Aux 4 Servo output function
+
+// @Param: SERVO13_FUNCTION
+// @DisplayName: Aux 5 Servo output function
+
+// @Param: SERVO14_FUNCTION
+// @DisplayName: Aux 6 Servo output function
+
+need something at the end of the file to make the regex work

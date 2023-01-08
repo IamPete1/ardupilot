@@ -26,6 +26,7 @@ from xmlemit_mp import XmlEmitMP
 parser = ArgumentParser(description="Parse ArduPilot parameters.")
 parser.add_argument("-v", "--verbose", dest='verbose', action='store_true', default=False, help="show debugging output")
 parser.add_argument("--vehicle", required=True, help="Vehicle type to generate for")
+parser.add_argument("--board", help="Board type to generate for")
 parser.add_argument("--no-emit",
                     dest='emit_params',
                     action='store_false',
@@ -64,10 +65,10 @@ def find_vehicle_parameter_filepath(vehicle_name):
     apm_tools_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../../../Tools/')
 
     vehicle_name_to_dir_name_map = {
-        "Copter": "ArduCopter",
-        "Plane": "ArduPlane",
-        "Tracker": "AntennaTracker",
-        "Sub": "ArduSub",
+        "copter": "ArduCopter",
+        "plane": "ArduPlane",
+        "tracker": "AntennaTracker",
+        "sub": "ArduSub",
     }
 
     # first try ArduCopter/Parmameters.cpp
@@ -87,11 +88,12 @@ def find_vehicle_parameter_filepath(vehicle_name):
 
 libraries = []
 
-# AP_Vehicle also has parameters rooted at "", but isn't referenced
-# from the vehicle in any way:
-ap_vehicle_lib = Library("") # the "" is tacked onto the front of param name
-setattr(ap_vehicle_lib, "Path", os.path.join('..', 'libraries', 'AP_Vehicle', 'AP_Vehicle.cpp'))
-libraries.append(ap_vehicle_lib)
+if args.board is None:
+    # AP_Vehicle also has parameters rooted at "", but isn't referenced
+    # from the vehicle in any way:
+    ap_vehicle_lib = Library("") # the "" is tacked onto the front of param name
+    setattr(ap_vehicle_lib, "Path", os.path.join('..', 'libraries', 'AP_Vehicle', 'AP_Vehicle.cpp'))
+    libraries.append(ap_vehicle_lib)
 
 error_count = 0
 current_param = None
@@ -116,23 +118,23 @@ def error(str_to_print):
 
 
 truename_map = {
-    "Rover": "Rover",
-    "ArduSub": "Sub",
-    "ArduCopter": "Copter",
-    "ArduPlane": "Plane",
-    "AntennaTracker": "Tracker",
-    "AP_Periph": "AP_Periph",
-    "Blimp": "Blimp",
+    "Rover": "rover",
+    "ArduSub": "sub",
+    "ArduCopter": "copter",
+    "ArduPlane": "plane",
+    "AntennaTracker": "tracker",
+    "AP_Periph": "ap_periph",
+    "Blimp": "blimp",
 }
 valid_truenames = frozenset(truename_map.values())
-truename = truename_map.get(args.vehicle, args.vehicle)
+truename = truename_map.get(args.vehicle.lower(), args.vehicle.lower())
 
 documentation_tags_which_are_comma_separated_nv_pairs = frozenset([
     'Values',
     'Bitmask',
 ])
 
-vehicle_path = find_vehicle_parameter_filepath(args.vehicle)
+vehicle_path = find_vehicle_parameter_filepath(args.vehicle.lower())
 
 basename = os.path.basename(os.path.dirname(vehicle_path))
 path = os.path.normpath(os.path.dirname(vehicle_path))
@@ -208,8 +210,17 @@ def process_vehicle(vehicle):
     current_file = None
     debug("Processed %u params" % len(vehicle.params))
 
-
-process_vehicle(vehicle)
+if args.board is None:
+    process_vehicle(vehicle)
+else:
+    board_path = os.path.join('AP_HAL_ChibiOS', 'hwdef', args.board, 'param_docs.txt')
+    if not os.path.exists(os.path.normpath(os.path.join(apm_path + '/libraries/' + board_path))):
+        print(board_path)
+        raise ValueError("Unable to find parameters file for (%s)" % args.board)
+    board = Library("") # the "" is tacked onto the front of param name
+    setattr(board, "Path", board_path)
+    libraries.append(board)
+    required_library_param_fields = []
 
 debug("Found %u documented libraries" % len(libraries))
 
@@ -601,7 +612,7 @@ if args.emit_sitl:
 for emitter_name in emitters_to_use:
     emit = all_emitters[emitter_name](sitl=args.emit_sitl)
 
-    if not args.emit_sitl:
+    if not args.emit_sitl and args.board is None:
         emit.emit(vehicle)
 
     emit.start_libraries()
