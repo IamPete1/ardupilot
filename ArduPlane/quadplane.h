@@ -638,6 +638,9 @@ private:
      */
     bool use_fw_attitude_controllers(void) const;
 
+    // Return quadplane desired rates in fixed wing refernce frame, deg/s
+    Vector3f get_desired_rates_bodyframe() const;
+
     /*
       get the airspeed for landing approach
      */

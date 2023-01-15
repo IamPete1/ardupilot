@@ -950,6 +950,20 @@ void QuadPlane::multicopter_attitude_rate_update(float yaw_rate_cds)
     }
 }
 
+// Return quadplane desired rates in fixed wing refernce frame, deg/s
+Vector3f QuadPlane::get_desired_rates_bodyframe() const
+{
+    // get quadplane desired rates
+    Vector3f bf_input { degrees(attitude_control->get_rate_roll_pid().get_pid_info().target),
+                        degrees(attitude_control->get_rate_pitch_pid().get_pid_info().target),
+                        degrees(attitude_control->get_rate_yaw_pid().get_pid_info().target) };
+
+    // rotate into fixed wing refence frame
+    ahrs_view->rotate_inverse(bf_input);
+
+    return bf_input;
+}
+
 // hold in stabilize with given throttle
 void QuadPlane::hold_stabilize(float throttle_in)
 {    

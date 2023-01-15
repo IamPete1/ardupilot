@@ -129,8 +129,8 @@ float Plane::stabilize_roll_get_roll_out(float speed_scaler)
 #if HAL_QUADPLANE_ENABLED
     if (!quadplane.use_fw_attitude_controllers()) {
         // use the VTOL rate for control, to ensure consistency
-        const auto &pid_info = quadplane.attitude_control->get_rate_roll_pid().get_pid_info();
-        const float roll_out = rollController.get_rate_out(degrees(pid_info.target), speed_scaler);
+        const Vector3f bf_input = quadplane.get_desired_rates_bodyframe();
+        const float roll_out = rollController.get_rate_out(bf_input.x, speed_scaler);
         /* when slaving fixed wing control to VTOL control we need to decay the integrator to prevent
            opposing integrators balancing between the two controllers
         */
@@ -171,8 +171,8 @@ float Plane::stabilize_pitch_get_pitch_out(float speed_scaler)
 #if HAL_QUADPLANE_ENABLED
     if (!quadplane.use_fw_attitude_controllers()) {
         // use the VTOL rate for control, to ensure consistency
-        const auto &pid_info = quadplane.attitude_control->get_rate_pitch_pid().get_pid_info();
-        const int32_t pitch_out = pitchController.get_rate_out(degrees(pid_info.target), speed_scaler);
+        const Vector3f bf_input = quadplane.get_desired_rates_bodyframe();
+        const int32_t pitch_out = pitchController.get_rate_out(bf_input.y, speed_scaler);
         /* when slaving fixed wing control to VTOL control we need to decay the integrator to prevent
            opposing integrators balancing between the two controllers
         */
