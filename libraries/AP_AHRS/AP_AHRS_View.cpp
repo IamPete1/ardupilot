@@ -106,3 +106,9 @@ void AP_AHRS_View::rotate(Vector3f &vec) const
 {
     vec = rot_view * vec;
 }
+
+// Rotate vector from AHRS view reference frame to AHRS reference frame
+void AP_AHRS_View::rotate_inverse(Vector3f &vec) const
+{
+    vec = rot_view_T * vec;
+}

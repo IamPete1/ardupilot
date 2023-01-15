@@ -198,6 +198,9 @@ public:
     // Rotate vector from AHRS reference frame to AHRS view refences frame
     void rotate(Vector3f &vec) const;
 
+    // Rotate vector from AHRS view reference frame to AHRS reference frame
+    void rotate_inverse(Vector3f &vec) const;
+
 private:
     const enum Rotation rotation;
     AP_AHRS &ahrs;
