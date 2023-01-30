@@ -1122,12 +1122,16 @@ bool NavEKF3::pre_arm_check(bool requires_position, char *failure_msg, uint8_t f
     }
     for (uint8_t i = 0; i < num_cores; i++) {
         if (!core[i].healthy()) {
-            const char *failure = core[primary].prearm_failure_reason();
+            const char *failure = core[i].prearm_failure_reason();
             if (failure != nullptr) {
                 AP::dal().snprintf(failure_msg, failure_msg_len, failure);
             } else {
                 AP::dal().snprintf(failure_msg, failure_msg_len, "EKF3 core %d unhealthy", (int)i);
             }
+            return false;
+        }
+        if (!core[i].use_compass() && ((yaw_source == AP_NavEKF_Source::SourceYaw::COMPASS) || (yaw_source == AP_NavEKF_Source::SourceYaw::GPS_COMPASS_FALLBACK))) {
+            AP::dal().snprintf(failure_msg, failure_msg_len, "EKF3 core %d unhealthy: Not using compass", (int)i);
             return false;
         }
     }
