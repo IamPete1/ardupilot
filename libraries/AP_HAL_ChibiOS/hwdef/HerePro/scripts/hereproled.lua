@@ -81,11 +81,11 @@ end
 function do_initialisation()
   local pos = math.rad(total_time/2)
   local v  =0.5 + 0.5 * math.sin(pos)
-  local invert = 1
+  local invert
   local r, g, b = get_Rainbow(v, 5)
   local led_trail_length = 3
   local softness = 10
-  local bfact = 1
+  local bfact
   local updated_leds = {}
   if math.cos(pos) > 0 then
     invert = 1
@@ -183,7 +183,7 @@ function do_arm_spin(r, g, b, softness, speed_factor, arming)
   local updated_leds = {}
 
   -- calculate next call based on time
-  local next_call = 1
+  local next_call
   if arming then
     next_call = speed_factor - math.floor(((total_time)/speed_factor) + 0.5)
     if next_call < 1 then
@@ -270,13 +270,6 @@ function update() -- this is the loop which periodically runs
     total_time = total_time + next_call
   elseif current_anim == 2 then
     local v
-    if (vehicle_state & (1<<3)) ~= uint32_t(0) or --VEHICLE_STATE_PREARM
-       (vehicle_state & (1<<4)) ~= uint32_t(0) or --VEHICLE_STATE_PREARM_GPS
-       (vehicle_state & (1<<7)) ~= uint32_t(0) or --VEHICLE_STATE_FAILSAFE_RADIO
-       (vehicle_state & (1<<8)) ~= uint32_t(0) or --VEHICLE_STATE_FAILSAFE_BATT
-       (vehicle_state & (1<<11)) ~= uint32_t(0) then --VEHICLE_STATE_EKF_BAD
-      v = 0.0
-    end
     if (vehicle_state & (1<<17)) == uint32_t(0) then--VEHICLE_STATE_POS_ABS_AVAIL
       v = 0.5 + (0.5 * math.min(gps:num_sats(0)/20, 1.0))
     else
