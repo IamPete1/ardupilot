@@ -3,7 +3,6 @@
 local PARAM_TABLE_KEY = 11
 local PARAM_TABLE_PREFIX = "GFOLL_"
 
-local MODE_MANUAL = 0
 local MODE_GUIDED = 15
 
 local ALT_FRAME_ABSOLUTE = 0
@@ -28,11 +27,8 @@ GFOLL_ENABLE     = bind_add_param('ENABLE', 1, 0)
 -- current target
 local target_pos = Location()
 local current_pos = Location()
-local target_velocity = Vector3f()
-local target_heading = 0.0
 
 -- other state
-local vehicle_mode = MODE_MANUAL
 local have_target = false
 
 -- check key parameters

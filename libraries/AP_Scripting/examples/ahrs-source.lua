@@ -17,7 +17,6 @@
 
 local rangefinder_rotation = 25     -- check downward (25) facing lidar
 local source_prev = 0               -- previous source, defaults to primary source
-local sw_source_prev = -1           -- previous source switch position
 local sw_auto_pos_prev = -1         -- previous auto source switch position
 local auto_switch = false           -- true when auto switching between sources is active
 local gps_usable_accuracy = 1.0     -- GPS is usable if speed accuracy is at or below this value
@@ -79,9 +78,7 @@ function update()
   local gps_usable = (gps_speed_accuracy ~= nil) and (gps_speed_accuracy <= gps_usable_accuracy)
 
   -- get external nav innovations from ahrs
-  local extnav_innov = Vector3f()
-  local extnav_var = Vector3f()
-  extnav_innov, extnav_var = ahrs:get_vel_innovations_and_variances_for_source(6)
+  local extnav_innov = ahrs:get_vel_innovations_and_variances_for_source(6)
   local extnav_over_threshold = (extnav_innov == nil) or (extnav_innov:z() == 0.0) or (math.abs(extnav_innov:z()) > extnav_innov_thresh)
 
   -- get rangefinder distance

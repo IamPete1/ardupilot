@@ -9,7 +9,6 @@ local MAV_SEVERITY_INFO = 6
 
 local AUX_FUNCTION_NUM = 302
 
-local last_func_val = nil
 local last_aux_pos = nil
 
 function update()

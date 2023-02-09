@@ -43,7 +43,7 @@ local prev_armed = false
 function update()
    local is_armed = arming:is_armed()
 
-   local delay = DELAY_SHORT
+   local delay
 
    if is_armed ~= prev_armed then
       -- a state transition has occurred

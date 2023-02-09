@@ -8,8 +8,8 @@ local baud_rate = 9600
 local port = assert(serial:find_serial(0),"Could not find Scripting Serial Port")
 
 -- make a file
-local file = assert(io.open(file_name, "w"),"Could not create file " .. file_name)
-file = assert(io.open(file_name_plain, "w"),"Could not create file " .. file_name)
+assert(io.open(file_name, "w"),"Could not create file " .. file_name)
+local file = assert(io.open(file_name_plain, "w"),"Could not create file " .. file_name)
 file:close()
 
 -- begin the serial port

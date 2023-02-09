@@ -29,7 +29,6 @@
 
 local rangefinder_rotation = 25     -- check downward (25) facing lidar
 local source_prev = 0               -- previous source, defaults to primary source
-local sw_source_prev = -1           -- previous source switch position
 local sw_auto_pos_prev = -1         -- previous auto source switch position
 local auto_switch = false           -- true when auto switching between sources is active
 local gps_usable_accuracy = 1.0     -- GPS is usable if speed accuracy is at or below this value
@@ -112,12 +111,9 @@ function update()
 
   -- get opticalflow innovations from ahrs (only x and y values are valid)
   local opticalflow_over_threshold = true
-  local opticalflow_xy_innov = 0
-  local opticalflow_innov = Vector3f()
-  local opticalflow_var = Vector3f()
-  opticalflow_innov, opticalflow_var = ahrs:get_vel_innovations_and_variances_for_source(5)
+  local opticalflow_innov = ahrs:get_vel_innovations_and_variances_for_source(5)
   if (opticalflow_innov) then
-    opticalflow_xy_innov = math.sqrt(opticalflow_innov:x() * opticalflow_innov:x() + opticalflow_innov:y() * opticalflow_innov:y())
+    local opticalflow_xy_innov = math.sqrt(opticalflow_innov:x() * opticalflow_innov:x() + opticalflow_innov:y() * opticalflow_innov:y())
     opticalflow_over_threshold = (opticalflow_xy_innov == 0.0) or (opticalflow_xy_innov > opticalflow_innov_thresh)
   end
 

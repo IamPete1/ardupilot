@@ -39,7 +39,7 @@ local function decode_NMEA(byte)
             -- test the checksum
             string_complete = true
             return checksum == tonumber(term[term_number],16)
-        else
+        else -- luacheck: ignore
             -- we could further decode the message data here
         end
 

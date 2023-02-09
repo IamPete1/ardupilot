@@ -727,7 +727,7 @@ function update()
     end
 
     -- send rate target
-    local roll_degs, pitch_degs, yaw_degs, yaw_is_ef = mount:get_rate_target(MOUNT_INSTANCE)
+    local roll_degs, pitch_degs, yaw_degs = mount:get_rate_target(MOUNT_INSTANCE)
     if roll_degs and pitch_degs and yaw_degs then
       send_target_rates(roll_degs, pitch_degs, yaw_degs)
       return update, UPDATE_INTERVAL_MS

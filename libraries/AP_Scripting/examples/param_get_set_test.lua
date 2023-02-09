@@ -19,7 +19,9 @@ local user_param = Parameter('SCR_USER1')
 -- this will error out for a bad parameter
 -- Parameter('FAKE_PARAM')
 local success, err = pcall(Parameter,'FAKE_PARAM')
-gcs:send_text(0, "Lua Caught Error: " .. err)
+if not success then
+  gcs:send_text(0, "Lua Caught Error: " .. err)
+end
 -- this allows this example to catch the otherwise fatal error
 -- not recommend if error is possible/expected, use separate construction and init
 

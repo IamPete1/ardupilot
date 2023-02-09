@@ -15,13 +15,15 @@ end
 
 function test_load()
    -- load the code into the global environment
-   local f,errloc,err = load(func_str,"TestFunc", "t", _ENV)
+   local f,errloc,err
+   f,errloc,err = load(func_str,"TestFunc", "t", _ENV)
    if not f then
       gcs:send_text(0,string.format("Error %s: %s", errloc, err))
       return
    end
    -- run the code within a protected call to catch any errors
-   local success, err = pcall(f)
+   local success
+   success, err = pcall(f)
    if not success then
       gcs:send_text(0, string.format("Failed to load TestFunc: %s", err))
       return

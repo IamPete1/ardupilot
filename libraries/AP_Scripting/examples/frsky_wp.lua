@@ -43,7 +43,7 @@ function wrap_360(angle)
 end
 
 function prep_5bits(num)
-    local res = 0
+    local res
     local abs_num = math.floor(math.abs(num) + 0.5)
     if abs_num < 10 then
       res = abs_num << 1
@@ -59,8 +59,7 @@ function prep_5bits(num)
 end
 
 function wp_pack(index, distance, bearing, xtrack)
-    local wp_dword = uint32_t()
-    wp_dword = math.min(index,WP_LIMIT_COUNT)
+    local wp_dword = uint32_t(math.min(index,WP_LIMIT_COUNT))
     wp_dword = wp_dword | frsky_sport:prep_number(math.min(math.floor(distance+0.5),WP_LIMIT_DISTANCE),3,2) << WP_OFFSET_DISTANCE
     wp_dword = wp_dword | prep_5bits(math.min(xtrack,WP_LIMIT_XTRACK)) << WP_OFFSET_XTRACK
     if gps:status(0)  >= gps.GPS_OK_FIX_2D then
@@ -95,16 +94,14 @@ function update_wp_info()
 end
 
 function update()
-    local gps_status = gps.status(0,0)
 
     if not update_wp_info() then
       return update, loop_time
     end
 
     local sensor_id = 0x71
-    local wp_dword = uint32_t()
 
-    wp_dword = wp_pack(wp_index, wp_distance, wp_bearing, wp_xtrack)
+    local wp_dword = wp_pack(wp_index, wp_distance, wp_bearing, wp_xtrack)
     frsky_sport:sport_telemetry_push(sensor_id, 0x10, 0x5009, wp_dword)
 
     return update, loop_time

@@ -10,7 +10,7 @@ function update()
    if math.floor(t) % 10 == 0 then
       -- deliberately make a bad call to cause a fault, asking for the 6th GPS status
       -- as this is done inside a pcall() the error will be caught instead of stopping the script
-      local status = gps:status(5)
+      local status = gps:status(5) -- luacheck: ignore
    end
 end
 

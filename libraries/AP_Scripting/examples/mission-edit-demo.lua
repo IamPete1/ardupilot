@@ -197,7 +197,7 @@ function stage7 ()
       -- fiurst time in , there's no mission, lets throw a few wps in to play with later..
       -- change copy of last item slightly, for giggles, and append as a new item
       if (mission:num_commands() == 1)  then
-          for x = 1, 10 do 
+          for _ = 1, 10 do 
               m:command(16) -- 16 = normal WAYPOINT
               m:x(m:x()+math.random(-10000,10000)) -- add something random 
               m:y(m:y()+math.random(-10000,10000)) 

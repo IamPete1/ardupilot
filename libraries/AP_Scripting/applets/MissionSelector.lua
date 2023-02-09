@@ -61,7 +61,6 @@ local function read_mission(file_name)
     end
     index = index + 1
   end
-  file:close()
 end
 
 function update()

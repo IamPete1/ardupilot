@@ -36,19 +36,19 @@ if value then
 else
   error('LUA: get TRIM_ARSPD_CM failed')
 end
-local value = param:get('ARSPD_FBW_MIN')
+value = param:get('ARSPD_FBW_MIN')
 if value then
   min_air_speed = value
 else
   error('LUA: get ARSPD_FBW_MIN failed')
 end
-local value = param:get('MIN_GNDSPD_CM')
+value = param:get('MIN_GNDSPD_CM')
 if value then
   min_ground_speed = value / 100
 else
   error('LUA: get MIN_GNDSPD_CM failed')
 end
-local value = param:get('LIM_ROLL_CD')
+value = param:get('LIM_ROLL_CD')
 if value then
   max_bank_angle = value / 100
 else
@@ -61,7 +61,7 @@ local turn_rad = (air_speed^2) / (9.81 * math.tan(math.rad(max_bank_angle)))
 
 -- Read the radius we expect to circle at when we get home
 local home_reached_rad
-local value = param:get('RTL_RADIUS')
+value = param:get('RTL_RADIUS')
 if value then
   value = math.abs(value)
   if value > 0 then
@@ -80,7 +80,6 @@ end
 
 -- internal global variables
 local return_start
-local return_distance
 local return_amps
 local trigger_instance = batt_info[1][1]
 local last_print = 0
@@ -418,12 +417,12 @@ for i = 1, #batt_info do
       param_string = 'BATT_CRT_MAH'
     end
 
-    local value = param:get(param_string)
-    if  not value then
+    local param_value = param:get(param_string)
+    if  not param_value then
       error('LUA: get '.. param_string .. ' failed')
     end
 
-    batt_info[i][3] = rated_cap - (batt_info[i][4] + value)
+    batt_info[i][3] = rated_cap - (batt_info[i][4] + param_value)
   else
     error("Battery " .. instance .. " does not support current monitoring")
   end

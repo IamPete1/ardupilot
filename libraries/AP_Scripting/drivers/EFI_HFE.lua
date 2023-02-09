@@ -91,7 +91,7 @@ local now_s = get_time_sec()
 --[[
    EFI Engine Object
 --]]
-local function engine_control(_driver)
+local function engine_control(driver_in)
     local self = {}
 
     -- Build up the EFI_State that is passed into the EFI Scripting backend
@@ -102,7 +102,7 @@ local function engine_control(_driver)
     local rpm = 0
     local air_pressure = 0
     local map_ratio = 0.0
-    local driver = _driver
+    local driver = driver_in
     local last_rpm_t = get_time_sec()
     local last_state_update_t = get_time_sec()
     local throttle_pos = 0.0
@@ -115,12 +115,6 @@ local function engine_control(_driver)
     local ecu_voltage = 0.0
     local injector_duty = 0.0
     local ignition_angle = 0.0
-
-    -- Generator Data Structure
-    local gen        = {}
-    gen.amps         = 0.0
-    gen.rpm          = 0.0
-    gen.batt_current = 0.0
 
     -- Temperature Data Structure
     local temps = {}

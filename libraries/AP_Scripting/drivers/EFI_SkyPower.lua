@@ -61,11 +61,7 @@ function constrain(v, vmin, vmax)
     return v
 end
 
----- GLOBAL VARIABLES
-local GKWH_TO_LBS_HP_HR = 0.0016439868
-local LITRES_TO_LBS = 1.6095 -- 6.1 lbs of fuel per gallon -> 1.6095
-
-local efi_backend = nil
+local efi_backend
 
 -- Setup EFI Parameters
 assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 15), 'could not add EFI_SP param table')
@@ -210,7 +206,7 @@ end
 --[[
    EFI Engine Object
 --]]
-local function engine_control(_driver, _idx)
+local function engine_control(driver_in, idx_in)
     local self = {}
 
     -- Build up the EFI_State that is passed into the EFI Scripting backend
@@ -220,21 +216,17 @@ local function engine_control(_driver, _idx)
     -- private fields as locals
     local rpm = 0
     local air_pressure = 0
-    local inj_ang = 0
     local inj_time = 0
     local target_load = 0
     local current_load = 0
     local throttle_angle = 0
     local ignition_angle = 0
-    local sfc = 0
-    local sfc_icao = 0
-    local last_sfc_t = 0
     local supply_voltage = 0
     local fuel_consumption_lph = 0
     local fuel_total_l = 0
     local last_fuel_s = 0
-    local driver = _driver
-    local idx = _idx
+    local driver = driver_in
+    local idx = idx_in
     local last_rpm_t = get_time_sec()
     local last_state_update_t = get_time_sec()
     local last_thr_update = get_time_sec()
@@ -277,7 +269,7 @@ local function engine_control(_driver, _idx)
 
             -- All Frame IDs for this EFI Engine are extended
             if frame:isExtended() then
-                self.handle_EFI_packet(frame, _idx)
+                self.handle_EFI_packet(frame, idx)
             end
         end
         if last_rpm_t > last_state_update_t then
@@ -288,7 +280,7 @@ local function engine_control(_driver, _idx)
     end
 
     -- handle an EFI packet
-    function self.handle_EFI_packet(frame, idx)
+    function self.handle_EFI_packet(frame, _idx)
        local id = frame:id_signed()
        if id == 0x100 then
           rpm = get_uint16(frame, 0)
@@ -300,7 +292,7 @@ local function engine_control(_driver, _idx)
           target_load = get_uint16(frame, 2) * 0.1
           inj_time = get_uint16(frame, 4)
           inj_ang = get_uint16(frame, 6) * 0.1
-       elseif id == 0x102 then
+       elseif id == 0x102 then -- luacheck: ignore
           -- unused fields
        elseif id == 0x104 then
           supply_voltage = get_uint16(frame, 0) * 0.1
@@ -526,8 +518,6 @@ local function engine_control(_driver, _idx)
 end -- end function engine_control(_driver, _idx)
 
 local engine1 = engine_control(driver1, 1)
-
-local last_efi_state_time = 0.0
 
 function update()
    now_s = get_time_sec()

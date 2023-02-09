@@ -119,7 +119,6 @@ local gps_or_ekf_bad = true         -- true if GPS and/or EKF is bad, true once 
 local flight_stage = 0  -- 0. wait for good-gps and dist-from-home, 1=wait for bad gps or ekf, 2=level vehicle, 3=deadreckon home
 local gps_bad_start_time_ms = 0 -- system time GPS quality went bad (0 if not bad)
 local recovery_start_time_ms = 0-- system time GPS quality and EKF failsafe recovered (0 if not recovered)
-local fly_start_time_ms = 0     -- system time fly using deadreckoning started
 
 local home_dist = 0     -- distance to home in meters
 local home_yaw = 0      -- direction to home in degrees
@@ -149,7 +148,6 @@ function update()
   end
 
   -- check GPS
-  local gps_primary = gps:primary_sensor()
   local gps_speed_acc = gps:speed_accuracy(gps:primary_sensor())
   if gps_speed_acc == nil then
     gps_speed_acc = 99
@@ -176,7 +174,7 @@ function update()
 
   -- check EKF failsafe
   local fs_ekf = vehicle:has_ekf_failsafed()
-  if not (ekf_bad == fs_ekf) then
+  if ekf_bad ~= fs_ekf then
     ekf_bad = fs_ekf
   end
 

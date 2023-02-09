@@ -122,7 +122,7 @@ function remove_scripts(subdir)
       return false
    end
    local ret = false
-   for k,v in ipairs(dlist) do
+   for _,v in ipairs(dlist) do
       local suffix = v:sub(-4)
       if compare_strings_ci(suffix,".LUA") and not compare_strings_ci(v,THIS_SCRIPT) then
          if not file_exists(subdir .. "/" .. v) then
@@ -145,7 +145,7 @@ function copy_scripts(subdir)
    end
    local ret = false
    local sdir = get_scripts_dir()
-   for k, v in ipairs(dlist) do
+   for _, v in ipairs(dlist) do
       local suffix = v:sub(-4)
       if compare_strings_ci(suffix,".LUA") and not compare_strings_ci(v,THIS_SCRIPT) then
          local src = subdir .. "/" .. v
@@ -181,12 +181,11 @@ function mission_load(n)
   local index = 0
   local fail = false
   while true and not fail do
-     local data = {}
      local line = file:read()
      if not line then
         break
      end
-     local ret, _, seq, curr, frame, cmd, p1, p2, p3, p4, x, y, z, autocont = string.find(line, "^(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+(%d+)")
+     local ret, _, seq, _, frame, cmd, p1, p2, p3, p4, x, y, z, _ = string.find(line, "^(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+(%d+)")
      if not ret then
         fail = true
         break

@@ -124,10 +124,6 @@ if TRIK_ENABLE:get() > 0 then
    gcs:send_text(0, string.format("Enabled %u aerobatic tricks", TRIK_COUNT:get()))
 end
 
-local NAV_TAKEOFF = 22
-local NAV_WAYPOINT = 16
-local NAV_SCRIPT_TIME = 42702
-
 local MODE_AUTO = 10
 
 local LOOP_RATE = 40
@@ -211,7 +207,6 @@ local function PI_controller(kP,kI,iMax,min,max)
    -- private fields as locals
    local _kP = kP or 0.0
    local _kI = kI or 0.0
-   local _kD = kD or 0.0
    local _iMax = iMax
    local _min = min
    local _max = max
@@ -380,11 +375,11 @@ end
 --[[
    create a class that inherits from a base class
 --]]
-local function inheritsFrom(baseClass, _name)
-    local new_class = { name = _name }
+local function inheritsFrom(baseClass, name_in)
+    local new_class = { name = name_in }
     local class_mt = { __index = new_class }
 
-    function new_class:create()
+    function new_class:create() -- luacheck: ignore
         local newinst = {}
         setmetatable( newinst, class_mt )
         return newinst
@@ -410,18 +405,18 @@ end
    rotate a vector by a quaternion
 --]]
 local function quat_earth_to_body(quat, v)
-   local v = v:copy()
-   quat:earth_to_body(v)
-   return v
+   local v_copy = v:copy()
+   quat:earth_to_body(v_copy)
+   return v_copy
 end
 
 --[[
    rotate a vector by a inverse quaternion
 --]]
 local function quat_body_to_earth(quat, v)
-   local v = v:copy()
-   quat:inverse():earth_to_body(v)
-   return v
+   local v_copy = v:copy()
+   quat:inverse():earth_to_body(v_copy)
+   return v_copy
 end
 
 --[[
@@ -592,19 +587,19 @@ end
   all path components inherit from PathComponent
 --]]
 local _PathComponent = inheritsFrom(nil)
-function _PathComponent:get_pos(t)
+function _PathComponent:get_pos(_t) -- luacheck: ignore
    return makeVector3f(0, 0, 0)
 end
-function _PathComponent:get_length()
+function _PathComponent:get_length() -- luacheck: ignore
    return 0
 end
-function _PathComponent:get_final_orientation()
+function _PathComponent:get_final_orientation() -- luacheck: ignore
    return Quaternion()
 end
-function _PathComponent:get_roll_correction(t)
+function _PathComponent:get_roll_correction(_t) -- luacheck: ignore
    return 0
 end
-function _PathComponent:get_attribute(t, attrib)
+function _PathComponent:get_attribute(_t, attrib) -- luacheck: ignore
    return self[attrib]
 end
 function _PathComponent:get_extents_x()
@@ -613,11 +608,6 @@ function _PathComponent:get_extents_x()
    end
    self.extents = get_extents_x(self)
    return self.extents
-end
-
-local function PathComponent()
-   local self = _PathComponent:create()
-   return self
 end
 
 --[[
@@ -839,7 +829,7 @@ end
 function _Path:get_final_orientation()
    return self.path_component:get_final_orientation()
 end
-function _Path:get_attribute(t, attrib)
+function _Path:get_attribute(_t, attrib)
    return self[attrib]
 end
 function _Path:set_next_extents(extents, start_pos, start_orientation)
@@ -875,7 +865,7 @@ function _path_composer:subpath(i)
       local args = self.subpaths[i][2]
       self.cache_sp = self.subpaths[i][1](args[1], args[2], args[3], args[4], self.start_pos[i], self.start_orientation[i])
       -- copy over path attributes
-      for k, v in pairs(path_attribs) do
+      for _, v in pairs(path_attribs) do
          self.cache_sp[v] = self.subpaths[i][v]
       end
    end
@@ -920,7 +910,7 @@ function _path_composer:get_pos(t)
 end
 
 -- return angle for the composed path at time t
-function _path_composer:get_roll(t, time_s)
+function _path_composer:get_roll(t, _time_s)
    local subpath_t, i = self:get_subpath_t(t)
    local speed = target_groundspeed()
    local sp = self:subpath(i)
@@ -988,8 +978,6 @@ local function path_composer(name, subpaths)
    local angle = 0
    local roll_correction = 0
    local speed = target_groundspeed()
-   local cache_i = -1
-   local cache_sp = nil
 
    for i = 1, self.num_sub_paths do
       -- accumulate orientation, position and angle
@@ -1067,7 +1055,7 @@ function make_paths(name, paths)
          p[i] = Path(paths[i][1], paths[i][2])
       end
       -- copy over path attributes
-      for k, v in pairs(path_attribs) do
+      for _, v in pairs(path_attribs) do
          if paths[i][v] ~= nil then
             p[i][v] = paths[i][v]
          end
@@ -1080,13 +1068,13 @@ end
    composed trajectories, does as individual aerobatic maneuvers
 --]]
 
-function climbing_circle(radius, height, bank_angle, arg4)
+function climbing_circle(radius, height, bank_angle, _arg4)
    return make_paths("climbing_circle", {
          { path_horizontal_arc(radius, 360, height), roll_angle_entry_exit(bank_angle) },
    })
 end
 
-function half_climbing_circle(radius, height, bank_angle, arg4)
+function half_climbing_circle(radius, height, bank_angle, _arg4)
    return make_paths("half_climbing_circle", {
          { path_horizontal_arc(radius, 180, height), roll_angle_entry_exit(bank_angle) },
    })
@@ -1098,7 +1086,7 @@ function partial_circle(radius, bank_angle, angle)
    })
 end
 
-function loop(radius, bank_angle, num_loops, arg4)
+function loop(radius, bank_angle, num_loops, _arg4)
    if not num_loops or num_loops <= 0 then
       num_loops = 1
    end
@@ -1107,7 +1095,7 @@ function loop(radius, bank_angle, num_loops, arg4)
    })
 end
 
-function straight_roll(length, num_rolls, arg3, arg4)
+function straight_roll(length, num_rolls, _arg3, _arg4)
    return make_paths("straight_roll", {
          { path_straight(length), roll_angle(num_rolls*360) },
    })
@@ -1118,7 +1106,7 @@ end
    origin in the maneuver frame along the X axis. If we are already
    past that position then return immediately
 --]]
-function straight_align(distance, arg2, arg3, arg4, start_pos, start_orientation)
+function straight_align(distance, _arg2, _arg3, _arg4, start_pos, start_orientation)
    local d2 = distance - start_pos:x()
    local v = quat_earth_to_body(start_orientation, makeVector3f(d2, 0, 0))
    local len = math.max(v:x(),0.01)
@@ -1131,7 +1119,7 @@ end
    fly straight so that the next maneuver in the sequence ends at
    the given proportion of the aerobatic box
 --]]
-function align_box(alignment, arg2, arg3, arg4)
+function align_box(alignment, _arg2, _arg3, _arg4)
    return Path(path_align_box(alignment), roll_angle(0))
 end
 
@@ -1139,11 +1127,11 @@ end
    fly straight so that the next maneuver in the sequence is centered
    in the aerobatic box
 --]]
-function align_center(arg1, arg2, arg3, arg4)
+function align_center(_arg1, _arg2, _arg3, _arg4)
    return Path(path_align_center(), roll_angle(0))
 end
 
-function immelmann_turn(r, arg2, arg3, arg4)
+function immelmann_turn(r, _arg2, _arg3, _arg4)
    local rabs = math.abs(r)
    return make_paths("immelmann_turn", {
          { path_vertical_arc(r, 180),      roll_angle(0) },
@@ -1152,8 +1140,7 @@ function immelmann_turn(r, arg2, arg3, arg4)
 end
 
 -- immelmann with max roll rate
-function immelmann_turn_fast(r, arg2, arg3, arg4)
-   local rabs = math.abs(r)
+function immelmann_turn_fast(r, _arg2, _arg3, _arg4)
    local roll_time = 180.0 / ACRO_ROLL_RATE:get()
    local roll_dist = target_groundspeed() * roll_time
    return make_paths("immelmann_turn_fast", {
@@ -1162,7 +1149,7 @@ function immelmann_turn_fast(r, arg2, arg3, arg4)
    })
 end
 
-function humpty_bump(r, h, arg3, arg4)
+function humpty_bump(r, h, _arg3, _arg4)
    assert(h >= 2*r)
    local rabs = math.abs(r)
    return make_paths("humpty_bump", {
@@ -1177,7 +1164,7 @@ function humpty_bump(r, h, arg3, arg4)
    })
 end
 
-function laydown_humpty(r, h, arg3, arg4)
+function laydown_humpty(r, h, _arg3, _arg4)
    assert(h >= 2*r)
    local rabs = math.abs(r)
    return make_paths("laydown_humpty", {
@@ -1193,7 +1180,7 @@ function laydown_humpty(r, h, arg3, arg4)
    })
 end
 
-function split_s(r, arg2, arg3, arg4)
+function split_s(r, _arg2, _arg3, _arg4)
    local rabs = math.abs(r)
    return make_paths("split_s", {
          { path_straight(rabs/2),                roll_angle(180) },
@@ -1201,7 +1188,7 @@ function split_s(r, arg2, arg3, arg4)
    })
 end
 
-function upline_45(r, height_gain, arg3, arg4)
+function upline_45(r, height_gain, _arg3, _arg4)
    --local h = (height_gain - 2*r*(1.0-math.cos(math.rad(45))))/math.sin(math.rad(45))
    local h = (height_gain - (2 * r) + (2 * r * math.cos(math.rad(45)))) / math.cos(math.rad(45))
   assert(h >= 0)
@@ -1212,7 +1199,7 @@ function upline_45(r, height_gain, arg3, arg4)
    })
 end
 
-function upline_20(r, height_gain, arg3, arg4)
+function upline_20(r, height_gain, _arg3, _arg4)
    local h = (height_gain - 2*r*(1.0-math.cos(math.rad(20))))/math.sin(math.rad(20))
    assert(h >= 0)
    return make_paths("upline_45", {
@@ -1222,7 +1209,7 @@ function upline_20(r, height_gain, arg3, arg4)
    })
 end
 
-function downline_45(r, height_loss, arg3, arg4)
+function downline_45(r, height_loss, _arg3, _arg4)
    local h = (height_loss - 2*r*(1.0-math.cos(math.rad(45))))/math.sin(math.rad(45))
    assert(h >= 0)
    return make_paths("downline_45", {
@@ -1232,13 +1219,13 @@ function downline_45(r, height_loss, arg3, arg4)
    })
 end
 
-function rolling_circle(radius, num_rolls, arg3, arg4)
+function rolling_circle(radius, num_rolls, _arg3, _arg4)
    return make_paths("rolling_circle", {
          { path_horizontal_arc(radius, 360), roll_angle(360*num_rolls), thr_boost=true },
    })
 end
 
-function barrel_roll(radius, length, num_spirals, arg4)
+function barrel_roll(radius, length, num_spirals, _arg4)
    local gamma_deg = math.deg(math.atan((length/num_spirals)/(2*math.pi*math.abs(radius))))
    local speed = target_groundspeed()
    local bank = math.deg(math.atan((speed*speed) / (radius * GRAVITY_MSS)))
@@ -1251,13 +1238,12 @@ function barrel_roll(radius, length, num_spirals, arg4)
    })
 end
 
-function side_step(displacement, length, arg3, arg4)
+function side_step(displacement, length, _arg3, _arg4)
    local speed = target_groundspeed()
    local radius = (displacement*displacement + length*length)/(4*displacement)
    local angle = math.deg(2*math.atan(displacement, length))
    local sign = sgn(displacement)
    local bank = math.deg(math.atan((speed*speed) / (radius * GRAVITY_MSS)))
-   displacement = math.abs(displacement)
 
    return make_paths("side_step",{
       {path_horizontal_arc(sign*radius, angle, 0), roll_angle_entry_exit(sign*bank)},
@@ -1265,19 +1251,19 @@ function side_step(displacement, length, arg3, arg4)
    })
 end
 
-function straight_flight(length, bank_angle, arg3, arg4)
+function straight_flight(length, bank_angle, _arg3, _arg4)
    return make_paths("straight_flight", {
          { path_straight(length), roll_angle_entry_exit(bank_angle) },
    })
 end
 
-function straight_hold(length, bank_angle, arg3, arg4)
+function straight_hold(length, bank_angle, _arg3, _arg4)
    return make_paths("straight_hold", {
          { path_straight(length), roll_angle_entry(bank_angle) },
    })
 end
 
-function scale_figure_eight(r, bank_angle, arg3, arg4)
+function scale_figure_eight(r, bank_angle, _arg3, _arg4)
    local rabs = math.abs(r)
    return make_paths("scale_figure_eight", {
          { path_straight(rabs),             roll_angle(0) },
@@ -1288,7 +1274,7 @@ function scale_figure_eight(r, bank_angle, arg3, arg4)
    })
 end
 
-function figure_eight(r, bank_angle, arg3, arg4)
+function figure_eight(r, bank_angle, _arg3, _arg4)
    local rabs = math.abs(r)
    return make_paths("figure_eight", {
          { path_straight(rabs*math.sqrt(2)), roll_angle(0) },
@@ -1304,10 +1290,10 @@ end
 --[[
    perform a rudder over maneuver
 --]]
-function rudder_over(_direction, _min_speed)
+function rudder_over(direction_in, min_speed_in)
    local self = {}
-   local direction = _direction
-   local min_speed = _min_speed
+   local direction = direction_in
+   local min_speed = min_speed_in
    local reached_speed = false
    local kick_started = false
    local pitch2_done = false
@@ -1322,7 +1308,7 @@ function rudder_over(_direction, _min_speed)
       the update() method is called during the rudder over, it
       should return true when the maneuver is completed
    --]]
-   function self.update(path, t, target_speed)
+   function self.update(path, t, _target_speed)
       if descent_done then
          -- we're all done
          return true
@@ -1332,7 +1318,6 @@ function rudder_over(_direction, _min_speed)
       local ahrs_pos = ahrs:get_relative_position_NED_origin()
       local ahrs_gyro = ahrs:get_gyro()
       local now = millis():tofloat() * 0.001
-      local pitch_threshold = 60.0
 
       if target_q == nil then
          -- initialising
@@ -1466,7 +1451,7 @@ function stall_turn(radius, height, direction, min_speed)
    })
 end
 
-function half_cuban_eight(r, arg2, arg3, arg4)
+function half_cuban_eight(r, _arg2, _arg3, _arg4)
    local rabs = math.abs(r)
    return make_paths("half_cuban_eight", {
          { path_straight(2*rabs*math.sqrt(2)), roll_angle(0) },
@@ -1478,7 +1463,7 @@ function half_cuban_eight(r, arg2, arg3, arg4)
    })
 end
 
-function cuban_eight(r, arg2, arg3, arg4)
+function cuban_eight(r, _arg2, _arg3, _arg4)
    local rabs = math.abs(r)
    return make_paths("cuban_eight", {
          { path_straight(rabs*math.sqrt(2)), roll_angle(0) },
@@ -1494,7 +1479,7 @@ function cuban_eight(r, arg2, arg3, arg4)
    })
 end
 
-function half_reverse_cuban_eight(r, arg2, arg3, arg4)
+function half_reverse_cuban_eight(r, _arg2, _arg3, _arg4)
    local rabs = math.abs(r)
    return make_paths("half_reverse_cuban_eight", {
          { path_vertical_arc(r,  45),   roll_angle(0) },
@@ -1570,11 +1555,11 @@ function multi_point_roll(length, N, hold_frac, num_points)
    return make_paths("multi_point_roll", {{ path_straight(length), roll_sequence(seq) }})
 end
 
-function eight_point_roll(length, arg2, arg3, arg4)
+function eight_point_roll(length, _arg2, _arg3, _arg4)
    return multi_point_roll(length, 8, 0.5)
 end
 
-function procedure_turn(radius, bank_angle, step_out, arg4)
+function procedure_turn(radius, bank_angle, step_out, _arg4)
    local rabs = math.abs(radius)
    return make_paths("procedure_turn", {
             { path_horizontal_arc(radius,  90),     roll_angle_entry_exit(bank_angle) },
@@ -1609,18 +1594,18 @@ end
 --  arg1, arg2: arguments for path function
 --  orientation: maneuver frame orientation
 --returns: requested position, angle and speed in maneuver frame
-function rotate_path(path_f, t, orientation, offset)
-   local t = constrain(t, 0, 1)
+function rotate_path(path_f, t_in, orientation, offset)
+   local t = constrain(t_in, 0, 1)
    local point = path_f:get_pos(t)
    local angle = path_f:get_roll(t)
    local roll_correction = path_f:get_roll_correction(t)
 
    local attrib = {}
-   for k, v in pairs(path_attribs) do
+   for _, v in pairs(path_attribs) do
       attrib[v] = path_f:get_attribute(t, v)
    end
    point = point + path_var.path_shift
-   local point = quat_earth_to_body(orientation, point)
+   point = quat_earth_to_body(orientation, point)
 
    local scale = AEROM_PATH_SCALE:get()
    point = point:scale(math.abs(scale))
@@ -1773,7 +1758,6 @@ function do_path()
    local ahrs_quat = ahrs:get_quaternion():inverse()
 
    path_var.count = path_var.count + 1
-   local target_dt = 1.0/LOOP_RATE
    local path = current_task.fn
 
    if not current_task.started then
@@ -1823,7 +1807,7 @@ function do_path()
       path_var.ss_angle_filt = 0.0
 
       -- get initial tangent
-      local p1, r1 = rotate_path(path, path_var.path_t + 0.1/(path_var.total_time*LOOP_RATE),
+      local p1 = rotate_path(path, path_var.path_t + 0.1/(path_var.total_time*LOOP_RATE),
                                  path_var.initial_ori, path_var.initial_ef_pos)
       path_var.tangent = p1 - path_var.pos
       return true
@@ -1855,7 +1839,7 @@ function do_path()
 
    local p0 = path_var.pos:copy()
    local r0 = path_var.roll
-   local p1, r1, attrib = rotate_path(path, path_var.path_t + local_n_dt,
+   local p1, _, attrib = rotate_path(path, path_var.path_t + local_n_dt,
                                       path_var.initial_ori, path_var.initial_ef_pos)
 
    local current_measured_pos_ef = ahrs_pos_NED:copy()
@@ -1920,7 +1904,7 @@ function do_path()
    --[[
       recalculate the current path position and angle based on actual delta time
    --]]
-   local p1, r1, attrib = rotate_path(path,
+   p1 = rotate_path(path,
                                       constrain(path_var.path_t + path_t_delta, 0, 1),
                                       path_var.initial_ori, path_var.initial_ef_pos)
    local last_path_t = path_var.path_t
@@ -1951,6 +1935,7 @@ function do_path()
    path_var.path_t = path_var.path_t + TIME_CORR_P:get() * path_err_t
 
    -- get the path again with the corrected time
+   local r1
    p1, r1, attrib = rotate_path(path,
                                 constrain(path_var.path_t, 0, 1),
                                 path_var.initial_ori, path_var.initial_ef_pos)
@@ -2274,13 +2259,13 @@ end
    parse a function definition in a txt load file, adding it to the load table so
    it can be used in schedules
 --]]
-function parse_function(line, file)
-   _, _, funcname = string.find(line, "^function%s*([%w_]+).*$")
+function parse_function(line_in, file)
+   _, _, funcname = string.find(line_in, "^function%s*([%w_]+).*$")
    if not funcname then
-      gcs:send_text(0, string.format("Parse error: %s", line))
+      gcs:send_text(0, string.format("Parse error: %s", line_in))
       return
    end
-   local funcstr = line .. "\n"
+   local funcstr = line_in .. "\n"
    while true do
       local line = file:read()
       if not line then
@@ -2292,13 +2277,15 @@ function parse_function(line, file)
          break
       end
    end
-   local f, errloc, err = load(funcstr, funcname, "t", _ENV)
+   local f, errloc, err
+   f, errloc, err = load(funcstr, funcname, "t", _ENV)
    if not f then
       gcs:send_text(0,string.format("Error %s: %s", errloc, err))
       return
    end
    -- fun the function code, which creates the function
-   local success, err = pcall(f)
+   local success
+   success, err = pcall(f)
    if not success then
       gcs:send_text(0,string.format("Error %s: %s", funcname, err))
    end
@@ -2338,7 +2325,7 @@ function load_trick(id)
       -- trim trailing spaces
       line = string.gsub(line, '^(.-)%s*$', '%1')
       local _, _, cmd, arg1, arg2, arg3, arg4 = string.find(line, "^([%w_:]+)%s*([-.%d]*)%s*([-.%d]*)%s*([-.%d]*)%s*([-.%d]*)")
-      if cmd == "" or cmd == nil or string.sub(cmd,1,1) == "#" then
+      if cmd == "" or cmd == nil or string.sub(cmd,1,1) == "#" then -- luacheck: ignore
          -- ignore comments
       elseif cmd == "name:" then
          _, _, name = string.find(line, "^name:%s*([%w_]+)$")

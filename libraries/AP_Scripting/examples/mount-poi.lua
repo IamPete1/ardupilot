@@ -35,8 +35,6 @@ assert(poi_dist_max:init("POI_DIST_MAX"), "could not find POI_DIST_MAX param")
 TERRAIN_SPACING = Parameter("TERRAIN_SPACING")
 
 -- local variables and definitions
-local user_update_interval_ms = 10000   -- send user updates every 10 sec
-local last_user_update_ms = 0           -- system time that update was last sent to user
 local last_rc_switch_pos = 0            -- last known rc switch position.  Used to detect change in RC switch position
 
 -- helper functions
@@ -80,9 +78,6 @@ end
 -- the main update function that performs a simplified version of RTL
 function update()
 
-  -- get current system time
-  local now_ms = millis()
-
   -- find RC channel used to trigger POI
   rc_switch_ch = rc:find_channel_for_option(300) --scripting ch 1
   if (rc_switch_ch == nil) then
@@ -115,7 +110,7 @@ function update()
   vehicle_loc:change_alt_frame(ALT_FRAME_ABSOLUTE)
 
   -- retrieve gimbal attitude
-  local roll_deg, pitch_deg, yaw_bf_deg = mount:get_attitude_euler(0)
+  local _, pitch_deg, yaw_bf_deg = mount:get_attitude_euler(0)
   if pitch_deg == nil or yaw_bf_deg == nil then
     gcs:send_text(3, "POI: gimbal attitude unavailable") -- MAV_SEVERITY_ERROR
     return update, UPDATE_INTERVAL_MS
@@ -177,7 +172,6 @@ function update()
     local dist_interp_m = interpolate(0, dist_increment_m, 0, prev_test_loc:alt() * 0.01 - prev_terrain_amsl_m, test_loc:alt() * 0.01 - terrain_amsl_m)
     local poi_loc = prev_test_loc:copy()
     poi_loc:offset_bearing_and_pitch(mount_yaw_ef_deg, mount_pitch_deg, dist_interp_m)
-    local poi_terr_asml_m = terrain:height_amsl(poi_loc, true) 
     gcs:send_text(6, string.format("POI %.7f, %.7f, %.2f (asml)", poi_loc:lat()/10000000.0, poi_loc:lng()/10000000.0, poi_loc:alt() * 0.01))
   end
 

@@ -19,12 +19,11 @@ local function read_mission(file_name)
   local index = 0
   local fail = false
   while true and not fail do
-     local data = {}
      local line = file:read()
      if not line then
         break
      end
-     local ret, _, seq, curr, frame, cmd, p1, p2, p3, p4, x, y, z, autocont = string.find(line, "^(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+(%d+)")
+     local ret, _, seq, _, frame, cmd, p1, p2, p3, p4, x, y, z, _ = string.find(line, "^(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+([-.%d]+)%s+(%d+)")
      if not ret then
         fail = true
         break

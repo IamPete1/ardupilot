@@ -36,9 +36,9 @@ if throttle_off_threshold < 100 then
 end
 
 -- clear vars we don't need anymore
-slew_down_time = nil
-slew_up_time = nil
-pwm_range = nil
+slew_down_time = nil -- luacheck: ignore
+slew_up_time = nil -- luacheck: ignore
+pwm_range = nil -- luacheck: ignore
 
 
 for i = 1, #stop_motors do
@@ -89,7 +89,6 @@ local slew
 local slew_pwm
 function update()
 
-  local switch_pos = switch:get_aux_switch_pos()
   if switch:get_aux_switch_pos() == 2 then
     if not script_enabled then
       gcs:send_text(0, "Lua: Forward flight motor shutdown enabled")

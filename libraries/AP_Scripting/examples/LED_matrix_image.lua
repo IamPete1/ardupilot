@@ -501,9 +501,6 @@ local function display_image(image_in,offset_in,brightness_in)
         brightness = brightness_in
     end
 
-    local i
-    local j
-
     for i = 1, 48 do
         local x_index = i + im_offset
         if x_index >= 1 and x_index <= matrix_x then
