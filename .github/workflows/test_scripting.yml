@@ -1,15 +1,17 @@
-name: test scripting docs
+name: test scripting
 
 on:
   push:
     paths: # only run for scripting changes
       - 'libraries/AP_Scripting/tests/docs_check.py'
       - 'libraries/AP_Scripting/generator/**'
+      - '**.lua'
 
   pull_request:
     paths: # only run for scripting changes
       - 'libraries/AP_Scripting/tests/docs_check.py'
       - 'libraries/AP_Scripting/generator/**'
+      - '**.lua'
 
   workflow_dispatch:
 
@@ -18,7 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-scripting-docs:
+  test-scripting:
     runs-on: ubuntu-20.04
     container: ardupilot/ardupilot-dev-base:latest
     steps:
@@ -26,6 +28,12 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
+
+      - name: Lua Linter
+        uses: lunarmodules/luacheck@v0
+        with:
+          args: |
+            */ --config libraries/AP_Scripting/tests/luacheck.lua
 
       - name: copy docs
         run: |
@@ -44,3 +52,4 @@ jobs:
         run: |
           PATH="/github/home/.local/bin:$PATH"
           python ./libraries/AP_Scripting/tests/docs_check.py "./libraries/AP_Scripting/docs/docs.lua" "./libraries/AP_Scripting/docs/current_docs.lua"
+
