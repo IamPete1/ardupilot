@@ -456,6 +456,79 @@ int AP_HAL__I2CDevice_read_registers(lua_State *L) {
     return success;
 }
 
+int AP_HAL__I2CDevice_write_registers(lua_State *L) {
+    const int args = lua_gettop(L);
+    bool multi_byte;
+    if (args == 2) {
+        multi_byte = false;
+    } else if (args == 3) {
+        multi_byte = true;
+    } else {
+        return luaL_argerror(L, args, "expected 1 or 2 arguments");
+    }
+
+    // stack = [i2c, addr, {table?}]
+    AP_HAL::I2CDevice  *ud = *check_AP_HAL__I2CDevice(L, 1);
+
+    const lua_Integer addr_in = luaL_checkinteger(L, 2);
+    luaL_argcheck(L, ((addr_in >= 0) && (addr_in <= UINT8_MAX)), 2, "bus out of range");
+    const uint8_t addr = static_cast<uint8_t>(addr_in);
+
+    uint16_t write_size = 1;
+
+    if (multi_byte) {
+        // stack = [i2c, addr, {table}]
+        const size_t table_length_raw = lua_rawlen(L, 3);
+        if (table_length_raw > (UINT16_MAX - 1)) {
+            return luaL_argerror(L, 3, "table's length out of range");
+        }
+        const uint16_t table_length = static_cast<uint16_t>(table_length_raw);
+        write_size += table_length;
+    }
+
+    uint8_t *buffer = (uint8_t*)luaM_malloc(L, write_size);
+    buffer[0] = addr;
+
+    if (write_size > 1) {
+        lua_pushnil(L);
+        // stack = [i2c, addr, {table}, nil]
+
+        // Coincidentally Lua's table indexing starts from 1
+        for (uint16_t index = 1; index < write_size; index++) {
+            if (lua_next(L, 3) != 0) {
+                // stack = [i2c, addr, {table}, index, value]
+                int isnum;
+                const lua_Integer index_raw = lua_tointegerx(L, 4, &isnum);
+                if (!isnum || (index_raw != index)) {
+                    luaM_free(L, buffer);
+                    return luaL_argerror(L, 3, "table's index out of range");
+                }
+
+                const lua_Integer value_raw = lua_tointegerx(L, 5, &isnum);
+                if (!isnum || (value_raw < 0) || (value_raw > UINT8_MAX)) {
+                    luaM_free(L, buffer);
+                    return luaL_argerror(L, 3, "table's value out of range");
+                }
+
+                buffer[index] = static_cast<uint8_t>(value_raw);
+
+                lua_pop(L, 1);
+                // stack = [i2c, addr, {table}, index]
+            }
+        }
+    }
+    // stack = [i2c, addr, {table?}, last_index?]
+
+    ud->get_semaphore()->take_blocking();
+    const bool result = static_cast<bool>(ud->transfer(buffer, write_size, nullptr, 0));
+    ud->get_semaphore()->give();
+
+    luaM_free(L, buffer);
+
+    lua_pushboolean(L, result);
+    return 1;
+}
+
 #if HAL_MAX_CAN_PROTOCOL_DRIVERS
 int lua_get_CAN_device(lua_State *L) {
 
