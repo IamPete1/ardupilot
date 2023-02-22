@@ -143,7 +143,7 @@ float Plane::stabilize_roll_get_roll_out(float speed_scaler)
     if (control_mode == &mode_stabilize && channel_roll->get_control_in() != 0) {
         disable_integrator = true;
     }
-    return rollController.get_servo_out(nav_roll_cd - ahrs.roll_sensor, speed_scaler, disable_integrator,
+    return rollController.get_servo_out(nav_roll_cd, speed_scaler, disable_integrator,
                                         ground_mode && !(plane.g2.flight_options & FlightOptions::DISABLE_GROUND_PID_SUPPRESSION));
 }
 
