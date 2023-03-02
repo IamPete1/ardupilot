@@ -112,6 +112,7 @@ public:
         LTC2946                    = 22,
         Torqeedo                   = 23,
         FuelLevel_Analog           = 24,
+        Max_of                     = 28,
     };
 
     FUNCTOR_TYPEDEF(battery_failsafe_handler_fn_t, void, const char *, const int8_t);

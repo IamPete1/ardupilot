@@ -41,8 +41,16 @@ AP_BattMonitor_Sum::AP_BattMonitor_Sum(AP_BattMonitor &mon,
 }
 
 // read - read the voltage and current
-void
-AP_BattMonitor_Sum::read()
+void AP_BattMonitor_Sum::read()
+{
+    if ((AP_BattMonitor::Type)_params._type.get() == AP_BattMonitor::Type::Max_of) {
+        read_max();
+    } else {
+        read_sum();
+    }
+}
+
+void AP_BattMonitor_Sum::read_sum()
 {
     float voltage_sum = 0;
     uint8_t voltage_count = 0;
@@ -90,5 +98,38 @@ AP_BattMonitor_Sum::read()
 
     if (_state.healthy) {
         _state.last_time_micros = tnow_us;
+    }
+}
+
+void AP_BattMonitor_Sum::read_max()
+{
+    _has_current = false;
+    bool got_voltage = false;
+    float voltage = 0.0;
+
+    for (uint8_t i=0; i<_mon.num_instances(); i++) {
+        if (i == _instance) {
+            // never include self
+            continue;
+        }
+        if ((_sum_mask == 0) && (i <= _instance)) {
+            // sum of remaining, skip lower instances
+            continue;
+        }
+        if ((_sum_mask != 0) && ((_sum_mask & 1U<<i) == 0)) {
+            // mask param, skip if mask bit not set
+            continue;
+        }
+        if (!_mon.healthy(i)) {
+            continue;
+        }
+        voltage = MAX(voltage, _mon.voltage(i));
+        got_voltage = true;
+    }
+
+    if (got_voltage) {
+        _state.voltage = voltage;
+        _state.healthy = true;
+        _state.last_time_micros = AP_HAL::micros();
     }
 }
