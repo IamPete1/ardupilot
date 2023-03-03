@@ -929,9 +929,14 @@ bool AP_Arming::system_checks(bool report)
         return false;
     }
 
+    char buffer[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN+1] {};
+    if (!hal.gpio->arming_checks(sizeof(buffer), buffer)) {
+        check_failed(report, "%s", buffer);
+        return false;
+    }
+
     if (check_enabled(ARMING_CHECK_PARAMETERS)) {
         auto *rpm = AP::rpm();
-        char buffer[MAVLINK_MSG_STATUSTEXT_FIELD_TEXT_LEN+1] {};
         if (rpm && !rpm->arming_checks(sizeof(buffer), buffer)) {
             check_failed(ARMING_CHECK_PARAMETERS, report, "%s", buffer);
             return false;
