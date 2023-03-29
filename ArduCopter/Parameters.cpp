@@ -1215,6 +1215,10 @@ const AP_Param::GroupInfo ParametersG2::var_info2[] = {
     // @User: Advanced
     AP_GROUPINFO("TKOFF_THR_MAX", 6, ParametersG2, takeoff_throttle_max, 0.9),
 
+    // @Group: WNDVN_
+    // @Path: ../libraries/AP_WindVane/AP_WindVane.cpp
+    AP_SUBGROUPINFO(windvane, "WNDVN_", 7, ParametersG2, AP_WindVane),
+
     // ID 62 is reserved for the AP_SUBGROUPEXTENSION
 
     AP_GROUPEND
@@ -1275,6 +1279,7 @@ ParametersG2::ParametersG2(void)
 #if WEATHERVANE_ENABLED == ENABLED
     ,weathervane()
 #endif
+    ,windvane()
 {
     AP_Param::setup_object_defaults(this, var_info);
     AP_Param::setup_object_defaults(this, var_info2);

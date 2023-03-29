@@ -17,6 +17,8 @@
  #include <AC_AttitudeControl/AC_WeatherVane.h>
 #endif
 
+#include <AP_WindVane/AP_WindVane.h>
+
 // Global parameter class.
 //
 class Parameters {
@@ -692,6 +694,9 @@ public:
     AP_Float pldp_range_finder_minimum_m;
     AP_Float pldp_delay_s;
     AP_Float pldp_descent_speed_ms;
+
+    // windvane
+    AP_WindVane windvane;
 };
 
 extern const AP_Param::Info        var_info[];
