@@ -63,6 +63,7 @@ void AP_WindVane_NMEA::update()
             if (_frontend._speed_sensor_type.get() == _frontend.Speed_type::WINDSPEED_NMEA) {
                 _frontend._speed_apparent_raw = _speed_ms;
             }
+            _frontend._last_update_ms = AP_HAL::millis();
         }
     }
 }

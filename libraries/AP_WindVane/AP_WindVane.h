@@ -64,18 +64,22 @@ public:
 
     // get the apparent wind direction in body-frame in radians, 0 = head to wind
     float get_apparent_wind_direction_rad() const { return _direction_apparent; }
+    float get_apparent_wind_direction_rad_raw() const { return _direction_apparent_raw; }
 
     // get the true wind direction in radians, 0 = wind coming from north
     float get_true_wind_direction_rad() const { return _direction_true; }
 
     // Return apparent wind speed
     float get_apparent_wind_speed() const { return _speed_apparent; }
+    float get_apparent_wind_speed_raw() const { return _speed_apparent_raw; }
 
     // Return true wind speed
     float get_true_wind_speed() const { return _speed_true; }
 
     // Return the apparent wind angle used to determin the current tack
     float get_tack_threshold_wind_dir_rad() const { return _direction_tack; }
+
+    uint32_t last_update_ms() const { return _last_update_ms; }
 
     // enum defining current tack
     enum Sailboat_Tack {
@@ -153,6 +157,8 @@ private:
     float _speed_true;                              // wind's true estimated speed in m/s - filtered
     LowPassFilterFloat _speed_apparent_filt{2.0f};
     LowPassFilterFloat _speed_true_filt{2.0f};
+
+    uint32_t _last_update_ms; // last update ms
 
     // current tack
     Sailboat_Tack _current_tack;
