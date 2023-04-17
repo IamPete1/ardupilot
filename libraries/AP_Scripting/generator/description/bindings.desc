@@ -725,7 +725,7 @@ global manual remove lua_removefile 1
 
 include AP_WheelEncoder/AP_WheelEncoder.h  depends APM_BUILD_TYPE(APM_BUILD_Rover)
 singleton AP_WheelEncoder depends APM_BUILD_TYPE(APM_BUILD_Rover)
-singleton AP_WheelEncoder alias wheelencoder
+singleton AP_WheelEncoder rename wheelencoder
 singleton AP_WheelEncoder method get_distance float uint8_t 0 WHEELENCODER_MAX_INSTANCES
 
 singleton Logging rename mavlink
