@@ -195,6 +195,7 @@ class GCS_MAVLINK
 {
 public:
     friend class GCS;
+    friend class AP_Vehicle;
 
     GCS_MAVLINK(GCS_MAVLINK_Parameters &parameters, AP_HAL::UARTDriver &uart);
     virtual ~GCS_MAVLINK() {}
