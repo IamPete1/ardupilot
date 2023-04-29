@@ -988,17 +988,11 @@ function AP_HAL__I2CDevice_ud:set_address(address) end
 ---@return integer|table|nil
 function AP_HAL__I2CDevice_ud:read_registers(register_num, read_length) end
 
--- desc
+-- Writes variable length of bytes to i2c. Can register only, single integer or table or integers
 ---@param register_num integer
----@param value integer
+---@param data? integer|table
 ---@return boolean
-function AP_HAL__I2CDevice_ud:write_register(register_num, value) end
-
--- Writes variable length of bytes to i2c
----@param register_num integer
----@param data? table
----@return boolean
-function AP_HAL__I2CDevice_ud:write_registers(register_num, data) end
+function AP_HAL__I2CDevice_ud:write_register(register_num, data) end
 
 -- desc
 ---@param retries integer
