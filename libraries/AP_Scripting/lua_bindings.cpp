@@ -479,12 +479,11 @@ int AP_HAL__I2CDevice_write_registers(lua_State *L) {
     if (multi_byte) {
         // stack = [i2c, addr, {table}]
         const size_t table_length_raw = lua_rawlen(L, 3);
-        if (table_length_raw > UINT16_MAX) {
+        if (table_length_raw > (UINT16_MAX - 1)) {
             return luaL_argerror(L, 3, "table's length out of range");
-        } else {
-            const uint16_t table_length = static_cast<uint16_t>(table_length_raw);
-            write_size += table_length;
         }
+        const uint16_t table_length = static_cast<uint16_t>(table_length_raw);
+        write_size += table_length;
     }
 
     uint8_t *buffer = (uint8_t*)luaM_malloc(L, write_size);
@@ -498,22 +497,20 @@ int AP_HAL__I2CDevice_write_registers(lua_State *L) {
         for (uint16_t index = 1; index < write_size; index++) {
             if (lua_next(L, 3) != 0) {
                 // stack = [i2c, addr, {table}, index, value]
-                int isnum_index;
-                const lua_Integer index_raw = lua_tointegerx(L, 4, &isnum_index);
-                if (!isnum_index || (index_raw < 0) || (index_raw > UINT16_MAX) || (index_raw != index)) {
+                int isnum;
+                const lua_Integer index_raw = lua_tointegerx(L, 4, &isnum);
+                if (!isnum || (index_raw != index)) {
                     luaM_free(L, buffer);
                     return luaL_argerror(L, 3, "table's index out of range");
                 }
 
-                int isnum_value;
-                const lua_Integer value_raw = lua_tointegerx(L, 5, &isnum_value);
-                if (!isnum_value || (value_raw < 0) || (value_raw > UINT8_MAX)) {
+                const lua_Integer value_raw = lua_tointegerx(L, 5, &isnum);
+                if (!isnum || (value_raw < 0) || (value_raw > UINT8_MAX)) {
                     luaM_free(L, buffer);
                     return luaL_argerror(L, 3, "table's value out of range");
                 }
-                uint8_t value = static_cast<uint8_t>(value_raw);
 
-                buffer[index] = value;
+                buffer[index] = static_cast<uint8_t>(value_raw);
 
                 lua_pop(L, 1);
                 // stack = [i2c, addr, {table}, index]
