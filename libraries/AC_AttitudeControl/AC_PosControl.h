@@ -445,6 +445,8 @@ protected:
     float       _jerk_max_xy_cmsss;       // Jerk limit of the xy kinematic path generation in cm/s^3 used to determine how quickly the aircraft varies the acceleration target
     float       _jerk_max_z_cmsss;        // Jerk limit of the z kinematic path generation in cm/s^3 used to determine how quickly the aircraft varies the acceleration target
     float       _vel_z_control_ratio = 2.0f;    // confidence that we have control in the vertical axis
+    bool        _accel_max_limit;
+    bool        _accel_min_limit;
 
     // output from controller
     float       _roll_target;           // desired roll angle in centi-degrees calculated by position controller

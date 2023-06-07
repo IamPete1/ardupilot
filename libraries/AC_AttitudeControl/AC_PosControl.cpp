@@ -770,6 +770,10 @@ void AC_PosControl::init_z_controller()
     // initialise ekf z reset handler
     init_ekf_z_reset();
 
+    // Clear anti-wind up flags
+    _accel_max_limit = false;
+    _accel_min_limit = false;
+
     // initialise z_controller time out
     _last_update_z_us = AP_HAL::micros64();
 }
@@ -932,14 +936,34 @@ void AC_PosControl::update_z_controller()
 
     // Velocity Controller
 
+    // Constrain to configured limits
+    if (is_negative(get_max_speed_down_cms()) && is_positive(get_max_speed_up_cms())) {
+        // No I term in Z pos controller, so we don't need to do anti windup
+        _vel_target.z = constrain_float(_vel_target.z, get_max_speed_down_cms(), get_max_speed_up_cms());
+    }
+
     const float curr_vel_z = _inav.get_velocity_z_up_cms();
-    _accel_target.z = _pid_vel_z.update_all(_vel_target.z, curr_vel_z, _motors.limit.throttle_lower, _motors.limit.throttle_upper);
+    _accel_target.z = _pid_vel_z.update_all(_vel_target.z, curr_vel_z, _motors.limit.throttle_lower || _accel_min_limit, _motors.limit.throttle_upper || _accel_max_limit);
     _accel_target.z *= AP::ahrs().getControlScaleZ();
 
     // add feed forward component
     _accel_target.z += _accel_desired.z;
 
     // Acceleration Controller
+
+    // Constrain and set flags for anti windup
+    _accel_max_limit = false;
+    _accel_min_limit = false;
+    if (is_positive(get_max_accel_z_cmss())) {
+        if (_accel_target.z > get_max_accel_z_cmss()) {
+            _accel_target.z = get_max_accel_z_cmss();
+            _accel_max_limit = true;
+        }
+        if (_accel_target.z < -get_max_accel_z_cmss()) {
+            _accel_target.z = -get_max_accel_z_cmss();
+            _accel_min_limit = true;
+        }
+    }
 
     // Calculate vertical acceleration
     const float z_accel_meas = get_z_accel_cmss();
