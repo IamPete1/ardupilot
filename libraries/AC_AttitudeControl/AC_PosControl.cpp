@@ -618,6 +618,10 @@ void AC_PosControl::update_xy_controller()
     _vel_target.xy() += _vel_desired.xy();
 
     // Velocity Controller
+    if (is_positive(get_max_speed_xy_cms())) {
+        _vel_target.xy().limit_length(get_max_speed_xy_cms());
+    }
+
 
     const Vector2f &curr_vel = _inav.get_velocity_xy_cms();
     Vector2f accel_target = _pid_vel_xy.update_all(_vel_target.xy(), curr_vel, _limit_vector.xy());
@@ -632,6 +636,9 @@ void AC_PosControl::update_xy_controller()
     _accel_target.xy() += _accel_desired.xy();
 
     // Acceleration Controller
+    if (is_positive(get_max_accel_xy_cmss())) {
+        _accel_target.xy().limit_length(get_max_accel_xy_cmss());
+    }
 
     // limit acceleration using maximum lean angles
     float angle_max = MIN(_attitude_control.get_althold_lean_angle_max_cd(), get_lean_angle_max_cd());
