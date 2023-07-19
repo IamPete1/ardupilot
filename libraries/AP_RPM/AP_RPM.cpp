@@ -42,6 +42,12 @@ const AP_Param::GroupInfo AP_RPM::var_info[] = {
     AP_SUBGROUPINFO(_params[1], "2_", 15, AP_RPM, AP_RPM_Params),
 #endif
 
+#if RPM_MAX_INSTANCES > 2
+    // @Group: 3_
+    // @Path: AP_RPM_Params.cpp
+    AP_SUBGROUPINFO(_params[2], "3_", 16, AP_RPM, AP_RPM_Params),
+#endif
+
     AP_GROUPEND
 };
 
@@ -203,7 +209,7 @@ void AP_RPM::update(void)
     }
 
 #if HAL_LOGGING_ENABLED
-    if (enabled(0) || enabled(1)) {
+    if (enabled(0) || enabled(1) || enabled(2)) {
         Log_RPM();
     }
 #endif
@@ -284,16 +290,18 @@ bool AP_RPM::arming_checks(size_t buflen, char *buffer) const
 #if HAL_LOGGING_ENABLED
 void AP_RPM::Log_RPM()
 {
-    float rpm1 = -1, rpm2 = -1;
+    float rpm1 = -1, rpm2 = -1, rpm3 = -1;
 
     get_rpm(0, rpm1);
     get_rpm(1, rpm2);
+    get_rpm(2, rpm3);
 
     const struct log_RPM pkt{
         LOG_PACKET_HEADER_INIT(LOG_RPM_MSG),
         time_us     : AP_HAL::micros64(),
         rpm1        : rpm1,
-        rpm2        : rpm2
+        rpm2        : rpm2,
+        rpm3        : rpm3
     };
     AP::logger().WriteBlock(&pkt, sizeof(pkt));
 }

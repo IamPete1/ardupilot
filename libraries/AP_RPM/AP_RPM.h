@@ -25,7 +25,7 @@
 #include "AP_RPM_Params.h"
 
 // Maximum number of RPM measurement instances available on this platform
-#define RPM_MAX_INSTANCES 2
+#define RPM_MAX_INSTANCES 3
 
 class AP_RPM_Backend;
 
