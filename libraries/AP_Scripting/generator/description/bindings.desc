@@ -458,6 +458,12 @@ singleton AC_AttitudeControl_Multi_6DoF method set_lateral_enable void boolean
 singleton AC_AttitudeControl_Multi_6DoF method set_forward_enable void boolean
 singleton AC_AttitudeControl_Multi_6DoF method set_offset_roll_pitch void float'skip_check float'skip_check
 
+include AC_AttitudeControl/AC_AttitudeControl_Heli_6DoF.h depends APM_BUILD_TYPE(APM_BUILD_Heli)
+singleton AC_AttitudeControl_Heli_6DoF depends APM_BUILD_TYPE(APM_BUILD_Heli)
+singleton AC_AttitudeControl_Heli_6DoF rename attitude_control
+singleton AC_AttitudeControl_Heli_6DoF method set_lateral_enable void boolean
+singleton AC_AttitudeControl_Heli_6DoF method set_forward_enable void boolean
+singleton AC_AttitudeControl_Heli_6DoF method set_offset_roll_pitch void float'skip_check float'skip_check
 
 include AP_Motors/AP_MotorsMatrix_6DoF_Scripting.h  depends APM_BUILD_TYPE(APM_BUILD_ArduCopter)
 singleton AP_MotorsMatrix_6DoF_Scripting depends APM_BUILD_TYPE(APM_BUILD_ArduCopter)
