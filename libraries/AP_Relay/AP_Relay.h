@@ -49,7 +49,7 @@ private:
     static AP_Relay *singleton;
 
     AP_Int8 _pin[AP_RELAY_NUM_RELAYS];
-    AP_Int8 _default;
+    AP_Int8 _default[AP_RELAY_NUM_RELAYS];
 
     void set(uint8_t instance, bool value);
 };

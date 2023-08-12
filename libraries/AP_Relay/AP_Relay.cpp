@@ -81,12 +81,12 @@ const AP_Param::GroupInfo AP_Relay::var_info[] = {
     // @Values: -1:Disabled,49:BB Blue GP0 pin 4,50:AUXOUT1,51:AUXOUT2,52:AUXOUT3,53:AUXOUT4,54:AUXOUT5,55:AUXOUT6,57:BB Blue GP0 pin 3,113:BB Blue GP0 pin 6,116:BB Blue GP0 pin 5,63:BBBMini Pin P8.34,101:MainOut1,102:MainOut2,103:MainOut3,104:MainOut4,105:MainOut5,106:MainOut6,107:MainOut7,108:MainOut8
     AP_GROUPINFO("PIN4",  3, AP_Relay, _pin[3], RELAY4_PIN_DEFAULT),
 
-    // @Param: DEFAULT
-    // @DisplayName: Default relay state
+    // @Param: DEFAULT1
+    // @DisplayName: Default relay state for first relay
     // @Description: The state of the relay on boot.
     // @User: Standard
     // @Values: 0:Off,1:On,2:NoChange
-    AP_GROUPINFO("DEFAULT",  4, AP_Relay, _default, 0),
+    AP_GROUPINFO("DEFAULT1",  4, AP_Relay, _default[0], 0),
 
     // @Param: PIN5
     // @DisplayName: Fifth Relay Pin
@@ -101,6 +101,41 @@ const AP_Param::GroupInfo AP_Relay::var_info[] = {
     // @User: Standard
     // @Values: -1:Disabled,49:BB Blue GP0 pin 4,50:AUXOUT1,51:AUXOUT2,52:AUXOUT3,53:AUXOUT4,54:AUXOUT5,55:AUXOUT6,57:BB Blue GP0 pin 3,113:BB Blue GP0 pin 6,116:BB Blue GP0 pin 5,37:BBBMini Pin P8.14,101:MainOut1,102:MainOut2,103:MainOut3,104:MainOut4,105:MainOut5,106:MainOut6,107:MainOut7,108:MainOut8
     AP_GROUPINFO("PIN6",  6, AP_Relay, _pin[5], RELAY6_PIN_DEFAULT),
+
+    // @Param: DEFAULT2
+    // @DisplayName: Default relay state for 2nd relay
+    // @Description: The state of the relay on boot.
+    // @User: Standard
+    // @Values: -1:Use DEFAULT1,0:Off,1:On,2:NoChange
+    AP_GROUPINFO("DEFAULT2", 7, AP_Relay, _default[1], -1),
+
+    // @Param: DEFAULT3
+    // @DisplayName: Default relay state for 3rd relay
+    // @Description: The state of the relay on boot.
+    // @User: Standard
+    // @Values: -1:Use DEFAULT1,0:Off,1:On,2:NoChange
+    AP_GROUPINFO("DEFAULT3", 8, AP_Relay, _default[2], -1),
+
+    // @Param: DEFAULT4
+    // @DisplayName: Default relay state for 4th relay
+    // @Description: The state of the relay on boot.
+    // @User: Standard
+    // @Values: -1:Use DEFAULT1,0:Off,1:On,2:NoChange
+    AP_GROUPINFO("DEFAULT4", 9, AP_Relay, _default[3], -1),
+
+    // @Param: DEFAULT5
+    // @DisplayName: Default relay state for 5th relay
+    // @Description: The state of the relay on boot.
+    // @User: Standard
+    // @Values: -1:Use DEFAULT1,0:Off,1:On,2:NoChange
+    AP_GROUPINFO("DEFAULT5", 10, AP_Relay, _default[4], -1),
+
+    // @Param: DEFAULT6
+    // @DisplayName: Default relay state for 6th relay
+    // @Description: The state of the relay on boot.
+    // @User: Standard
+    // @Values: -1:Use DEFAULT1,0:Off,1:On,2:NoChange
+    AP_GROUPINFO("DEFAULT6", 11, AP_Relay, _default[5], -1),
 
     AP_GROUPEND
 };
@@ -124,11 +159,14 @@ AP_Relay::AP_Relay(void)
 
 void AP_Relay::init()
 {
-    if (_default != 0 && _default != 1) {
-        return;
-    }
     for (uint8_t i=0; i<AP_RELAY_NUM_RELAYS; i++) {
-        set(i, _default);
+        int8_t default_val = _default[i];
+        if (default_val == -1) {
+            default_val = _default[0];
+        }
+        if ((default_val == 0) || (default_val == 1)) {
+            set(i, default_val);
+        }
     }
 }
 
