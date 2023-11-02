@@ -54,7 +54,7 @@ public:
 #if HAL_LANDING_DEEPSTALL_ENABLED
         TYPE_DEEPSTALL = 1,
 #endif
-//      TODO: TYPE_PARACHUTE,
+        TYPE_PARACHUTE = 2,
 //      TODO: TYPE_HELICAL,
     };
 
@@ -132,7 +132,8 @@ private:
     // calculated approach slope during auto-landing: ((prev_WP_loc.alt - next_WP_loc.alt)*0.01f - flare_sec * sink_rate) / prev_WP_loc.get_distance(next_WP_loc)
     float slope;
 
-    float height_flare_log;
+    float height_log;
+    float flare_height;
 
     AP_Mission &mission;
     AP_AHRS &ahrs;
@@ -189,7 +190,7 @@ private:
     void type_slope_do_land(const AP_Mission::Mission_Command& cmd, const float relative_altitude);
     void type_slope_verify_abort_landing(const Location &prev_WP_loc, Location &next_WP_loc, bool &throttle_suppressed);
     bool type_slope_verify_land(const Location &prev_WP_loc, Location &next_WP_loc, const Location &current_loc,
-            const float height, const float sink_rate, const float wp_proportion, const uint32_t last_flying_ms, const bool is_armed, const bool is_flying, const bool rangefinder_state_in_range);
+            const float height_above_ground, const float sink_rate, const float wp_proportion, const uint32_t last_flying_ms, const bool is_armed, const bool is_flying, const bool rangefinder_state_in_range);
 
     void type_slope_adjust_landing_slope_for_rangefinder_bump(AP_FixedWing::Rangefinder_State &rangefinder_state, Location &prev_WP_loc, Location &next_WP_loc, const Location &current_loc, const float wp_distance, int32_t &target_altitude_offset_cm);
 

@@ -166,7 +166,7 @@ const AP_Param::GroupInfo AP_Landing::var_info[] = {
     // @Param: TYPE
     // @DisplayName: Auto-landing type
     // @Description: Specifies the auto-landing type to use
-    // @Values: 0:Standard Glide Slope, 1:Deepstall
+    // @Values: 0:Standard Glide Slope, 1:Deepstall, 2:Parachute
     // @User: Standard
     AP_GROUPINFO_FLAGS("TYPE",    14, AP_Landing, type, TYPE_STANDARD_GLIDE_SLOPE, AP_PARAM_FLAG_ENABLE),
 
@@ -215,6 +215,7 @@ void AP_Landing::do_land(const AP_Mission::Mission_Command& cmd, const float rel
 
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         type_slope_do_land(cmd, relative_altitude);
         break;
 #if HAL_LANDING_DEEPSTALL_ENABLED
@@ -240,6 +241,7 @@ bool AP_Landing::verify_land(const Location &prev_WP_loc, Location &next_WP_loc,
     bool success = true;
 
     switch (type) {
+    case TYPE_PARACHUTE:
     case TYPE_STANDARD_GLIDE_SLOPE:
         success = type_slope_verify_land(prev_WP_loc, next_WP_loc, current_loc,
                 height, sink_rate, wp_proportion, last_flying_ms, is_armed, is_flying, rangefinder_state_in_range);
@@ -266,6 +268,7 @@ bool AP_Landing::verify_abort_landing(const Location &prev_WP_loc, Location &nex
 {
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         type_slope_verify_abort_landing(prev_WP_loc, next_WP_loc, throttle_suppressed);
         break;
 #if HAL_LANDING_DEEPSTALL_ENABLED
@@ -303,6 +306,7 @@ void AP_Landing::adjust_landing_slope_for_rangefinder_bump(AP_FixedWing::Rangefi
 {
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         type_slope_adjust_landing_slope_for_rangefinder_bump(rangefinder_state, prev_WP_loc, next_WP_loc, current_loc, wp_distance, target_altitude_offset_cm);
         break;
 #if HAL_LANDING_DEEPSTALL_ENABLED
@@ -325,6 +329,7 @@ bool AP_Landing::send_landing_message(mavlink_channel_t chan) {
         return deepstall.send_deepstall_message(chan);
 #endif
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
     default:
         return false;
     }
@@ -338,6 +343,7 @@ bool AP_Landing::is_flaring(void) const
 
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         return type_slope_is_flaring();
 #if HAL_LANDING_DEEPSTALL_ENABLED
     case TYPE_DEEPSTALL:
@@ -360,6 +366,7 @@ bool AP_Landing::is_on_approach(void) const
 
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         return type_slope_is_on_approach();
 #if HAL_LANDING_DEEPSTALL_ENABLED
     case TYPE_DEEPSTALL:
@@ -379,6 +386,7 @@ bool AP_Landing::is_ground_steering_allowed(void) const
 
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         return type_slope_is_on_approach();
 #if HAL_LANDING_DEEPSTALL_ENABLED
     case TYPE_DEEPSTALL:
@@ -399,6 +407,7 @@ bool AP_Landing::is_expecting_impact(void) const
 
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         return type_slope_is_expecting_impact();
 #if HAL_LANDING_DEEPSTALL_ENABLED
     case TYPE_DEEPSTALL:
@@ -420,6 +429,7 @@ bool AP_Landing::override_servos(void) {
         return deepstall.override_servos();
 #endif
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
     default:
         return false;
     }
@@ -435,6 +445,7 @@ const AP_PIDInfo* AP_Landing::get_pid_info(void) const
         return &deepstall.get_pid_info();
 #endif
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
     default:
         return nullptr;
     }
@@ -453,6 +464,7 @@ void AP_Landing::setup_landing_glide_slope(const Location &prev_WP_loc, const Lo
 {
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         type_slope_setup_landing_glide_slope(prev_WP_loc, next_WP_loc, current_loc, target_altitude_offset_cm);
         break;
 #if HAL_LANDING_DEEPSTALL_ENABLED
@@ -521,6 +533,7 @@ int32_t AP_Landing::constrain_roll(const int32_t desired_roll_cd, const int32_t 
 {
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         return type_slope_constrain_roll(desired_roll_cd, level_roll_limit_cd);
 #if HAL_LANDING_DEEPSTALL_ENABLED
     case TYPE_DEEPSTALL:
@@ -543,6 +556,7 @@ bool AP_Landing::get_target_altitude_location(Location &location)
         return deepstall.get_target_altitude_location(location);
 #endif
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
     default:
         return false;
     }
@@ -587,6 +601,7 @@ int32_t AP_Landing::get_target_airspeed_cm(void)
 
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         return type_slope_get_target_airspeed_cm();
 #if HAL_LANDING_DEEPSTALL_ENABLED
     case TYPE_DEEPSTALL:
@@ -610,6 +625,7 @@ bool AP_Landing::request_go_around(void)
 
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         success = type_slope_request_go_around();
         break;
 #if HAL_LANDING_DEEPSTALL_ENABLED
@@ -640,6 +656,7 @@ bool AP_Landing::is_complete(void) const
 {
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         return type_slope_is_complete();
 #if HAL_LANDING_DEEPSTALL_ENABLED
     case TYPE_DEEPSTALL:
@@ -654,6 +671,7 @@ void AP_Landing::Log(void) const
 {
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         type_slope_log();
         break;
 #if HAL_LANDING_DEEPSTALL_ENABLED
@@ -677,6 +695,7 @@ bool AP_Landing::is_throttle_suppressed(void) const
 
     switch (type) {
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
         return type_slope_is_throttle_suppressed();
 #if HAL_LANDING_DEEPSTALL_ENABLED
     case TYPE_DEEPSTALL:
@@ -714,6 +733,7 @@ bool AP_Landing::is_flying_forward(void) const
         return deepstall.is_flying_forward();
 #endif
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
     default:
         return true;
     }
@@ -730,6 +750,7 @@ bool AP_Landing::terminate(void) {
         return deepstall.terminate();
 #endif
     case TYPE_STANDARD_GLIDE_SLOPE:
+    case TYPE_PARACHUTE:
     default:
         return false;
     }

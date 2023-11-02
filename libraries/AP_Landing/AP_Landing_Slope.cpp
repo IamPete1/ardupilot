@@ -24,6 +24,7 @@
 #include <AP_AHRS/AP_AHRS.h>
 #include <AP_GPS/AP_GPS.h>
 #include <AP_Logger/AP_Logger.h>
+#include <AP_Parachute/AP_Parachute.h>
 
 #if defined(APM_BUILD_TYPE)
 //  - this is just here to encourage the build system to supply the "legacy build defines".  The actual dependecy is in the AP_LandingGear.h and AP_LandingGear_config.h headers
@@ -31,6 +32,8 @@
 
 void AP_Landing::type_slope_do_land(const AP_Mission::Mission_Command& cmd, const float relative_altitude)
 {
+    // Might want to enable the chute at this point?
+
     initial_slope = 0;
     slope = 0;
 
@@ -54,11 +57,32 @@ void AP_Landing::type_slope_verify_abort_landing(const Location &prev_WP_loc, Lo
   final flare
  */
 bool AP_Landing::type_slope_verify_land(const Location &prev_WP_loc, Location &next_WP_loc, const Location &current_loc,
-        const float height, const float sink_rate, const float wp_proportion, const uint32_t last_flying_ms, const bool is_armed, const bool is_flying, const bool rangefinder_state_in_range)
+        const float height_above_ground, const float sink_rate, const float wp_proportion, const uint32_t last_flying_ms, const bool is_armed, const bool is_flying, const bool rangefinder_state_in_range)
 {
     // we don't 'verify' landing in the sense that it never completes,
     // so we don't verify command completion. Instead we use this to
     // adjust final landing parameters
+
+    bool use_range_finder = rangefinder_state_in_range;
+    float height = height_above_ground;
+
+    if (type == TYPE_PARACHUTE) {
+#if HAL_PARACHUTE_ENABLED
+        // Never use rangefinder for parachute landing
+        // Land relative to target alt, not ground
+        use_range_finder = false;
+
+        ftype alt_diff;
+        if (current_loc.get_alt_distance(next_WP_loc, alt_diff)) {
+            height = alt_diff;
+        }
+
+#else 
+        // Parachute landing selected but parachute not compiled in, complete immediately
+        gcs().send_text(MAV_SEVERITY_CRITICAL, "Parachute Landing not available");
+        return true;
+#endif
+    }
 
     // determine stage
     if (type_slope_stage == SlopeStage::NORMAL) {
@@ -94,13 +118,13 @@ bool AP_Landing::type_slope_verify_land(const Location &prev_WP_loc, Location &n
     const bool below_flare_sec = (flare_sec > 0 && height <= sink_rate * flare_sec);
     const bool probably_crashed = (aparm.crash_detection_enable && fabsf(sink_rate) < 0.2f && !is_flying);
 
-    height_flare_log = height;
+    height_log = height;
 
     const AP_GPS &gps = AP::gps();
 
     if ((on_approach_stage && below_flare_alt) ||
         (on_approach_stage && below_flare_sec && (wp_proportion > 0.5)) ||
-        (!rangefinder_state_in_range && wp_proportion >= 1) ||
+        (!use_range_finder && wp_proportion >= 1) ||
         probably_crashed) {
 
         if (type_slope_stage != SlopeStage::FINAL) {
@@ -113,7 +137,8 @@ bool AP_Landing::type_slope_verify_land(const Location &prev_WP_loc, Location &n
                                   (double)gps.ground_speed(),
                                   (double)current_loc.get_distance(next_WP_loc));
             }
-            
+
+            flare_height = height;
             type_slope_stage = SlopeStage::FINAL;
 
 #if AP_LANDINGGEAR_ENABLED
@@ -154,37 +179,65 @@ bool AP_Landing::type_slope_verify_land(const Location &prev_WP_loc, Location &n
     land_WP_loc.offset_bearing(land_bearing_cd * 0.01f, prev_WP_loc.get_distance(current_loc) + 200);
     nav_controller->update_waypoint(prev_WP_loc, land_WP_loc);
 
-    // once landed and stationary, post some statistics
-    // this is done before disarm_if_autoland_complete() so that it happens on the next loop after the disarm
-    if (type_slope_flags.post_stats && !is_armed) {
-        type_slope_flags.post_stats = false;
-        gcs().send_text(MAV_SEVERITY_INFO, "Distance from LAND point=%.2fm", (double)current_loc.get_distance(next_WP_loc));
+    switch (type) {
+        default:
+        case TYPE_STANDARD_GLIDE_SLOPE: {
+            // once landed and stationary, post some statistics
+            // this is done before disarm_if_autoland_complete() so that it happens on the next loop after the disarm
+            if (type_slope_flags.post_stats && !is_armed) {
+                type_slope_flags.post_stats = false;
+                gcs().send_text(MAV_SEVERITY_INFO, "Distance from LAND point=%.2fm", (double)current_loc.get_distance(next_WP_loc));
+            }
+
+            // check if we should auto-disarm after a confirmed landing
+            if (type_slope_stage == SlopeStage::FINAL) {
+                disarm_if_autoland_complete_fn();
+            }
+
+            if (mission.continue_after_land() &&
+                type_slope_stage == SlopeStage::FINAL &&
+                gps.status() >= AP_GPS::GPS_OK_FIX_3D &&
+                gps.ground_speed() < 1) {
+                /*
+                user has requested to continue with mission after a
+                landing. Return true to allow for continue
+                */
+                return true;
+            }
+
+            /*
+            we return false as a landing mission item never completes
+
+            we stay on this waypoint unless the GCS commands us to change
+            mission item, reset the mission, command a go-around or finish
+            a land_abort procedure.
+            */
+            return false;
+        }
+
+#if HAL_PARACHUTE_ENABLED
+        case TYPE_PARACHUTE: {
+            // Deploy at flare alt under the flare height.
+            // If the flare was entered at the correct altitude then this will be 0
+            // However if flare was started early we also need to deploy early
+            const float deploy_alt = MAX(flare_height - flare_alt, 0);
+            if ((type_slope_stage == SlopeStage::FINAL) && (height <= deploy_alt)) {
+                // Done flare and sunk down to target alt, time to fire the chute
+                AP_Parachute *parachute = AP::parachute();
+                if (parachute != nullptr) {
+                    // Chute release will also disarm the vehicle
+                    parachute->release();
+                }
+            } 
+
+            // Never complete, no chance of flying again
+            return false;
+        }
+#endif
     }
 
-    // check if we should auto-disarm after a confirmed landing
-    if (type_slope_stage == SlopeStage::FINAL) {
-        disarm_if_autoland_complete_fn();
-    }
 
-    if (mission.continue_after_land() &&
-        type_slope_stage == SlopeStage::FINAL &&
-        gps.status() >= AP_GPS::GPS_OK_FIX_3D &&
-        gps.ground_speed() < 1) {
-        /*
-          user has requested to continue with mission after a
-          landing. Return true to allow for continue
-         */
-        return true;
-    }
 
-    /*
-      we return false as a landing mission item never completes
-
-      we stay on this waypoint unless the GCS commands us to change
-      mission item, reset the mission, command a go-around or finish
-      a land_abort procedure.
-     */
-    return false;
 }
 
 void AP_Landing::type_slope_adjust_landing_slope_for_rangefinder_bump(AP_FixedWing::Rangefinder_State &rangefinder_state, Location &prev_WP_loc, Location &next_WP_loc, const Location &current_loc, const float wp_distance, int32_t &target_altitude_offset_cm)
@@ -427,7 +480,7 @@ void AP_Landing::type_slope_log(void) const
                                             (double)slope,
                                             (double)initial_slope,
                                             (double)alt_offset,
-                                            (double)height_flare_log);
+                                            (double)height_log);
 }
 
 bool AP_Landing::type_slope_is_throttle_suppressed(void) const
