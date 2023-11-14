@@ -437,30 +437,42 @@ bool AP_Arming_Plane::mission_checks(bool report)
         ret = false;
         check_failed(ARMING_CHECK_MISSION, report, "DO_LAND_START set and RTL_AUTOLAND disabled");
     }
-#if HAL_QUADPLANE_ENABLED
-    if (plane.quadplane.available()) {
-        const uint16_t num_commands = plane.mission.num_commands();
-        AP_Mission::Mission_Command prev_cmd {};
-        for (uint16_t i=1; i<num_commands; i++) {
-            AP_Mission::Mission_Command cmd;
-            if (!plane.mission.read_cmd_from_storage(i, cmd)) {
-                break;
-            }
-            if (plane.is_land_command(cmd.id) &&
-                prev_cmd.id == MAV_CMD_NAV_WAYPOINT) {
-                const float dist = cmd.content.location.get_distance(prev_cmd.content.location);
-                const float tecs_land_speed = plane.TECS_controller.get_land_airspeed();
-                const float landing_speed = is_positive(tecs_land_speed)?tecs_land_speed:plane.aparm.airspeed_cruise_cm*0.01;
-                const float min_dist = 0.75 * plane.quadplane.stopping_distance(sq(landing_speed));
-                if (dist < min_dist) {
-                    ret = false;
-                    check_failed(ARMING_CHECK_MISSION, report, "VTOL land too short, min %.0fm", min_dist);
-                }
-            }
-            prev_cmd = cmd;
+
+    const uint16_t num_commands = plane.mission.num_commands();
+    AP_Mission::Mission_Command prev_cmd {};
+    for (uint16_t i=1; i<num_commands; i++) {
+        AP_Mission::Mission_Command cmd;
+        if (!plane.mission.read_cmd_from_storage(i, cmd)) {
+            break;
         }
-    }
+#if !HAL_QUADPLANE_ENABLED
+        const bool is_vtol_land = false;
+#else
+        const bool is_vtol_land = plane.quadplane.is_vtol_land(cmd.id);
+        if (plane.quadplane.available() && is_vtol_land && (prev_cmd.id == MAV_CMD_NAV_WAYPOINT)) {
+            const float dist = cmd.content.location.get_distance(prev_cmd.content.location);
+            const float tecs_land_speed = plane.TECS_controller.get_land_airspeed();
+            const float landing_speed = is_positive(tecs_land_speed)?tecs_land_speed:plane.aparm.airspeed_cruise_cm*0.01;
+            const float min_dist = 0.75 * plane.quadplane.stopping_distance(sq(landing_speed));
+            if (dist < min_dist) {
+                ret = false;
+                check_failed(ARMING_CHECK_MISSION, report, "VTOL land too short, min %.0fm", min_dist);
+            }
+        }
 #endif
+        if (!is_vtol_land && (cmd.id == MAV_CMD_NAV_LAND) && (prev_cmd.id == MAV_CMD_NAV_WAYPOINT)) {
+            // Fixedwing landing approach must have enough altitude for flare
+            const float required_flare_height = MAX(plane.landing.get_flare_alt(), plane.landing.get_pre_flare_alt());
+            ftype alt_diff;
+            if (prev_cmd.content.location.get_alt_distance(cmd.content.location, alt_diff) && (alt_diff < required_flare_height)) {
+                ret = false;
+                check_failed(ARMING_CHECK_MISSION, report, "FW land approach low, %.0fm need %0.fm", alt_diff, required_flare_height);
+            }
+        }
+
+        prev_cmd = cmd;
+    }
+
     return ret;
 }
 
