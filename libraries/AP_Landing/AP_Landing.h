@@ -112,6 +112,9 @@ public:
     void Log(void) const;
     const class AP_PIDInfo * get_pid_info(void) const;
 
+    float get_flare_alt() { return flare_alt; }
+    float get_pre_flare_alt() { return pre_flare_alt; }
+
     // landing altitude offset (meters)
     float alt_offset;
 
