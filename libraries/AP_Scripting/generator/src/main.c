@@ -1173,6 +1173,10 @@ void handle_ap_object(void) {
   } else if (strcmp(type, keyword_manual) == 0) {
     handle_manual(node, ALIAS_TYPE_MANUAL);
 
+  } else if (strcmp(type, keyword_manual_operator) == 0) {
+    handle_manual(node, ALIAS_TYPE_MANUAL_OPERATOR);
+    node->operations |= OP_MANUAL;
+
   } else {
     error(ERROR_SINGLETON, "AP_Objects only support renames, methods, semaphore or manual keywords (got %s)", type);
   }
@@ -2145,7 +2149,7 @@ const char * get_name_for_operation(enum operator_type op) {
 void emit_operators(struct userdata *data) {
   trace(TRACE_USERDATA, "Emitting operators for %s", data->name);
 
-  assert(data->ud_type == UD_USERDATA);
+  assert((data->ud_type == UD_USERDATA) || (data->ud_type == UD_AP_OBJECT));
 
   start_dependency(source, data->dependency);
 
@@ -2324,7 +2328,7 @@ void emit_loaders(void) {
 
   emit_type_index_with_operators(parsed_userdata, "userdata");
   emit_type_index(parsed_singletons, "singleton");
-  emit_type_index(parsed_ap_objects, "ap_object");
+  emit_type_index_with_operators(parsed_ap_objects, "ap_object");
 
   fprintf(source, "void load_generated_bindings(lua_State *L) {\n");
   fprintf(source, "    luaL_checkstack(L, 5, \"Out of stack\");\n"); // this is more stack space then we need, but should never fail
@@ -2355,6 +2359,11 @@ void emit_loaders(void) {
   fprintf(source, "        luaL_newmetatable(L, ap_object_fun[i].name);\n");
   fprintf(source, "        lua_pushcclosure(L, ap_object_fun[i].func, 0);\n");
   fprintf(source, "        lua_setfield(L, -2, \"__index\");\n");
+
+  fprintf(source, "        if (ap_object_fun[i].operators != nullptr) {\n");
+  fprintf(source, "            luaL_setfuncs(L, ap_object_fun[i].operators, 0);\n");
+  fprintf(source, "        }\n");
+
   fprintf(source, "        lua_pushstring(L, \"__call\");\n");
   fprintf(source, "        lua_pushvalue(L, -2);\n");
   fprintf(source, "        lua_settable(L, -3);\n");
