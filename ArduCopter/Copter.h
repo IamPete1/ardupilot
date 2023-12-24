@@ -258,8 +258,42 @@ private:
     AP_Int8 *flight_modes;
     const uint8_t num_flight_modes = 6;
 
-    struct RangeFinderState {
-        bool enabled:1;
+    class RangeFinderState {
+    public:
+        RangeFinderState(RangeFinder& _rng, AP_InertialNav _inav, enum Rotation _orient);
+
+        void init(float cut_off);
+
+        void update();
+
+        void update_terrain_offset(float alpha);
+
+        void set_enable(bool b);
+
+        bool enabled() const;
+
+        bool alt_ok() const;
+
+        bool get_alt_healthy() const;
+
+        uint32_t get_last_healthy_ms() const;
+
+        int16_t get_alt_cm() const;
+
+        int16_t get_alt_cm_glitch_protected() const;
+
+        float get_alt_cm_filt() const;
+
+        float get_terrain_offset_cm() const;
+
+        uint32_t get_glitch_cleared_ms() const;
+
+        bool is_glitching() const;
+
+        bool get_height_interpolated_cm(int32_t& ret) const;
+
+    private:
+        bool enable:1;
         bool alt_healthy:1; // true if we can trust the altitude from the rangefinder
         int16_t alt_cm;     // tilt compensated altitude (in cm) from rangefinder
         float inertial_alt_cm; // inertial alt at time of last rangefinder sample
@@ -269,10 +303,16 @@ private:
         int8_t glitch_count;    // non-zero number indicates rangefinder is glitching
         uint32_t glitch_cleared_ms; // system time glitch cleared
         float terrain_offset_cm;    // filtered terrain offset (e.g. terrain's height above EKF origin)
-    } rangefinder_state, rangefinder_up_state;
 
-    // return rangefinder height interpolated using inertial altitude
-    bool get_rangefinder_height_interpolated_cm(int32_t& ret) const;
+        // Convience class references
+        const RangeFinder &rangefinder;
+        const AP_InertialNav &inertial_nav;
+
+        // Rangefinder orientation to be used
+        const enum Rotation rf_orient; 
+    };
+    RangeFinderState rangefinder_state{rangefinder, inertial_nav, ROTATION_PITCH_270};
+    RangeFinderState rangefinder_up_state{rangefinder, inertial_nav, ROTATION_PITCH_90};
 
     class SurfaceTracking {
     public:
@@ -920,8 +960,6 @@ private:
     void read_barometer(void);
     void init_rangefinder(void);
     void read_rangefinder(void);
-    bool rangefinder_alt_ok() const;
-    bool rangefinder_up_ok() const;
     void update_rangefinder_terrain_offset();
     void update_optical_flow(void);
 

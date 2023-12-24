@@ -1297,12 +1297,12 @@ void PayloadPlace::run()
             place_start_time_ms = now_ms;
             break;
         } else if (is_positive(g2.pldp_range_finder_minimum_m)) {
-            if (!copter.rangefinder_state.enabled) {
+            if (!copter.rangefinder_state.enabled()) {
                 // abort payload place because rangefinder is not enabled
                 state = State::Ascent_Start;
                 gcs().send_text(MAV_SEVERITY_WARNING, "%s PLDP_RNG_MIN set and rangefinder not enabled", prefix_str);
                 break;
-            } else if (copter.rangefinder_alt_ok() && (copter.rangefinder_state.glitch_count == 0) && (copter.rangefinder_state.alt_cm > g2.pldp_range_finder_minimum_m * 100.0)) {
+            } else if (copter.rangefinder_state.alt_ok() && !copter.rangefinder_state.is_glitching() && (copter.rangefinder_state.get_alt_cm() > g2.pldp_range_finder_minimum_m * 100.0)) {
                 // range finder altitude is above minimum
                 place_start_time_ms = now_ms;
                 break;
@@ -1419,7 +1419,7 @@ bool ModeAuto::shift_alt_to_current_alt(Location& target_loc) const
     if ((target_loc.get_alt_frame() == Location::AltFrame::ABOVE_TERRAIN) &&
         (wp_nav->get_terrain_source() == AC_WPNav::TerrainSource::TERRAIN_FROM_RANGEFINDER)) {
         int32_t curr_rngfnd_alt_cm;
-        if (copter.get_rangefinder_height_interpolated_cm(curr_rngfnd_alt_cm)) {
+        if (copter.rangefinder_state.get_height_interpolated_cm(curr_rngfnd_alt_cm)) {
             // wp_nav is using rangefinder so use current rangefinder alt
             target_loc.set_alt_cm(MAX(curr_rngfnd_alt_cm, 200), Location::AltFrame::ABOVE_TERRAIN);
             return true;

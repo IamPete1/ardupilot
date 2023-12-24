@@ -610,7 +610,7 @@ void Mode::make_safe_ground_handling(bool force_throttle_unlimited)
 int32_t Mode::get_alt_above_ground_cm(void)
 {
     int32_t alt_above_ground_cm;
-    if (copter.get_rangefinder_height_interpolated_cm(alt_above_ground_cm)) {
+    if (copter.rangefinder_state.get_height_interpolated_cm(alt_above_ground_cm)) {
         return alt_above_ground_cm;
     }
     if (!pos_control->is_active_xy()) {

@@ -9,16 +9,16 @@ void Copter::SurfaceTracking::update_surface_offset()
     const uint32_t now_ms = millis();
     const bool timeout = (now_ms - last_update_ms) > SURFACE_TRACKING_TIMEOUT_MS;
 
+    const RangeFinderState &rf_state = (surface == Surface::GROUND) ? copter.rangefinder_state : copter.rangefinder_up_state;
+
     // check tracking state and that range finders are healthy
-    if (((surface == Surface::GROUND) && copter.rangefinder_alt_ok() && (copter.rangefinder_state.glitch_count == 0)) ||
-        ((surface == Surface::CEILING) && copter.rangefinder_up_ok() && (copter.rangefinder_up_state.glitch_count == 0))) {
+    if (rf_state.alt_ok() && !rf_state.is_glitching()) {
 
         // calculate surfaces height above the EKF origin
         // e.g. if vehicle is 10m above the EKF origin and rangefinder reports alt of 3m.  curr_surface_alt_above_origin_cm is 7m (or 700cm)
-        RangeFinderState &rf_state = (surface == Surface::GROUND) ? copter.rangefinder_state : copter.rangefinder_up_state;
 
         // update position controller target offset to the surface's alt above the EKF origin
-        copter.pos_control->set_pos_offset_target_z_cm(rf_state.terrain_offset_cm);
+        copter.pos_control->set_pos_offset_target_z_cm(rf_state.get_terrain_offset_cm());
         last_update_ms = now_ms;
         valid_for_logging = true;
 
@@ -27,10 +27,10 @@ void Copter::SurfaceTracking::update_surface_offset()
         // or glitch has cleared
         if (timeout ||
             reset_target ||
-            (last_glitch_cleared_ms != rf_state.glitch_cleared_ms)) {
-            copter.pos_control->set_pos_offset_z_cm(rf_state.terrain_offset_cm);
+            (last_glitch_cleared_ms != rf_state.get_glitch_cleared_ms())) {
+            copter.pos_control->set_pos_offset_z_cm(rf_state.get_terrain_offset_cm());
             reset_target = false;
-            last_glitch_cleared_ms = rf_state.glitch_cleared_ms;
+            last_glitch_cleared_ms = rf_state.get_glitch_cleared_ms();
         }
 
     } else {
@@ -89,7 +89,7 @@ bool Copter::SurfaceTracking::get_target_dist_for_logging(float &target_dist) co
 
 float Copter::SurfaceTracking::get_dist_for_logging() const
 {
-    return ((surface == Surface::CEILING) ? copter.rangefinder_up_state.alt_cm : copter.rangefinder_state.alt_cm) * 0.01f;
+    return ((surface == Surface::CEILING) ? copter.rangefinder_up_state.get_alt_cm() : copter.rangefinder_state.get_alt_cm()) * 0.01f;
 }
 
 // set direction

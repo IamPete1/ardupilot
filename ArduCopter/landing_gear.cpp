@@ -28,7 +28,7 @@ void Copter::landinggear_update()
     case RangeFinder::Status::OutOfRangeHigh:
     case RangeFinder::Status::Good:
         // use last good reading
-        height_cm = rangefinder_state.alt_cm_filt.get();
+        height_cm = rangefinder_state.get_alt_cm_filt();
         break;
     }
 

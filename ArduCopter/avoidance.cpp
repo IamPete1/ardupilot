@@ -5,7 +5,7 @@ void Copter::low_alt_avoidance()
 {
 #if AC_AVOID_ENABLED == ENABLED
     int32_t alt_cm;
-    if (!get_rangefinder_height_interpolated_cm(alt_cm)) {
+    if (!rangefinder_state.get_height_interpolated_cm(alt_cm)) {
         // enable avoidance if we don't have a valid rangefinder reading
         avoid.proximity_alt_avoidance_enable(true);
         return;

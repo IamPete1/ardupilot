@@ -452,10 +452,10 @@ bool ModeZigZag::calculate_next_dest(Destination ab_dest, bool use_wpnav_alt, Ve
         next_dest.z = wp_nav->get_wp_destination().z;
     } else {
         // if we have a downward facing range finder then use terrain altitude targets
-        terrain_alt = copter.rangefinder_alt_ok() && wp_nav->rangefinder_used_and_healthy();
+        terrain_alt = copter.rangefinder_state.alt_ok() && wp_nav->rangefinder_used_and_healthy();
         if (terrain_alt) {
             if (!copter.surface_tracking.get_target_alt_cm(next_dest.z)) {
-                next_dest.z = copter.rangefinder_state.alt_cm_filt.get();
+                next_dest.z = copter.rangefinder_state.get_alt_cm_filt();
             }
         } else {
             next_dest.z = pos_control->is_active_z() ? pos_control->get_pos_target_z_cm() : inertial_nav.get_position_z_up_cm();
@@ -504,10 +504,10 @@ bool ModeZigZag::calculate_side_dest(Vector3f& next_dest, bool& terrain_alt) con
     next_dest.y = curr_pos2d.y + (AB_side.y * scalar);
 
     // if we have a downward facing range finder then use terrain altitude targets
-    terrain_alt = copter.rangefinder_alt_ok() && wp_nav->rangefinder_used_and_healthy();
+    terrain_alt = copter.rangefinder_state.alt_ok() && wp_nav->rangefinder_used_and_healthy();
     if (terrain_alt) {
         if (!copter.surface_tracking.get_target_alt_cm(next_dest.z)) {
-            next_dest.z = copter.rangefinder_state.alt_cm_filt.get();
+            next_dest.z = copter.rangefinder_state.get_alt_cm_filt();
         }
     } else {
         next_dest.z = pos_control->is_active_z() ? pos_control->get_pos_target_z_cm() : inertial_nav.get_position_z_up_cm();

@@ -440,7 +440,7 @@ void ModeRTL::compute_return_target()
 
     // set curr_alt and return_target.alt from range finder
     if (alt_type == ReturnTargetAltType::RANGEFINDER) {
-        if (copter.get_rangefinder_height_interpolated_cm(curr_alt)) {
+        if (copter.rangefinder_state.get_height_interpolated_cm(curr_alt)) {
             // set return_target.alt
             rtl_path.return_target.set_alt_cm(MAX(curr_alt + MAX(0, g.rtl_climb_min), MAX(g.rtl_altitude, RTL_ALT_MIN)), Location::AltFrame::ABOVE_TERRAIN);
         } else {
