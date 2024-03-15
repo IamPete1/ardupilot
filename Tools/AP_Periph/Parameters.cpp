@@ -298,23 +298,41 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_RANGEFINDER
-    // @Param: RNGFND_BAUDRATE
+    // @Param: RNGFND1_BAUDRATE
     // @DisplayName: Rangefinder serial baudrate
     // @Description: Rangefinder serial baudrate.
     // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,230:230400,256:256000,460:460800,500:500000,921:921600,1500:1500000
     // @Increment: 1
     // @User: Standard
     // @RebootRequired: True
-    GSCALAR(rangefinder_baud, "RNGFND_BAUDRATE", HAL_PERIPH_RANGEFINDER_BAUDRATE_DEFAULT),
+    GARRAY(rangefinder_baud, 0, "RNGFND1_BAUDRATE", HAL_PERIPH_RANGEFINDER_BAUDRATE_DEFAULT),
 
-    // @Param: RNGFND_PORT
+    // @Param: RNGFND1_PORT
     // @DisplayName: Rangefinder Serial Port
     // @Description: This is the serial port number where SERIALx_PROTOCOL will be set to Rangefinder.
     // @Range: 0 10
     // @Increment: 1
     // @User: Advanced
     // @RebootRequired: True
-    GSCALAR(rangefinder_port, "RNGFND_PORT", AP_PERIPH_RANGEFINDER_PORT_DEFAULT),
+    GARRAY(rangefinder_port, 0, "RNGFND1_PORT", AP_PERIPH_RANGEFINDER_PORT_DEFAULT),
+
+    // @Param: RNGFND2_BAUDRATE
+    // @DisplayName: Rangefinder serial baudrate
+    // @Description: Rangefinder serial baudrate.
+    // @Values: 1:1200,2:2400,4:4800,9:9600,19:19200,38:38400,57:57600,111:111100,115:115200,230:230400,256:256000,460:460800,500:500000,921:921600,1500:1500000
+    // @Increment: 1
+    // @User: Standard
+    // @RebootRequired: True
+    GARRAY(rangefinder_baud, 1, "RNGFND2_BAUDRATE", HAL_PERIPH_RANGEFINDER_BAUDRATE_DEFAULT),
+
+    // @Param: RNGFND2_PORT
+    // @DisplayName: Rangefinder Serial Port
+    // @Description: This is the serial port number where SERIALx_PROTOCOL will be set to Rangefinder.
+    // @Range: 0 10
+    // @Increment: 1
+    // @User: Advanced
+    // @RebootRequired: True
+    GARRAY(rangefinder_port, 1, "RNGFND2_PORT", -1),
 
     // @Param: RNGFND_MAX_RATE
     // @DisplayName: Rangefinder max rate

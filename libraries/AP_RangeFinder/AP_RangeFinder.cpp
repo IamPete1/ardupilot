@@ -630,6 +630,15 @@ RangeFinder::Status RangeFinder::status_orient(enum Rotation orientation) const
     return backend->status();
 }
 
+RangeFinder::Status RangeFinder::status_instance(uint8_t inst) const
+{
+    AP_RangeFinder_Backend *backend = get_backend(inst);
+    if (backend == nullptr) {
+        return Status::NotConnected;
+    }
+    return backend->status();
+}
+
 void RangeFinder::handle_msg(const mavlink_message_t &msg)
 {
     uint8_t i;
@@ -679,6 +688,16 @@ AP_RangeFinder_Backend *RangeFinder::find_instance(enum Rotation orientation) co
         }
     }
     return nullptr;
+}
+
+uint16_t RangeFinder::distance_cm_instance(uint8_t inst) const
+{
+    AP_RangeFinder_Backend *backend = get_backend(inst);
+
+    if (backend == nullptr || backend->status() != Status::Good) {
+        return 0;
+    }
+    return backend->distance();
 }
 
 float RangeFinder::distance_orient(enum Rotation orientation) const
@@ -767,9 +786,27 @@ uint32_t RangeFinder::last_reading_ms(enum Rotation orientation) const
     return backend->last_reading_ms();
 }
 
+uint32_t RangeFinder::last_reading_ms_instance(uint8_t inst) const
+{
+    AP_RangeFinder_Backend *backend = get_backend(inst);
+    if (backend == nullptr) {
+        return 0;
+    }
+    return backend->last_reading_ms();
+}
+
 MAV_DISTANCE_SENSOR RangeFinder::get_mav_distance_sensor_type_orient(enum Rotation orientation) const
 {
     AP_RangeFinder_Backend *backend = find_instance(orientation);
+    if (backend == nullptr) {
+        return MAV_DISTANCE_SENSOR_UNKNOWN;
+    }
+    return backend->get_mav_distance_sensor_type();
+}
+
+MAV_DISTANCE_SENSOR RangeFinder::get_mav_distance_sensor_type_instance(uint8_t inst) const
+{
+    AP_RangeFinder_Backend *backend = get_backend(inst);
     if (backend == nullptr) {
         return MAV_DISTANCE_SENSOR_UNKNOWN;
     }

@@ -168,7 +168,9 @@ public:
     void send_relposheading_msg();
     void can_baro_update();
     void can_airspeed_update();
+#ifdef HAL_PERIPH_ENABLE_RANGEFINDER
     void can_rangefinder_update();
+#endif
     void can_battery_update();
     void can_battery_send_cells(uint8_t instance);
     void can_proximity_update();
@@ -279,7 +281,9 @@ public:
 
 #ifdef HAL_PERIPH_ENABLE_RANGEFINDER
     RangeFinder rangefinder;
-    uint32_t last_sample_ms;
+    uint8_t rangefinder_last_sent_index;
+    uint32_t last_rangefinder_update_ms;
+    uint32_t last_rangefinder_sample_ms;
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_PROXIMITY

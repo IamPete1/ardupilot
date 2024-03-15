@@ -276,6 +276,12 @@ public:
     const Vector3f &get_pos_offset_orient(enum Rotation orientation) const;
     uint32_t last_reading_ms(enum Rotation orientation) const;
 
+    // methods to get rangefinder information by instance
+    uint16_t distance_cm_instance(uint8_t inst) const;
+    RangeFinder::Status status_instance(uint8_t inst) const;
+    uint32_t last_reading_ms_instance(uint8_t inst) const;
+    MAV_DISTANCE_SENSOR get_mav_distance_sensor_type_instance(uint8_t inst) const;
+
     // get temperature reading in C.  returns true on success and populates temp argument
     bool get_temp(enum Rotation orientation, float &temp) const;
 
