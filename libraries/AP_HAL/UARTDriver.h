@@ -102,9 +102,13 @@ public:
         FLOW_CONTROL_DISABLE=0,
         FLOW_CONTROL_ENABLE=1,
         FLOW_CONTROL_AUTO=2,
+        FLOW_CONTROL_RTS_DE=3, // RTS pin is used as a driver enable (used in RS-485)
     };
     virtual void set_flow_control(enum flow_control flow_control_setting) {};
     virtual enum flow_control get_flow_control(void) { return FLOW_CONTROL_DISABLE; }
+
+    // Return true if flow control is currently enabled
+    bool flow_control_enabled() { return flow_control_enabled(get_flow_control()); }
 
     virtual void configure_parity(uint8_t v){};
     virtual void set_stop_bits(int n){};
@@ -220,7 +224,10 @@ protected:
 
     // discard incoming data on the port
     virtual bool _discard_input(void) = 0;
-    
+
+    // Helper to check if flow control is enabled given the passed setting
+    bool flow_control_enabled(enum flow_control flow_control_setting) const;
+
 private:
     // option bits for port
     uint16_t _last_options;
