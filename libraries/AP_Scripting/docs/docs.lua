@@ -1640,6 +1640,14 @@ function MotorsMatrix:set_throttle_factor(motor_num, throttle_factor) end
 ---@param testing_order integer
 function MotorsMatrix:add_motor_raw(motor_num, roll_factor, pitch_factor, yaw_factor, testing_order) end
 
+-- Add a pure stabilization motor, this is assumed not to contribure to vehicle thrust
+---@param motor_num integer -- 0 indexed motor number
+---@param roll_factor number
+---@param pitch_factor number
+---@param yaw_factor number
+---@param testing_order integer -- 1 indexed testing order
+function MotorsMatrix:add_stabilization_motor(motor_num, roll_factor, pitch_factor, yaw_factor, testing_order) end
+
 -- desc
 ---@param expected_num_motors integer
 ---@return boolean
