@@ -39,6 +39,8 @@ public:
     // Set throttle factor from scripting
     bool                set_throttle_factor(int8_t motor_num, float throttle_factor);
 
+    // Add a pure stabilization motor
+    void                add_stabilization_motor(int8_t motor_num, float roll_fac, float pitch_fac, float yaw_fac, uint8_t testing_order);
 #endif // AP_SCRIPTING_ENABLED
 
     // set frame class (i.e. quad, hexa, heli) and type (i.e. x, plus)
@@ -125,7 +127,8 @@ protected:
     virtual void        setup_motors(motor_frame_class frame_class, motor_frame_type frame_type);
 
     // normalizes the roll, pitch and yaw factors so maximum magnitude is 0.5
-    void                normalise_rpy_factors();
+    // stabilization_motors true will normalise stabilization motors, otherwise thrust motors
+    void                normalise_rpy_factors(bool stabilization_motors = false);
 
     // call vehicle supplied thrust compensation if set
     void                thrust_compensation(void) override;
@@ -168,6 +171,19 @@ private:
     bool setup_dodecahexa_matrix(motor_frame_type frame_type);
     bool setup_y6_matrix(motor_frame_type frame_type);
     bool setup_octaquad_matrix(motor_frame_type frame_type);
+
+    // Support separate mix for thrust motors vs stabilization motors
+    bool _stabilization_motor[AP_MOTORS_MAX_NUM_MOTORS]; // true if motor should be used for stabilization only, no thrust component
+
+    // Return true if the given motor number is enabled for thrust
+    bool is_thrust_motor(uint8_t motor_num) const;
+
+    // Return true if the given motor number is enabled for pure stabilization
+    bool is_stabilization_motor(uint8_t motor_num) const;
+
+    // Mix roll pitch and yaw to pure stabilization motors
+    void mix_stabilization(const float roll_thrust, const float pitch_thrust, const float yaw_thrust);
+
 
     static AP_MotorsMatrix *_singleton;
 };
