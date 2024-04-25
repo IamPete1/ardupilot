@@ -86,6 +86,7 @@ bool AP_MotorsMatrix::init(uint8_t expected_num_motors)
     }
 
     normalise_rpy_factors();
+    normalise_rpy_factors(true);
 
     set_update_rate(_speed_hz);
 
@@ -100,13 +101,26 @@ bool AP_MotorsMatrix::set_throttle_factor(int8_t motor_num, float throttle_facto
         return false;
     }
 
-    if (initialised_ok() || !motor_enabled[motor_num]) {
+    if (initialised_ok() || !is_thrust_motor(motor_num)) {
         // Already setup or given motor is not enabled
         return false;
     }
 
     _throttle_factor[motor_num] = throttle_factor;
     return true;
+}
+
+void AP_MotorsMatrix::add_stabilization_motor(int8_t motor_num, float roll_fac, float pitch_fac, float yaw_fac, uint8_t testing_order)
+{
+    if (initialised_ok()) {
+        // do not allow motors to be set if the current frame type has init correctly
+        return;
+    }
+
+    if (motor_num >= 0 && motor_num < AP_MOTORS_MAX_NUM_MOTORS) {
+        add_motor_raw(motor_num, roll_fac, pitch_fac, yaw_fac, testing_order, 1.0);
+        _stabilization_motor[motor_num] = true;
+    }
 }
 
 #endif // AP_SCRIPTING_ENABLED
@@ -222,7 +236,7 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     const float pitch_thrust = (_pitch_in + _pitch_in_ff) * compensation_gain;
 
     // yaw thrust input value, +/- 1.0
-    float yaw_thrust = (_yaw_in + _yaw_in_ff) * compensation_gain;
+    const float yaw_thrust = (_yaw_in + _yaw_in_ff) * compensation_gain;
 
     // throttle thrust input value, 0.0 - 1.0
     float throttle_thrust = get_throttle() * compensation_gain;
@@ -275,7 +289,7 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     // this is always equal to or less than the requested yaw from the pilot or rate controller
     float yaw_allowed = 1.0f; // amount of yaw we can fit in
     for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (motor_enabled[i]) {
+        if (is_thrust_motor(i)) {
             // calculate the thrust outputs for roll and pitch
             _thrust_rpyt_out[i] = roll_thrust * _roll_factor[i] + pitch_thrust * _pitch_factor[i];
 
@@ -308,7 +322,7 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     yaw_allowed = MAX(yaw_allowed, yaw_allowed_min);
 
     // Include the lost motor scaled by _thrust_boost_ratio to smoothly transition this motor in and out of the calculation
-    if (_thrust_boost && motor_enabled[_motor_lost_index]) {
+    if (_thrust_boost && is_thrust_motor(_motor_lost_index)) {
         // Check the maximum yaw control that can be used on this channel
         // Exclude any lost motors if thrust boost is enabled
         if (!is_zero(_yaw_factor[_motor_lost_index])){
@@ -324,9 +338,10 @@ void AP_MotorsMatrix::output_armed_stabilizing()
         }
     }
 
-    if (fabsf(yaw_thrust) > yaw_allowed) {
+    float yaw = yaw_thrust;
+    if (fabsf(yaw) > yaw_allowed) {
         // not all commanded yaw can be used
-        yaw_thrust = constrain_float(yaw_thrust, -yaw_allowed, yaw_allowed);
+        yaw = constrain_float(yaw, -yaw_allowed, yaw_allowed);
         limit.yaw = true;
     }
 
@@ -334,8 +349,8 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     float rpy_low = 1.0f;   // lowest thrust value
     float rpy_high = -1.0f; // highest thrust value
     for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (motor_enabled[i]) {
-            _thrust_rpyt_out[i] = _thrust_rpyt_out[i] + yaw_thrust * _yaw_factor[i];
+        if (is_thrust_motor(i)) {
+            _thrust_rpyt_out[i] = _thrust_rpyt_out[i] + yaw * _yaw_factor[i];
 
             // record lowest roll + pitch + yaw command
             if (_thrust_rpyt_out[i] < rpy_low) {
@@ -351,7 +366,7 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     // Include the lost motor scaled by _thrust_boost_ratio to smoothly transition this motor in and out of the calculation
     if (_thrust_boost) {
         // record highest roll + pitch + yaw command
-        if (_thrust_rpyt_out[_motor_lost_index] > rpy_high && motor_enabled[_motor_lost_index]) {
+        if (_thrust_rpyt_out[_motor_lost_index] > rpy_high && is_thrust_motor(_motor_lost_index)) {
             rpy_high = boost_ratio(rpy_high, _thrust_rpyt_out[_motor_lost_index]);
         }
     }
@@ -392,7 +407,7 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     // add scaled roll, pitch, constrained yaw and throttle for each motor
     const float throttle_thrust_best_plus_adj = throttle_thrust_best_rpy + thr_adj;
     for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (motor_enabled[i]) {
+        if (is_thrust_motor(i)) {
             _thrust_rpyt_out[i] = (throttle_thrust_best_plus_adj * _throttle_factor[i]) + (rpy_scale * _thrust_rpyt_out[i]);
         }
     }
@@ -403,6 +418,9 @@ void AP_MotorsMatrix::output_armed_stabilizing()
 
     // check for failed motor
     check_for_failed_motor(throttle_thrust_best_plus_adj);
+
+    // Mix stabilization output
+    mix_stabilization(roll_thrust, pitch_thrust, yaw_thrust);
 }
 
 // check for failed motor
@@ -413,12 +431,13 @@ void AP_MotorsMatrix::output_armed_stabilizing()
 //   records filtered motor output values in _thrust_rpyt_out_filt array
 //   sets thrust_balanced to true if motors are balanced, false if a motor failure is detected
 //   sets _motor_lost_index to index of failed motor
+// Only thrust motors need to be checked, there is no need to boost thrust on stabilization motors as they do not produce vertical thrust
 void AP_MotorsMatrix::check_for_failed_motor(float throttle_thrust_best_plus_adj)
 {
     // record filtered and scaled thrust output for motor loss monitoring purposes
     float alpha = _dt / (_dt + 0.5f);
     for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (motor_enabled[i]) {
+        if (is_thrust_motor(i)) {
             _thrust_rpyt_out_filt[i] += alpha * (_thrust_rpyt_out[i] - _thrust_rpyt_out_filt[i]);
         }
     }
@@ -427,7 +446,7 @@ void AP_MotorsMatrix::check_for_failed_motor(float throttle_thrust_best_plus_adj
     float rpyt_sum = 0.0f;
     uint8_t number_motors = 0.0f;
     for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (motor_enabled[i]) {
+        if (is_thrust_motor(i)) {
             number_motors += 1;
             rpyt_sum += _thrust_rpyt_out_filt[i];
             // record highest filtered thrust command
@@ -458,6 +477,71 @@ void AP_MotorsMatrix::check_for_failed_motor(float throttle_thrust_best_plus_adj
         _thrust_boost = false;
     }
 }
+
+// Return true if the given motor number is enabled for thrust
+bool AP_MotorsMatrix::is_thrust_motor(uint8_t motor_num) const
+{
+    return motor_enabled[motor_num] && !_stabilization_motor[motor_num];
+}
+
+// Return true if the given motor number is enabled for pure stabilization
+bool AP_MotorsMatrix::is_stabilization_motor(uint8_t motor_num) const
+{
+    return motor_enabled[motor_num] && _stabilization_motor[motor_num];
+}
+
+// Mix roll pitch and yaw to pure stabilization motors
+void AP_MotorsMatrix::mix_stabilization(const float roll_thrust, const float pitch_thrust, const float yaw_thrust)
+{
+    // This mixer can be much simpler that the main mixer, there is not trade off between throttle level and RPY since these motor are assumed to produce no (or very little) vertical thrust
+    // Roll/Pitch vs yaw prioritization is also omitted
+
+    float rpy_low = 0.0;  // lowest thrust value
+    float rpy_high = 0.0; // highest thrust value
+
+    bool have_roll = false;
+    bool have_pitch = false;
+    bool have_yaw = false;
+
+    for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
+        if (is_stabilization_motor(i)) {
+            // Record what axis we have
+            have_roll  |= !is_zero(_roll_factor[i]);
+            have_pitch |= !is_zero(_pitch_factor[i]);
+            have_yaw   |= !is_zero(_yaw_factor[i]);
+
+            // calculate the thrust outputs for roll and pitch
+            _thrust_rpyt_out[i] = roll_thrust * _roll_factor[i] + pitch_thrust * _pitch_factor[i] + yaw_thrust * _yaw_factor[i];
+
+            // Record the range
+            rpy_low = MIN(rpy_low, _thrust_rpyt_out[i]);
+            rpy_high = MAX(rpy_high, _thrust_rpyt_out[i]);
+        }
+    }
+
+    // calculate any scaling needed to make the combined outputs fit within the output range
+    float rpy_scale = 1.0;
+    if ((rpy_high - rpy_low) > 1.0) {
+        rpy_scale = 1.0 / (rpy_high - rpy_low);
+    }
+
+    // Offset such that minumum output is 0 and apply scale factor
+    for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
+        if (is_stabilization_motor(i)) {
+            _thrust_rpyt_out[i] -= rpy_low;
+            _thrust_rpyt_out[i] *= rpy_scale;
+        }
+    }
+
+    // If outputs had to be scaled back set limit flags
+    if (rpy_scale < 1.0) {
+        limit.roll |= have_roll;
+        limit.pitch |= have_pitch;
+        limit.yaw |= have_yaw;
+    }
+
+}
+
 
 // output_test_seq - spin a motor at the pwm value specified
 //  motor_seq is the motor's sequence number from 1 to the number of motors on the frame
@@ -550,6 +634,7 @@ void AP_MotorsMatrix::remove_motor(int8_t motor_num)
     if (motor_num >= 0 && motor_num < AP_MOTORS_MAX_NUM_MOTORS) {
         // disable the motor, set all factors to zero
         motor_enabled[motor_num] = false;
+        _stabilization_motor[motor_num] = false;
         _roll_factor[motor_num] = 0.0f;
         _pitch_factor[motor_num] = 0.0f;
         _yaw_factor[motor_num] = 0.0f;
@@ -1304,7 +1389,7 @@ void AP_MotorsMatrix::setup_motors(motor_frame_class frame_class, motor_frame_ty
 
 // normalizes the roll, pitch and yaw factors so maximum magnitude is 0.5
 // normalizes throttle factors so max value is 1 and no value is less than 0
-void AP_MotorsMatrix::normalise_rpy_factors()
+void AP_MotorsMatrix::normalise_rpy_factors(bool stabilization_motors)
 {
     float roll_fac = 0.0f;
     float pitch_fac = 0.0f;
@@ -1313,7 +1398,7 @@ void AP_MotorsMatrix::normalise_rpy_factors()
 
     // find maximum roll, pitch and yaw factors
     for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (motor_enabled[i]) {
+        if (motor_enabled[i] && (_stabilization_motor[i] == stabilization_motors)) {
             roll_fac = MAX(roll_fac,fabsf(_roll_factor[i]));
             pitch_fac = MAX(pitch_fac,fabsf(_pitch_factor[i]));
             yaw_fac = MAX(yaw_fac,fabsf(_yaw_factor[i]));
@@ -1323,7 +1408,7 @@ void AP_MotorsMatrix::normalise_rpy_factors()
 
     // scale factors back to -0.5 to +0.5 for each axis
     for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (motor_enabled[i]) {
+        if (motor_enabled[i] && (_stabilization_motor[i] == stabilization_motors)) {
             if (!is_zero(roll_fac)) {
                 _roll_factor[i] = 0.5f * _roll_factor[i] / roll_fac;
             }
