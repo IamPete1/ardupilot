@@ -22,6 +22,9 @@
 
 #define ADSB_CHAN_TIMEOUT_MS            15000
 
+#if !HAL_GCS_ENABLED
+    #error "AP_ADSB_uAvionix_MAVLink requires HAL_GCS_ENABLED"
+#endif
 
 extern const AP_HAL::HAL& hal;
 
