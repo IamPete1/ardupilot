@@ -91,6 +91,7 @@ const AP_Param::GroupInfo AP_ADSB::var_info[] = {
     // @Units: m
     AP_GROUPINFO("LIST_RADIUS",   3, AP_ADSB, in_state.list_radius, ADSB_LIST_RADIUS_DEFAULT),
 
+#ifndef HAL_BUILD_AP_PERIPH
     // @Param: ICAO_ID
     // @DisplayName: ICAO_ID vehicle identification number
     // @Description: ICAO_ID unique vehicle identification number of this aircraft. This is an integer limited to 24bits. If set to 0 then one will be randomly generated. If set to -1 then static information is not sent, transceiver is assumed pre-programmed.
@@ -147,6 +148,7 @@ const AP_Param::GroupInfo AP_ADSB::var_info[] = {
     // @Bitmask: 0:UAT_in,1:1090ES_in,2:UAT_out,3:1090ES_out
     // @User: Advanced
     AP_GROUPINFO("RF_CAPABLE",  11, AP_ADSB, out_state.cfg.rf_capable, 0),
+#endif // HAL_BUILD_AP_PERIPH
 
     // @Param: LIST_ALT
     // @DisplayName: ADSB vehicle list altitude filter
