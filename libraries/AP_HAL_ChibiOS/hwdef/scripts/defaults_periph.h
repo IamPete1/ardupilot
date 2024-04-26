@@ -367,8 +367,18 @@
 #define HAL_BOARD_TERRAIN_DIRECTORY "/APM/TERRAIN"
 #endif
 
+// Full ADSB lib, HAL_PERIPH_ENABLE_ADSB is forwarding of MAVLink over DroneCAN
+#ifndef HAL_ADSB_ENABLED
+#define HAL_ADSB_ENABLED 0
+#endif
+
+// Turn off all backends, must be enabled per board
+#ifndef HAL_ADSB_ENABLED
+#define HAL_ADSB_BACKEND_DEFAULT_ENABLED 0
+#endif
+
 #ifndef HAL_MAVLINK_BINDINGS_ENABLED
-#define HAL_MAVLINK_BINDINGS_ENABLED defined(HAL_PERIPH_ENABLE_ADSB) || HAL_GCS_ENABLED
+#define HAL_MAVLINK_BINDINGS_ENABLED HAL_ADSB_ENABLED || defined(HAL_PERIPH_ENABLE_ADSB) || HAL_GCS_ENABLED
 #endif
 
 // for boards other than AP_Periph we are always expecting delays when
