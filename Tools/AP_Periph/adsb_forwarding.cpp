@@ -30,7 +30,7 @@ extern const AP_HAL::HAL &hal;
 /*
   init ADSB support
  */
-void AP_Periph_FW::adsb_init(void)
+void AP_Periph_FW::adsb_forwarding_init(void)
 {
     if (g.adsb_baudrate > 0) {
         auto *uart = hal.serial(g.adsb_port);
@@ -44,7 +44,7 @@ void AP_Periph_FW::adsb_init(void)
 /*
   update ADSB subsystem
  */
-void AP_Periph_FW::adsb_update(void)
+void AP_Periph_FW::adsb_forwarding_update(void)
 {
     if (g.adsb_baudrate <= 0) {
         return;
@@ -61,12 +61,12 @@ void AP_Periph_FW::adsb_update(void)
         const uint8_t c = (uint8_t)uart->read();
 
         // Try to get a new message
-        if (mavlink_frame_char_buffer(&adsb.msg, &adsb.status, c, &adsb.msg, &adsb.status) == MAVLINK_FRAMING_OK) {
-            if (adsb.msg.msgid == MAVLINK_MSG_ID_ADSB_VEHICLE) {
+        if (mavlink_frame_char_buffer(&adsb_forwarding.msg, &adsb_forwarding.status, c, &adsb_forwarding.msg, &adsb_forwarding.status) == MAVLINK_FRAMING_OK) {
+            if (adsb_forwarding.msg.msgid == MAVLINK_MSG_ID_ADSB_VEHICLE) {
                 // decode and send as UAVCAN TrafficReport
                 static mavlink_adsb_vehicle_t msg;
-                mavlink_msg_adsb_vehicle_decode(&adsb.msg, &msg);
-                can_send_ADSB(msg);
+                mavlink_msg_adsb_vehicle_decode(&adsb_forwarding.msg, &msg);
+                can_forward_ADSB(msg);
             }
         }
     }
@@ -75,15 +75,15 @@ void AP_Periph_FW::adsb_update(void)
       some ADSB devices need a heartbeat to get the system ID
      */
     const uint32_t now_ms = AP_HAL::millis();
-    if (now_ms - adsb.last_heartbeat_ms >= 1000) {
-        adsb.last_heartbeat_ms = now_ms;
+    if (now_ms - adsb_forwarding.last_heartbeat_ms >= 1000) {
+        adsb_forwarding.last_heartbeat_ms = now_ms;
         mavlink_heartbeat_t heartbeat {};
         mavlink_message_t msg;
         heartbeat.type = MAV_TYPE_GENERIC;
         heartbeat.autopilot = MAV_AUTOPILOT_ARDUPILOTMEGA;
         auto len = mavlink_msg_heartbeat_encode_status(1,
                                                        MAV_COMP_ID_PERIPHERAL,
-                                                       &adsb.status,
+                                                       &adsb_forwarding.status,
                                                        &msg, &heartbeat);
 
         uart->write((uint8_t*)&msg.magic, len);
@@ -93,7 +93,7 @@ void AP_Periph_FW::adsb_update(void)
 /*
   map an ADSB_VEHICLE MAVLink message to a UAVCAN TrafficReport message
  */
-void AP_Periph_FW::can_send_ADSB(struct __mavlink_adsb_vehicle_t &msg)
+void AP_Periph_FW::can_forward_ADSB(struct __mavlink_adsb_vehicle_t &msg)
 {
     ardupilot_equipment_trafficmonitor_TrafficReport pkt {};
     pkt.timestamp.usec = 0;

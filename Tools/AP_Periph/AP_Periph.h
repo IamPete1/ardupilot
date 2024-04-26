@@ -275,14 +275,14 @@ public:
 #endif
     
 #ifdef HAL_PERIPH_ENABLE_ADSB
-    void adsb_init();
-    void adsb_update();
-    void can_send_ADSB(struct __mavlink_adsb_vehicle_t &msg);
+    void adsb_forwarding_init();
+    void adsb_forwarding_update();
+    void can_forward_ADSB(struct __mavlink_adsb_vehicle_t &msg);
     struct {
         mavlink_message_t msg;
         mavlink_status_t status;
         uint32_t last_heartbeat_ms;
-    } adsb;
+    } adsb_forwarding;
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_AIRSPEED

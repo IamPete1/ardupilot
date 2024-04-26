@@ -189,7 +189,7 @@ void AP_Periph_FW::init()
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_ADSB
-    adsb_init();
+    adsb_forwarding_init();
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_EFI
@@ -534,7 +534,7 @@ void AP_Periph_FW::update()
     update_rainbow();
 #endif
 #ifdef HAL_PERIPH_ENABLE_ADSB
-    adsb_update();
+    adsb_forwarding_update();
 #endif
 }
 
