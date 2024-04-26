@@ -70,7 +70,9 @@ public:
     void update(void);
 
     // send ADSB_VEHICLE mavlink message, usually as a StreamRate
+#if HAL_GCS_ENABLED
     void send_adsb_vehicle(mavlink_channel_t chan);
+#endif
 
     bool set_stall_speed_cm(const uint16_t stall_speed_cm) {
         if (out_state.cfg.was_set_externally) {
@@ -107,16 +109,19 @@ public:
     // handle a adsb_vehicle_t from an external source
     void handle_adsb_vehicle(const adsb_vehicle_t &vehicle);
 
+#if HAL_GCS_ENABLED
     // mavlink message handler
     void handle_message(const mavlink_channel_t chan, const mavlink_message_t &msg);
 
     void send_adsb_out_status(const mavlink_channel_t chan) const;
+#endif
 
     // confirm a value is a valid callsign
     static bool is_valid_callsign(uint16_t octal) WARN_IF_UNUSED;
 
     // Trigger a Mode 3/A transponder IDENT. This should only be done when requested to do so by an Air Traffic Controller.
     // See wikipedia for IDENT explanation https://en.wikipedia.org/wiki/Transponder_(aeronautics)
+#if HAL_GCS_ENABLED
     bool ident_start() {
         if (!healthy() || ((out_state.cfg.rfSelect & UAVIONIX_ADSB_OUT_RF_SELECT_TX_ENABLED) == 0)) {
             return false;
@@ -124,6 +129,7 @@ public:
         out_state.ctrl.identActive = true;
         return true;
     }
+#endif
 
     // extract a location out of a vehicle item
     Location get_location(const adsb_vehicle_t &vehicle) const;
@@ -245,6 +251,7 @@ private:
     // set callsign: 8char string (plus null termination) then optionally append last 4 digits of icao
     void set_callsign(const char* str, const bool append_icao);
 
+#if HAL_GCS_ENABLED
     // configure ADSB-out transceivers
     void handle_out_cfg(const mavlink_uavionix_adsb_out_cfg_t &packet);
 
@@ -253,6 +260,7 @@ private:
 
     // mavlink handler
     void handle_transceiver_report(const mavlink_channel_t chan, const mavlink_uavionix_adsb_transceiver_health_report_t &packet);
+#endif
 
     void detect_instance(uint8_t instance);
 
@@ -283,9 +291,11 @@ private:
     struct {
         uint32_t    last_config_ms; // send once every 10s
         uint32_t    last_report_ms; // send at 5Hz
+#if HAL_GCS_ENABLED
         int8_t      chan = -1; // channel that contains an ADS-b Transceiver. -1 means transceiver is not detected
         uint32_t    chan_last_ms;
         UAVIONIX_ADSB_RF_HEALTH status;     // transceiver status
+#endif
         bool        is_flying;
         bool        is_in_auto_mode;
 
@@ -339,6 +349,7 @@ private:
     void push_sample(const adsb_vehicle_t &vehicle);
 
     // logging
+#if HAL_LOGGING_ENABLED
     void write_log(const adsb_vehicle_t &vehicle) const;
     enum class Logging {
         NONE            = 0,
@@ -346,6 +357,7 @@ private:
         ALL             = 2
     };
     AP_Enum<Logging> _log;
+#endif
 
     // reference to backend
     AP_ADSB_Backend *_backend[ADSB_MAX_INSTANCES];

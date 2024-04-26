@@ -162,12 +162,14 @@ const AP_Param::GroupInfo AP_ADSB::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO("ICAO_SPECL",  13, AP_ADSB, _special_ICAO_target, 0),
 
+#if HAL_LOGGING_ENABLED
     // @Param: LOG
     // @DisplayName: ADS-B logging
     // @Description: 0: no logging, 1: log only special ID, 2:log all
     // @Values: 0:no logging,1:log only special ID,2:log all
     // @User: Advanced
     AP_GROUPINFO("LOG",  14, AP_ADSB, _log, 1),
+#endif
 
     // @Param: OPTIONS
     // @DisplayName: ADS-B Options
@@ -617,6 +619,7 @@ void AP_ADSB::set_vehicle(const uint16_t index, const adsb_vehicle_t &vehicle)
 #endif
 }
 
+#if HAL_GCS_ENABLED
 void AP_ADSB::send_adsb_vehicle(const mavlink_channel_t chan)
 {
     if (!check_startup() || in_state.vehicle_count == 0) {
@@ -736,6 +739,7 @@ void AP_ADSB::send_adsb_out_status(const mavlink_channel_t chan) const
         }
     }
 }
+#endif // HAL_GCS_ENABLED
 
 /*
  @brief Generates pseudorandom ICAO from gps time, lat, and lon.
@@ -814,6 +818,7 @@ bool AP_ADSB::next_sample(adsb_vehicle_t &vehicle)
     return _samples.pop(vehicle);
 }
 
+#if HAL_GCS_ENABLED
 void AP_ADSB::handle_message(const mavlink_channel_t chan, const mavlink_message_t &msg)
 {
     switch (msg.msgid) {
@@ -852,6 +857,7 @@ void AP_ADSB::handle_message(const mavlink_channel_t chan, const mavlink_message
     }
 
 }
+#endif // HAL_GCS_ENABLED
 
 // If that ICAO is found in the database then return true with a fully populated vehicle
 bool AP_ADSB::get_vehicle_by_ICAO(const uint32_t icao, adsb_vehicle_t &vehicle) const
