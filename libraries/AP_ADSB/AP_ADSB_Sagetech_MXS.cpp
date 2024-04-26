@@ -312,7 +312,7 @@ void AP_ADSB_Sagetech_MXS::msg_write(const uint8_t *data, const uint16_t len) co
 void AP_ADSB_Sagetech_MXS::auto_config_operating()
 {
     // Configure the Default Operation Message Data
-    mxs_state.op.squawk = AP_ADSB::convert_base_to_decimal(8, _frontend.out_state.cfg.squawk_octal);
+    mxs_state.op.squawk = convert_base_to_decimal(8, _frontend.out_state.cfg.squawk_octal);
     mxs_state.op.opMode = sg_op_mode_t::modeOff;                                      // MXS needs to start in OFF mode to accept installation message
     mxs_state.op.savePowerUp = true;                                                  // Save power-up state in non-volatile
     mxs_state.op.enableSqt = true;                                                    // Enable extended squitters
@@ -557,7 +557,7 @@ void AP_ADSB_Sagetech_MXS::send_operating_msg()
         mxs_state.op.opMode = modeOff;
     }
 
-    mxs_state.op.squawk = AP_ADSB::convert_base_to_decimal(8, last.operating_squawk);
+    mxs_state.op.squawk = convert_base_to_decimal(8, last.operating_squawk);
     mxs_state.op.emergcType = (sg_emergc_t) _frontend.out_state.ctrl.emergencyState;
 
     const auto &my_loc = _frontend._my_loc;

@@ -58,19 +58,86 @@ public:
         return _singleton;
     }
 
-    // ADSB driver types
-    enum class Type {
-        None                = 0,
-        uAvionix_MAVLink    = 1,
-        Sagetech            = 2,
-        uAvionix_UCP        = 3,
-        Sagetech_MXS        = 4,
-    };
-
     struct adsb_vehicle_t {
         mavlink_adsb_vehicle_t info; // the whole mavlink struct with all the juicy details. sizeof() == 38
         uint32_t last_update_ms; // last time this was refreshed, allows timeouts
     };
+
+    // for holding parameters
+    static const struct AP_Param::GroupInfo var_info[];
+
+    // periodic task that maintains vehicle_list
+    void update(void);
+
+    // send ADSB_VEHICLE mavlink message, usually as a StreamRate
+    void send_adsb_vehicle(mavlink_channel_t chan);
+
+    bool set_stall_speed_cm(const uint16_t stall_speed_cm) {
+        if (out_state.cfg.was_set_externally) {
+            return false;
+        }
+        out_state.cfg.stall_speed_cm = stall_speed_cm;
+        return true;
+    }
+
+    bool set_max_speed(int16_t max_speed) {
+        if (out_state.cfg.was_set_externally) {
+            return false;
+        }
+        // convert m/s to knots
+        out_state.cfg.maxAircraftSpeed_knots = (float)max_speed * M_PER_SEC_TO_KNOTS;
+        return true;
+    }
+
+    void set_is_auto_mode(const bool is_in_auto_mode) { out_state.is_in_auto_mode = is_in_auto_mode; }
+    void set_is_flying(const bool is_flying) { out_state.is_flying = is_flying; }
+
+    // ADSB is considered enabled if there are any configured backends
+    bool enabled() const {
+        for (uint8_t instance=0; instance<detected_num_instances; instance++) {
+            if (_type[instance] > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    bool next_sample(adsb_vehicle_t &obstacle);
+
+    // handle a adsb_vehicle_t from an external source
+    void handle_adsb_vehicle(const adsb_vehicle_t &vehicle);
+
+    // mavlink message handler
+    void handle_message(const mavlink_channel_t chan, const mavlink_message_t &msg);
+
+    void send_adsb_out_status(const mavlink_channel_t chan) const;
+
+    // confirm a value is a valid callsign
+    static bool is_valid_callsign(uint16_t octal) WARN_IF_UNUSED;
+
+    // Trigger a Mode 3/A transponder IDENT. This should only be done when requested to do so by an Air Traffic Controller.
+    // See wikipedia for IDENT explanation https://en.wikipedia.org/wiki/Transponder_(aeronautics)
+    bool ident_start() {
+        if (!healthy() || ((out_state.cfg.rfSelect & UAVIONIX_ADSB_OUT_RF_SELECT_TX_ENABLED) == 0)) {
+            return false;
+        }
+        out_state.ctrl.identActive = true;
+        return true;
+    }
+
+    // extract a location out of a vehicle item
+    Location get_location(const adsb_vehicle_t &vehicle) const;
+
+    bool init_failed() const {
+        return _init_failed;
+    }
+
+    bool healthy() {
+        return check_startup();
+    }
+
+private:
+    static AP_ADSB *_singleton;
 
     // enum for adsb optional features
     enum class AdsbOption {
@@ -80,11 +147,14 @@ public:
         SagteTech_MXS_External_Config   = (1<<3),
     };
 
-    // for holding parameters
-    static const struct AP_Param::GroupInfo var_info[];
-
-    // periodic task that maintains vehicle_list
-    void update(void);
+    // ADSB driver types
+    enum class Type {
+        None                = 0,
+        uAvionix_MAVLink    = 1,
+        Sagetech            = 2,
+        uAvionix_UCP        = 3,
+        Sagetech_MXS        = 4,
+    };
 
     // a structure holding *this vehicle's* position-related information:
     enum class AltType {
@@ -143,60 +213,6 @@ public:
     // periodic task that maintains vehicle_list
     void update(const Loc &loc);
 
-    // send ADSB_VEHICLE mavlink message, usually as a StreamRate
-    void send_adsb_vehicle(mavlink_channel_t chan);
-
-    bool set_stall_speed_cm(const uint16_t stall_speed_cm) {
-        if (out_state.cfg.was_set_externally) {
-            return false;
-        }
-        out_state.cfg.stall_speed_cm = stall_speed_cm;
-        return true;
-    }
-
-    bool set_max_speed(int16_t max_speed) {
-        if (out_state.cfg.was_set_externally) {
-            return false;
-        }
-        // convert m/s to knots
-        out_state.cfg.maxAircraftSpeed_knots = (float)max_speed * M_PER_SEC_TO_KNOTS;
-        return true;
-    }
-
-    void set_is_auto_mode(const bool is_in_auto_mode) { out_state.is_in_auto_mode = is_in_auto_mode; }
-    void set_is_flying(const bool is_flying) { out_state.is_flying = is_flying; }
-
-    // extract a location out of a vehicle item
-    Location get_location(const adsb_vehicle_t &vehicle) const;
-
-    // ADSB is considered enabled if there are any configured backends
-    bool enabled() const {
-        for (uint8_t instance=0; instance<detected_num_instances; instance++) {
-            if (_type[instance] > 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    bool init_failed() const {
-        return _init_failed;
-    }
-
-    bool healthy() {
-        return check_startup();
-    }
-
-    bool next_sample(adsb_vehicle_t &obstacle);
-
-    // handle a adsb_vehicle_t from an external source
-    void handle_adsb_vehicle(const adsb_vehicle_t &vehicle);
-
-    // mavlink message handler
-    void handle_message(const mavlink_channel_t chan, const mavlink_message_t &msg);
-
-    void send_adsb_out_status(const mavlink_channel_t chan) const;
-
     // when true, a vehicle with that ICAO was found in database and the vehicle is populated.
     bool get_vehicle_by_ICAO(const uint32_t icao, adsb_vehicle_t &vehicle) const;
 
@@ -204,28 +220,7 @@ public:
     void set_special_ICAO_target(const uint32_t new_icao_target) { _special_ICAO_target.set((int32_t)new_icao_target); };
     bool is_special_vehicle(uint32_t icao) const { return _special_ICAO_target != 0 && (_special_ICAO_target == (int32_t)icao); }
 
-    // confirm a value is a valid callsign
-    static bool is_valid_callsign(uint16_t octal) WARN_IF_UNUSED;
-
-    // Convert base 8 or 16 to decimal. Used to convert an octal/hexadecimal value
-    // stored on a GCS as a string field in different format, but then transmitted
-    // over mavlink as a float which is always a decimal.
-    static uint32_t convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber);
-
-    // Trigger a Mode 3/A transponder IDENT. This should only be done when requested to do so by an Air Traffic Controller.
-    // See wikipedia for IDENT explanation https://en.wikipedia.org/wiki/Transponder_(aeronautics)
-    bool ident_start() {
-        if (!healthy() || ((out_state.cfg.rfSelect & UAVIONIX_ADSB_OUT_RF_SELECT_TX_ENABLED) == 0)) {
-            return false;
-        }
-        out_state.ctrl.identActive = true;
-        return true;
-    }
-
     AP_ADSB::Type get_type(uint8_t instance) const;
-
-private:
-    static AP_ADSB *_singleton;
 
     // initialize vehicle_list
     void init();

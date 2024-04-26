@@ -394,9 +394,9 @@ void AP_ADSB_Sagetech::send_msg_Installation()
     // Mode C = 3, Mode S = 0
     pkt.id = (transponder_type == Transponder_Type::Mode_C) ? 3 : 0;
 
-//    // convert a decimal 123456 to 0x123456
+    // convert a decimal 123456 to 0x123456
     // TODO: do a proper conversion. The param contains "131313" but what gets transmitted over the air is 0x200F1.
-    const uint32_t icao_hex = AP_ADSB::convert_base_to_decimal(16, _frontend.out_state.cfg.ICAO_id_param);
+    const uint32_t icao_hex = convert_base_to_decimal(16, _frontend.out_state.cfg.ICAO_id_param);
     put_le24_ptr(&pkt.payload[0], icao_hex);
 
     memcpy(&pkt.payload[3], &_frontend.out_state.cfg.callsign, 8);
@@ -451,7 +451,7 @@ void AP_ADSB_Sagetech::send_msg_Operating()
     // squawk
     // param is saved as native octal so we need convert back to
     // decimal because Sagetech will convert it back to octal
-    const uint16_t squawk = AP_ADSB::convert_base_to_decimal(8, last_operating_squawk);
+    const uint16_t squawk = convert_base_to_decimal(8, last_operating_squawk);
     put_le16_ptr(&pkt.payload[0], squawk);
 
     // altitude

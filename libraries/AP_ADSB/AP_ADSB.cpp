@@ -907,29 +907,6 @@ void AP_ADSB::write_log(const adsb_vehicle_t &vehicle) const
 }
 #endif // HAL_LOGGING_ENABLED
 
-/**
-* @brief Convert base 8 or 16 to decimal. Used to convert an octal/hexadecimal value stored on a GCS as a string field in different format, but then transmitted over mavlink as a float which is always a decimal.
-* baseIn: base of input number
-* inputNumber: value currently in base "baseIn" to be converted to base "baseOut"
-*
-* Example: convert ADSB squawk octal "1200" stored in memory as 0x0280 to 0x04B0
-*          uint16_t squawk_decimal = convertMathBase(8, squawk_octal);
-*/
-uint32_t AP_ADSB::convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber)
-{
-    // Our only sensible input bases are 16 and 8
-    if (baseIn != 8 && baseIn != 16) {
-        return inputNumber;
-    }
-    uint32_t outputNumber = 0;
-    for (uint8_t i=0; i < 10; i++) {
-        outputNumber += (inputNumber % 10) * powf(baseIn, i);
-        inputNumber /= 10;
-        if (inputNumber == 0) break;
-    }
-    return outputNumber;
-}
-
 // methods for embedded class Location
 bool AP_ADSB::Loc::speed_accuracy(float &sacc) const
 {

@@ -36,6 +36,11 @@ public:
 
 protected:
 
+    // Convert base 8 or 16 to decimal. Used to convert an octal/hexadecimal value
+    // stored on a GCS as a string field in different format, but then transmitted
+    // over mavlink as a float which is always a decimal.
+    uint32_t convert_base_to_decimal(const uint8_t baseIn, uint32_t inputNumber);
+
     uint8_t _instance;
 
     AP_HAL::UARTDriver *_port;
