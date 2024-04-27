@@ -621,6 +621,24 @@ void AP_ADSB::set_vehicle(const uint16_t index, const adsb_vehicle_t &vehicle)
 #endif
 }
 
+// Get a vehicle from the list
+bool AP_ADSB::get_vehicle(const uint16_t index, adsb_vehicle_t &vehicle) const
+{
+    if (init_failed() || in_state.vehicle_count == 0) {
+        // No vehicles
+        return false;
+    }
+
+    if (index >= in_state.vehicle_count) {
+        // Invalid index
+        return false;
+    }
+
+    // Copy vehicle
+    memcpy(&vehicle, &in_state.vehicle_list[index], sizeof(adsb_vehicle_t));
+    return true;
+}
+
 #if HAL_GCS_ENABLED
 void AP_ADSB::send_adsb_vehicle(const mavlink_channel_t chan)
 {

@@ -142,6 +142,12 @@ public:
         return check_startup();
     }
 
+    // Get vehicle at index from list
+    bool get_vehicle(const uint16_t index, adsb_vehicle_t &vehicle) const;
+
+    // Return the number of vehicles currently in the list
+    uint16_t get_vehicle_count() const { return in_state.vehicle_count; }
+
 private:
     static AP_ADSB *_singleton;
 
