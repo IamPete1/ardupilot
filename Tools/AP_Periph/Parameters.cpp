@@ -355,7 +355,7 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     GOBJECT(rangefinder, "RNGFND", RangeFinder),
 #endif
 
-#ifdef HAL_PERIPH_ENABLE_ADSB
+#if defined(HAL_PERIPH_ENABLE_ADSB) || HAL_ADSB_ENABLED
     // @Param: ADSB_BAUDRATE
     // @DisplayName: ADSB serial baudrate
     // @Description: ADSB serial baudrate.
@@ -696,11 +696,22 @@ const AP_Param::Info AP_Periph_FW::var_info[] = {
     // @Param: RPM_MSG_RATE
     // @DisplayName: RPM sensor message rate
     // @Description: This is the rate RPM sensor data is sent in Hz. Zero means no send. Each sensor with a set ID is sent in turn.
+    GSCALAR(rpm_msg_rate, "RPM_MSG_RATE", 0),
+#endif
+
+#if HAL_ADSB_ENABLED
+    // @Group: ADSB
+    // @Path: ../libraries/AP_ADSB/AP_ADSB.cpp
+    GOBJECT(adsb_lib, "ADSB_", AP_ADSB),
+
+    // @Param: ADSB_MSG_RATE
+    // @DisplayName: ADSB message rate
+    // @Description: This is rate at which the ADSB vehicles from internal list are sent. For example with ADSB_LIST_MAX of 25 a 5Hz update rate would send every vehicle in the list once every 5 seconds (if the list was full). Fewer vehicles in the list will result in faster updates per vehicle. Due to the structure of the list it is posible that vehicles can be missed when other vehicles are added or removed, it is unliekly that this will happen repeatedly.
     // @Units: Hz
     // @Range: 0 200
     // @Increment: 1
     // @User: Standard
-    GSCALAR(rpm_msg_rate, "RPM_MSG_RATE", 0),
+    GSCALAR(adsb_msg_rate, "ADSB_MSG_RATE", 5),
 #endif
 
     AP_VAREND

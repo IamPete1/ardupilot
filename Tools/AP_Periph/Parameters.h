@@ -95,6 +95,8 @@ public:
         k_param_rangefinder_port1,
         k_param_options,
         k_param_rpm_msg_rate,
+        k_param_adsb_lib,
+        k_param_adsb_msg_rate,
     };
 
     AP_Int16 format_version;
@@ -135,9 +137,12 @@ public:
 #endif
 
 
-#ifdef HAL_PERIPH_ENABLE_ADSB
+#if defined(HAL_PERIPH_ENABLE_ADSB) || HAL_ADSB_ENABLED
     AP_Int32 adsb_baudrate;
     AP_Int8 adsb_port;
+#endif
+#if HAL_ADSB_ENABLED
+    AP_Int8 adsb_msg_rate;
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_PWM_HARDPOINT

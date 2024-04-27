@@ -112,6 +112,13 @@
 #undef HAL_PERIPH_LISTEN_FOR_SERIAL_UART_REBOOT_CMD_PORT
 #endif
 
+#if defined(HAL_PERIPH_ENABLE_ADSB) && HAL_ADSB_ENABLED
+    #error "You cannot use HAL_PERIPH_ENABLE_ADSB and HAL_ADSB_ENABLED at the same time."
+#endif
+#if HAL_ADSB_ENABLED
+    #include <AP_ADSB/AP_ADSB.h>
+#endif
+
 #include "Parameters.h"
 
 #if CONFIG_HAL_BOARD == HAL_BOARD_SITL
@@ -273,7 +280,8 @@ public:
     void send_msp_baro(void);
     void send_msp_airspeed(void);
 #endif
-    
+
+// Forward any MAVLink ADSB vehicles over CAN
 #ifdef HAL_PERIPH_ENABLE_ADSB
     void adsb_forwarding_init();
     void adsb_forwarding_update();
@@ -283,6 +291,21 @@ public:
         mavlink_status_t status;
         uint32_t last_heartbeat_ms;
     } adsb_forwarding;
+#endif
+
+// Full ADSB library
+#ifdef HAL_ADSB_ENABLED
+    void adsb_init();
+    void adsb_update();
+    void can_adsb_update();
+    void can_send_adsb_vehicle(const AP_ADSB::adsb_vehicle_t& vehicle);
+    struct {
+        uint32_t last_update_ms;
+        uint32_t last_send_ms;
+        uint16_t last_sent_index;
+        bool init_success;
+    } adsb;
+    AP_ADSB adsb_lib;
 #endif
 
 #ifdef HAL_PERIPH_ENABLE_AIRSPEED

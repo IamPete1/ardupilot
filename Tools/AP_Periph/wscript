@@ -81,7 +81,9 @@ def build(bld):
                      'AP_RobotisServo',
                      'AP_FETtecOneWire',
                      'GCS_MAVLink',
-                     'AP_Relay'
+                     'AP_Relay',
+                     'AP_ADSB',
+                     'AP_ADSB/sagetech-sdk',
                      ]
 
     bld.ap_stlib(

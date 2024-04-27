@@ -192,6 +192,10 @@ void AP_Periph_FW::init()
     adsb_forwarding_init();
 #endif
 
+#if HAL_ADSB_ENABLED
+    adsb_init();
+#endif
+
 #ifdef HAL_PERIPH_ENABLE_EFI
     if (efi.enabled() && g.efi_port >= 0) {
         auto *uart = hal.serial(g.efi_port);
@@ -535,6 +539,9 @@ void AP_Periph_FW::update()
 #endif
 #ifdef HAL_PERIPH_ENABLE_ADSB
     adsb_forwarding_update();
+#endif
+#if HAL_ADSB_ENABLED
+    adsb_update();
 #endif
 }
 
