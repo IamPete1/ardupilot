@@ -279,6 +279,7 @@ protected:
     // Getters for cumulative tx and rx counts
     uint32_t get_total_tx_bytes() const override { return _tx_stats_bytes; }
     uint32_t get_total_rx_bytes() const override { return _rx_stats_bytes; }
+    bool seen_transmission_end;
 #endif
 };
 

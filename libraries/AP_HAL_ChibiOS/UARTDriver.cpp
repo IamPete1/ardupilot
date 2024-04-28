@@ -126,6 +126,10 @@ void UARTDriver::uart_thread()
 
     while (true) {
         eventmask_t mask = chEvtWaitAnyTimeout(EVT_TRANSMIT_DATA_READY | EVT_TRANSMIT_END | EVT_TRANSMIT_UNBUFFERED, chTimeMS2I(1));
+#if HAL_UART_STATS_ENABLED
+        seen_transmission_end |= (mask & EVT_TRANSMIT_END) != 0;
+#endif
+
         uint32_t now = AP_HAL::micros();
         bool need_tick = false;
         if (now - last_thread_run_us >= 1000) {
@@ -1706,13 +1710,14 @@ void UARTDriver::uart_info(ExpandingString &str, StatsTracker &stats, const uint
     } else {
         str.printf("UART%u ", unsigned(sdef.instance));
     }
-    str.printf("TX%c=%8u RX%c=%8u TXBD=%6u RXBD=%6u\n",
+    str.printf("TX%c=%8u RX%c=%8u TXBD=%6u RXBD=%6u TX_end=%u\n",
                tx_dma_enabled ? '*' : ' ',
                unsigned(tx_bytes),
                rx_dma_enabled ? '*' : ' ',
                unsigned(rx_bytes),
                unsigned((tx_bytes * 10000) / dt_ms),
-               unsigned((rx_bytes * 10000) / dt_ms));
+               unsigned((rx_bytes * 10000) / dt_ms),
+               seen_transmission_end);
 }
 #endif
 
