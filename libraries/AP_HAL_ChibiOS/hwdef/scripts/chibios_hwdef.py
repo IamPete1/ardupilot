@@ -186,11 +186,6 @@ class ChibiOSHWDef(object):
                     return 0
             return None
 
-        if function and function.endswith("_RTS") and (
-                function.startswith('USART') or function.startswith('UART')):
-            # we do software RTS
-            return None
-
         for label in self.af_labels:
             if function.startswith(label):
                 s = pin + ":" + function
