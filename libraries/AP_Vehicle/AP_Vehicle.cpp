@@ -768,7 +768,7 @@ void AP_Vehicle::update_throttle_notch(AP_InertialSensor::HarmonicNotch &notch)
         uint8_t motor_num = 0;
         for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
             float motor_throttle = 0;
-            if (motors->get_throttle_out(i, motor_throttle)) {
+            if (motors->get_motor_throttle_out(i, motor_throttle)) {
                 notches[motor_num] = ref_freq * sqrtf(MAX(0, motor_throttle) / ref);
                 motor_num++;
             }
