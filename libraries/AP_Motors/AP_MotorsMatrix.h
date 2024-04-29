@@ -65,9 +65,6 @@ public:
     // return number of motor that has failed.  Should only be called if get_thrust_boost() returns true
     uint8_t             get_lost_motor() const override { return _motor_lost_index; }
 
-    // return throttle out for motor motor_num, returns true if value is valid false otherwise
-    bool                get_throttle_out(uint8_t motor_num, float& thr_out) const override;
-
     // return the roll factor of any motor, this is used for tilt rotors and tail sitters
     // using copter motors for forward flight
     float               get_roll_factor(uint8_t i) override { return _roll_factor[i]; }

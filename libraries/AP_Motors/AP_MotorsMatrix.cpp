@@ -405,16 +405,6 @@ void AP_MotorsMatrix::output_armed_stabilizing()
     check_for_failed_motor(throttle_thrust_best_plus_adj);
 }
 
-// return throttle out for motor motor_num, returns true if value is valid false otherwise
-bool AP_MotorsMatrix::get_throttle_out(uint8_t motor_num, float& thr_out) const
-{
-    if (motor_num >= AP_MOTORS_MAX_NUM_MOTORS || !motor_enabled[motor_num]) {
-        return false;
-    }
-    thr_out = _thrust_rpyt_out[motor_num] / thr_lin.get_compensation_gain();
-    return true;
-}
-
 // check for failed motor
 //   should be run immediately after output_armed_stabilizing
 //   first argument is the sum of:
