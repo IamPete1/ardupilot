@@ -894,6 +894,8 @@ class sitl_periph(sitl):
             AP_CUSTOMROTATIONS_ENABLED = 0,
         )
 
+        cfg.define('HAL_ADSB_ENABLED', 0)
+
         try:
             env.CXXFLAGS.remove('-DHAL_NAVEKF2_AVAILABLE=1')
         except ValueError:
@@ -917,7 +919,6 @@ class sitl_periph_universal(sitl_periph):
             HAL_PERIPH_ENABLE_RPM = 1,
             HAL_PERIPH_ENABLE_RPM_STREAM = 1,
             HAL_PERIPH_ENABLE_RC_OUT = 1,
-            HAL_PERIPH_ENABLE_ADSB = 1,
             HAL_PERIPH_ENABLE_SERIAL_OPTIONS = 1,
             AP_AIRSPEED_ENABLED = 1,
             AP_BATTERY_ESC_ENABLED = 1,
@@ -925,6 +926,8 @@ class sitl_periph_universal(sitl_periph):
             HAL_WITH_ESC_TELEM = 1,
             AP_TERRAIN_AVAILABLE = 1,
         )
+
+        cfg.define("HAL_ADSB_ENABLED", 1)
 
 class sitl_periph_gps(sitl_periph):
     def configure_env(self, cfg, env):
