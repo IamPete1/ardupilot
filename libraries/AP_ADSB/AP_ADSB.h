@@ -169,12 +169,7 @@ private:
     };
 
     // a structure holding *this vehicle's* position-related information:
-    enum class AltType {
-        Barometric = 0,  // we use a specific model for this?
-        WGS84 = 1,
-    };
     struct Loc : Location {
-        AltType loc_alt_type;  // more information on altitude in base class
 
         AP_GPS_FixType fix_type;
         uint64_t epoch_us;  // microseconds since 1970-01-01
