@@ -2815,7 +2815,12 @@ function notify:play_tune(tune) end
 ---@field NO_GPS number
 gps = {}
 
--- desc
+-- get unix time
+---@param instance integer -- instance number
+---@return uint64_t_ud -- unix time microseconds
+function gps:time_epoch_usec(instance) end
+
+--  Returns nil or the instance number of the first GPS that has not been fully configured. If all GPS’s have been configured this returns nil.
 ---@return integer|nil
 function gps:first_unconfigured_gps() end
 
