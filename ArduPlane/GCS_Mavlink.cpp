@@ -1592,6 +1592,9 @@ uint8_t GCS_MAVLINK_Plane::send_available_mode(uint8_t index) const
 #if HAL_SOARING_ENABLED
         &plane.mode_thermal,
 #endif
+#if MODE_AUTOLAND_ENABLED
+        &plane.mode_autoland,
+#endif
     };
 
     const uint8_t fw_mode_count = ARRAY_SIZE(fw_modes);
