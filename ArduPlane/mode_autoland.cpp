@@ -93,43 +93,36 @@ bool ModeAutoLand::_enter()
       NAV_LAND. This is offset by final_wp_dist from home, in a
       direction 180 degrees from takeoff direction
      */
-    Location land_start_WP = home;
-    land_start_WP.offset_bearing(wrap_360(plane.takeoff_state.initial_direction.heading + 180), final_wp_dist);
-    land_start_WP.set_alt_m(final_wp_alt, Location::AltFrame::ABOVE_HOME);
-    land_start_WP.change_alt_frame(Location::AltFrame::ABSOLUTE);
+    land_start = home;
+    land_start.offset_bearing(plane.takeoff_state.initial_direction.heading, -final_wp_dist);
+    land_start.set_alt_m(final_wp_alt, Location::AltFrame::ABOVE_HOME);
+    land_start.change_alt_frame(Location::AltFrame::ABSOLUTE);
 
     /*
       now create the initial target waypoint for the loitering to alt centered on base leg waypoint. We
       choose if we will do a right or left turn onto the landing based
       on where we are when we enter the landing mode
      */
-    const float bearing_to_current_deg = wrap_180(degrees(land_start_WP.get_bearing(plane.current_loc)));
-    const float bearing_err_deg = wrap_180(wrap_180(plane.takeoff_state.initial_direction.heading) - bearing_to_current_deg);
-    const float bearing_offset_deg = bearing_err_deg > 0? -90 : 90;
+    const float bearing_to_current_deg = degrees(land_start.get_bearing(plane.current_loc));
+    const float bearing_err_deg = wrap_180(plane.takeoff_state.initial_direction.heading - bearing_to_current_deg);
+    const float bearing_offset_deg = (bearing_err_deg > 0) ? -90 : 90;
 
-    // make the "base leg" the smaller of the waypoint loiter radius or 1/3 of the final WP distance
-    // this results in a neat landing no matter the loiter radius
-    const float base_leg_length = MIN(final_wp_dist * 0.333, fabsf(plane.aparm.loiter_radius));
+    // Strictly this gets the lointer radius at the current altitude, really we want the loiter radius at `final_wp_alt`.
+    const float corrected_loiter_radius = plane.nav_controller->loiter_radius(fabsf(plane.loiter.radius));
 
-    cmd[0].id = MAV_CMD_NAV_LOITER_TO_ALT;
-    cmd[0].p1 = base_leg_length;
-    cmd[0].content.location = land_start_WP;
-    cmd[0].content.location.offset_bearing(plane.takeoff_state.initial_direction.heading + bearing_offset_deg, base_leg_length);
-    cmd[0].content.location.loiter_ccw = bearing_err_deg>0? 1 :0;
+    cmd_loiter.id = MAV_CMD_NAV_LOITER_TO_ALT;
+    cmd_loiter.p1 = fabsf(plane.loiter.radius);
+    cmd_loiter.content.location = land_start;
+    cmd_loiter.content.location.offset_bearing(plane.takeoff_state.initial_direction.heading + bearing_offset_deg, corrected_loiter_radius);
+    cmd_loiter.content.location.loiter_ccw = bearing_err_deg>0? 1 :0;
 
-    /*
-      create the WP for the start of the landing final approach
-     */
-    cmd[1].content.location = land_start_WP;
-    cmd[1].id = MAV_CMD_NAV_WAYPOINT;
-
-    // and the land WP at home
-    cmd[2].id = MAV_CMD_NAV_LAND;
-    cmd[2].content.location = home;
+    // land WP at home
+    cmd_land.id = MAV_CMD_NAV_LAND;
+    cmd_land.content.location = home;
 
     // start first leg toward the base leg loiter to alt point
     stage = AutoLandStage::LOITER;
-    plane.start_command(cmd[0]);
+    plane.start_command(cmd_loiter);
     return true;
 }
 
@@ -151,26 +144,18 @@ void ModeAutoLand::navigate()
     switch (stage) {
     case AutoLandStage::LOITER:
         // check if we have arrived and completed loiter at base leg waypoint
-        if (plane.verify_loiter_to_alt(cmd[0])) {
-            stage = AutoLandStage::BASE_LEG;
-            plane.start_command(cmd[1]);
-            // setup a predictable turn angle for the base leg
-            plane.auto_state.next_turn_angle = 90;
-            plane.auto_state.crosstrack = false;
-        }
-        break;
-
-    case AutoLandStage::BASE_LEG:
-        // check if we have reached the final approach waypoint
-        if (plane.verify_nav_wp(cmd[1])) {
+        if (plane.verify_loiter_to_alt(cmd_loiter)) {
             stage = AutoLandStage::LANDING;
-            plane.start_command(cmd[2]);
+            plane.start_command(cmd_land);
+            // Crosstrack from the land start location
+            plane.prev_WP_loc = land_start;
+
         }
         break;
 
     case AutoLandStage::LANDING:
         plane.set_flight_stage(AP_FixedWing::FlightStage::LAND);
-        plane.verify_command(cmd[2]);
+        plane.verify_command(cmd_land);
         // make sure we line up
         plane.auto_state.crosstrack = true;
         break;
@@ -218,7 +203,7 @@ bool ModeAutoLand::landing_lined_up(void)
 {
     // use the line between the center of the LOITER_TO_ALT on the base leg and the
     // start of the landing leg (land_start_WP)
-    return plane.mode_loiter.isHeadingLinedUp_cd(cmd[0].content.location.get_bearing(cmd[1].content.location)*100);
+    return plane.mode_loiter.isHeadingLinedUp(cmd_loiter.content.location, cmd_land.content.location);
 }
 
 // possibly capture heading on arming for autoland mode if option is set and using a compass

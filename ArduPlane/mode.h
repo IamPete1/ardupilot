@@ -954,7 +954,6 @@ public:
 
     enum class AutoLandStage {
         LOITER,
-        BASE_LEG,
         LANDING
     };
 
@@ -964,7 +963,9 @@ public:
 
 protected:
     bool _enter() override;
-    AP_Mission::Mission_Command cmd[3];
+    AP_Mission::Mission_Command cmd_loiter;
+    AP_Mission::Mission_Command cmd_land;
+    Location land_start;
     AutoLandStage stage;
     void set_autoland_direction(const float heading);
 };
