@@ -107,11 +107,15 @@ bool ModeAutoLand::_enter()
     const float bearing_err_deg = wrap_180(plane.takeoff_state.initial_direction.heading - bearing_to_current_deg);
     const float bearing_offset_deg = (bearing_err_deg > 0) ? -90 : 90;
 
-    // Strictly this gets the lointer radius at the current altitude, really we want the loiter radius at `final_wp_alt`.
-    const float corrected_loiter_radius = plane.nav_controller->loiter_radius(fabsf(plane.loiter.radius));
+    // Try and minimize loiter radius by using the smaller of the waypoint loiter radius or 1/3 of the final WP distance
+    const float loiter_radius = MIN(final_wp_dist * 0.333, fabsf(plane.aparm.loiter_radius));
+
+    // corrected_loiter_radius is the radius the vehicle will actually fly, this gets larger as altitude increases.
+    // Strictly this gets the loiter radius at the current altitude, really we want the loiter radius at final_wp_alt.
+    const float corrected_loiter_radius = plane.nav_controller->loiter_radius(loiter_radius);
 
     cmd_loiter.id = MAV_CMD_NAV_LOITER_TO_ALT;
-    cmd_loiter.p1 = fabsf(plane.loiter.radius);
+    cmd_loiter.p1 = loiter_radius;
     cmd_loiter.content.location = land_start;
     cmd_loiter.content.location.offset_bearing(plane.takeoff_state.initial_direction.heading + bearing_offset_deg, corrected_loiter_radius);
     cmd_loiter.content.location.loiter_ccw = bearing_err_deg>0? 1 :0;
