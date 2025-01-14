@@ -26,15 +26,18 @@ bool Plane::start_command(const AP_Mission::Mission_Command& cmd)
         // reset loiter start time. New command is a new loiter
         loiter.start_time_ms = 0;
 
-        AP_Mission::Mission_Command next_nav_cmd;
-        const uint16_t next_index = mission.get_current_nav_index() + 1;
-        const bool have_next_cmd = mission.get_next_nav_cmd(next_index, next_nav_cmd);
-        auto_state.wp_is_land_approach = have_next_cmd && (next_nav_cmd.id == MAV_CMD_NAV_LAND);
+        // Mission lookahead is only valid in auto
+        if (control_mode == &mode_auto) {
+            AP_Mission::Mission_Command next_nav_cmd;
+            const uint16_t next_index = mission.get_current_nav_index() + 1;
+            const bool have_next_cmd = mission.get_next_nav_cmd(next_index, next_nav_cmd);
+            auto_state.wp_is_land_approach = have_next_cmd && (next_nav_cmd.id == MAV_CMD_NAV_LAND);
 #if HAL_QUADPLANE_ENABLED
-        if (have_next_cmd && quadplane.is_vtol_land(next_nav_cmd.id)) {
-            auto_state.wp_is_land_approach = false;
-        }
+            if (have_next_cmd && quadplane.is_vtol_land(next_nav_cmd.id)) {
+                auto_state.wp_is_land_approach = false;
+            }
 #endif
+        }
     }
 
     switch(cmd.id) {
