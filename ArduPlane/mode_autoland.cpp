@@ -78,15 +78,31 @@ bool ModeAutoLand::_enter()
 
     plane.prev_WP_loc = plane.current_loc;
 
+    const Location &home = ahrs.get_home();
+
+#ifndef HAL_LANDING_DEEPSTALL_ENABLED
+    if (plane.landing.get_type() == AP_Landing::TYPE_DEEPSTALL) {
+        // Deep stall landings require only a landing location, they do there own loiter to alt and approach
+        cmd_land.id = MAV_CMD_NAV_LAND;
+        cmd_land.content.location = home;
+
+        // p1 gives the altitude from which to start the deep stall above the location alt
+        cmd_land.p1 = final_wp_alt;
+        plane.start_command(cmd_land);
+
+        stage = AutoLandStage::LANDING;
+        return true;
+    }
+#endif // HAL_LANDING_DEEPSTALL_ENABLED
+
     /*
-      landing is in 3 steps:
+      Glide slope landing is in 3 steps:
         1) a loitering to alt waypoint centered on base leg
         2) exiting and proceeeing to a final approach land start WP, with crosstrack
         3) the landing WP at home, with crosstrack
 
       the base leg point is 90 degrees off from the landing leg
      */
-    const Location &home = ahrs.get_home();
 
     /*
       first calculate the starting waypoint we will use when doing the
