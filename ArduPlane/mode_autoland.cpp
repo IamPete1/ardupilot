@@ -78,6 +78,9 @@ bool ModeAutoLand::_enter()
 
     plane.prev_WP_loc = plane.current_loc;
 
+    // In flight stage normal for approach
+    plane.set_flight_stage(AP_FixedWing::FlightStage::NORMAL);
+
     const Location &home = ahrs.get_home();
 
 #ifndef HAL_LANDING_DEEPSTALL_ENABLED
