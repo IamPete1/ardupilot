@@ -2,6 +2,7 @@
 
 #if HAL_QUADPLANE_ENABLED
 
+#include "AC_AttitudeControl/AC_AttitudeControl_Multi_6DoF.h"
 #include "AC_AttitudeControl/AC_AttitudeControl_TS.h"
 
 const AP_Param::GroupInfo QuadPlane::var_info[] = {
@@ -778,7 +779,11 @@ bool QuadPlane::setup(void)
         AP_BoardConfig::allocation_error("ahrs_view");
     }
 
+#if AP_SCRIPTING_ENABLED
+    attitude_control = new AC_AttitudeControl_Multi_6DoF(*ahrs_view, aparm, *motors);
+#else
     attitude_control = new AC_AttitudeControl_TS(*ahrs_view, aparm, *motors);
+#endif
     if (!attitude_control) {
         AP_BoardConfig::allocation_error("attitude_control");
     }
