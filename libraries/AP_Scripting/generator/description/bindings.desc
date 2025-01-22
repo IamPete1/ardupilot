@@ -552,8 +552,8 @@ singleton AP_Frsky_SPort depends AP_FRSKY_SPORT_TELEM_ENABLED
 singleton AP_Frsky_SPort method sport_telemetry_push boolean uint8_t'skip_check uint8_t'skip_check uint16_t'skip_check int32_t'skip_check
 singleton AP_Frsky_SPort method prep_number uint16_t int32_t'skip_check uint8_t'skip_check uint8_t'skip_check
 
-include AC_AttitudeControl/AC_AttitudeControl_Multi_6DoF.h depends APM_BUILD_TYPE(APM_BUILD_ArduCopter)
-singleton AC_AttitudeControl_Multi_6DoF depends APM_BUILD_TYPE(APM_BUILD_ArduCopter)
+include AC_AttitudeControl/AC_AttitudeControl_Multi_6DoF.h depends APM_BUILD_TYPE(APM_BUILD_ArduPlane)||APM_BUILD_TYPE(APM_BUILD_ArduCopter)
+singleton AC_AttitudeControl_Multi_6DoF depends APM_BUILD_TYPE(APM_BUILD_ArduPlane)||APM_BUILD_TYPE(APM_BUILD_ArduCopter)
 singleton AC_AttitudeControl_Multi_6DoF rename attitude_control
 singleton AC_AttitudeControl_Multi_6DoF method set_lateral_enable void boolean
 singleton AC_AttitudeControl_Multi_6DoF method set_forward_enable void boolean
