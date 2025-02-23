@@ -81,42 +81,36 @@ void Plane::fence_check()
         switch (fence_act) {
         case AC_FENCE_ACTION_REPORT_ONLY:
             break;
+        case AC_FENCE_ACTION_RTL_AND_LAND:
+        case AC_FENCE_ACTION_AUTOLAND_OR_RTL:
+            if (control_mode == &mode_auto &&
+                mission.get_in_landing_sequence_flag() &&
+                (g.rtl_autoland == RtlAutoland::RTL_THEN_DO_LAND_START ||
+                    g.rtl_autoland == RtlAutoland::RTL_IMMEDIATE_DO_LAND_START)) {
+                // already in a DO_LAND_START sequence, do not do anything for breach
+                return;
+            }
+            if (flight_stage == AP_FixedWing::FlightStage::LAND) {
+                // already landing in AUTOLAND or NAV_LAND, do not do anything for breach
+                return;
+            }
+#if MODE_AUTOLAND_ENABLED
+            if (control_mode == &mode_autoland) {
+                // already landing in autoland mode, don't switch
+                return;
+            }
+            if (fence_act == AC_FENCE_ACTION_AUTOLAND_OR_RTL && (set_mode(mode_autoland, ModeReason::FENCE_BREACHED))) {
+                break;
+            }
+#endif
+            set_mode(mode_rtl, ModeReason::FENCE_BREACHED);
 
         case AC_FENCE_ACTION_GUIDED:
         case AC_FENCE_ACTION_GUIDED_THROTTLE_PASS:
-        case AC_FENCE_ACTION_RTL_AND_LAND:
-#if MODE_AUTOLAND_ENABLED
-        case AC_FENCE_ACTION_AUTOLAND_OR_RTL:
-#endif
-            if (fence_act == AC_FENCE_ACTION_RTL_AND_LAND 
-#if MODE_AUTOLAND_ENABLED
-|| fence_act == AC_FENCE_ACTION_AUTOLAND_OR_RTL
-#endif
-                                               ) {
-                if (control_mode == &mode_auto &&
-                    mission.get_in_landing_sequence_flag() &&
-                    (g.rtl_autoland == RtlAutoland::RTL_THEN_DO_LAND_START ||
-                     g.rtl_autoland == RtlAutoland::RTL_IMMEDIATE_DO_LAND_START)) {
-                    // already in a DO_LAND_START sequence, do not do anything for breach
-                    return;
-                }
-                if (flight_stage == AP_FixedWing::FlightStage::LAND) {
-                    // already landing in AUTOLAND or NAV_LAND, do not do anything for breach
-                    return;
-                }
-#if MODE_AUTOLAND_ENABLED
-
-                if (fence_act == AC_FENCE_ACTION_AUTOLAND_OR_RTL && (set_mode(mode_autoland, ModeReason::FENCE_BREACHED))) {
-                    break;
-                }
-#endif
-                set_mode(mode_rtl, ModeReason::FENCE_BREACHED);
-            } else {
-                set_mode(mode_guided, ModeReason::FENCE_BREACHED);
-            }
+            set_mode(mode_guided, ModeReason::FENCE_BREACHED);
 
             Location loc;
-            if (fence.get_return_rally() != 0 || fence_act == AC_FENCE_ACTION_RTL_AND_LAND) {
+            if (fence.get_return_rally() != 0) {
                 loc = calc_best_rally_or_home_location(current_loc, get_RTL_altitude_cm());
             } else {
                 //return to fence return point, not a rally point
@@ -145,10 +139,8 @@ void Plane::fence_check()
                 }
             }
 
-            if (fence.get_action() != AC_FENCE_ACTION_RTL_AND_LAND) {
-                setup_terrain_target_alt(loc);
-                set_guided_WP(loc);
-            }
+            setup_terrain_target_alt(loc);
+            set_guided_WP(loc);
 
             if (fence.get_action() == AC_FENCE_ACTION_GUIDED_THROTTLE_PASS) {
                 guided_throttle_passthru = true;
