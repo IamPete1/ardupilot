@@ -521,11 +521,12 @@ void AP_Airspeed::calibrate(bool in_startup)
         if (!enabled(i)) {
             continue;
         }
-        if (state[i].use_zero_offset) {
-            param[i].offset.set(0);
+        if (state[i].cal.state == CalibrationState::NOT_REQUIRED_ZERO_OFFSET) {
             continue;
         }
         if (in_startup && param[i].skip_cal) {
+            // Skip startup calibration, use saved value.
+            state[i].cal.state = CalibrationState::SUCCESS;
             continue;
         }
         if (sensor[i] == nullptr) {
@@ -536,7 +537,7 @@ void AP_Airspeed::calibrate(bool in_startup)
         state[i].cal.count = 0;
         state[i].cal.sum = 0;
         state[i].cal.read_count = 0;
-        calibration_state[i] = CalibrationState::IN_PROGRESS;
+        state[i].cal.state = CalibrationState::IN_PROGRESS;
         GCS_SEND_TEXT(MAV_SEVERITY_INFO,"Airspeed %u calibration started", i+1);
     }
 #endif // HAL_BUILD_AP_PERIPH
@@ -558,7 +559,7 @@ void AP_Airspeed::update_calibration(uint8_t i, float raw_pressure)
         state[i].cal.read_count > 15) {
         if (state[i].cal.count == 0) {
             GCS_SEND_TEXT(MAV_SEVERITY_WARNING, "Airspeed %u unhealthy", i + 1);
-            calibration_state[i] = CalibrationState::FAILED;
+            state[i].cal.state = CalibrationState::FAILED;
         } else {
             float calibrated_offset = state[i].cal.sum / state[i].cal.count;
             // check if new offset differs too greatly from last calibration, indicating pitot uncovered in wind
@@ -571,8 +572,8 @@ void AP_Airspeed::update_calibration(uint8_t i, float raw_pressure)
                 }
             }
             param[i].offset.set_and_save(calibrated_offset);
-            calibration_state[i] = CalibrationState::SUCCESS;
-            if (_options & AP_Airspeed::OptionsMask::REPORT_OFFSET ){
+            state[i].cal.state = CalibrationState::SUCCESS;
+            if (_options & AP_Airspeed::OptionsMask::REPORT_OFFSET) {
                  GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Airspeed %u calibrated, offset = %4.0f", i + 1, calibrated_offset);
             } else {
                  GCS_SEND_TEXT(MAV_SEVERITY_INFO, "Airspeed %u calibrated", i + 1);
@@ -594,10 +595,16 @@ void AP_Airspeed::update_calibration(uint8_t i, float raw_pressure)
 AP_Airspeed::CalibrationState AP_Airspeed::get_calibration_state() const
 {
     for (uint8_t i=0; i<AIRSPEED_MAX_SENSORS; i++) {
-        switch (calibration_state[i]) {
-        case CalibrationState::SUCCESS:
-        case CalibrationState::NOT_STARTED:
+        if (!enabled(i)) {
             continue;
+        }
+
+        switch (state[i].cal.state) {
+        case CalibrationState::SUCCESS:
+        case CalibrationState::NOT_REQUIRED_ZERO_OFFSET:
+            continue;
+        case CalibrationState::NOT_STARTED:
+            return CalibrationState::NOT_STARTED;
         case CalibrationState::IN_PROGRESS:
             return CalibrationState::IN_PROGRESS;
         case CalibrationState::FAILED:
@@ -886,7 +893,7 @@ bool AP_Airspeed::healthy(uint8_t i) const {
     bool ok = state[i].healthy && sensor[i] != nullptr;
 #ifndef HAL_BUILD_AP_PERIPH
     // sanity check the offset parameter.  Zero is permitted if we are skipping calibration.
-    ok &= (fabsf(param[i].offset) > 0 || state[i].use_zero_offset || param[i].skip_cal);
+    ok &= !is_zero(param[i].offset) || (state[i].cal.state == CalibrationState::NOT_REQUIRED_ZERO_OFFSET) || param[i].skip_cal;
 #endif
     return ok;
 }
@@ -923,6 +930,18 @@ float AP_Airspeed::get_corrected_pressure(uint8_t i) const {
         return 0.0;
     }
     return state[i].corrected_pressure;
+}
+
+// return the current calibration offset
+float AP_Airspeed::get_offset(uint8_t i) const {
+#ifndef HAL_BUILD_AP_PERIPH
+    if (state[i].cal.state == CalibrationState::NOT_REQUIRED_ZERO_OFFSET) {
+        return 0.0;
+    }
+    return param[i].offset;
+#else
+    return 0.0;
+#endif
 }
 
 #if AP_AIRSPEED_HYGROMETER_ENABLE
