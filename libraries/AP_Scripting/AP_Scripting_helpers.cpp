@@ -275,7 +275,7 @@ int DroneCAN_Handle::request(lua_State *L)
         delete h->subscriber;
     }
     
-    h->subscriber = NEW_NOTHROW Subscriber(*h, CanardTransferTypeResponse);
+    h->subscriber = new Subscriber(*h, CanardTransferTypeResponse);
     bool ok = h->subscriber != nullptr;
 
     if (ok) {
@@ -301,7 +301,7 @@ bool DroneCAN_Handle::subscribe(void)
     if (subscriber != nullptr) {
         delete subscriber;
     }
-    subscriber = NEW_NOTHROW Subscriber(*this, CanardTransferTypeBroadcast);
+    subscriber = new Subscriber(*this, CanardTransferTypeBroadcast);
     return subscriber != nullptr;
 }
 
