@@ -504,19 +504,34 @@ void AP_MotorsMatrix::mix_stabilization(const float roll_thrust, const float pit
     bool have_yaw = false;
 
     for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (is_stabilization_motor(i)) {
-            // Record what axis we have
-            have_roll  |= !is_zero(_roll_factor[i]);
-            have_pitch |= !is_zero(_pitch_factor[i]);
-            have_yaw   |= !is_zero(_yaw_factor[i]);
-
-            // calculate the thrust outputs for roll and pitch
-            _thrust_rpyt_out[i] = roll_thrust * _roll_factor[i] + pitch_thrust * _pitch_factor[i] + yaw_thrust * _yaw_factor[i];
-
-            // Record the range
-            rpy_low = MIN(rpy_low, _thrust_rpyt_out[i]);
-            rpy_high = MAX(rpy_high, _thrust_rpyt_out[i]);
+        if (!is_stabilization_motor(i)) {
+            continue;
         }
+        const bool motor_has_roll = !is_zero(_roll_factor[i]);
+        const bool motor_has_pitch = !is_zero(_pitch_factor[i]);
+        const bool motor_has_yaw = !is_zero(_yaw_factor[i]);
+
+        const bool pure_yaw = !motor_has_roll && !motor_has_pitch && motor_has_yaw;
+        if (pure_yaw) {
+            const float yaw = yaw_thrust * _yaw_factor[i];
+            if (fabsf(yaw) > 1.0) {
+                limit.yaw = true;
+            }
+            _thrust_rpyt_out[i] = constrain_float(yaw, 0.0, 1.0);
+            continue;
+        }
+
+        // Record what axis we have
+        have_roll  |= motor_has_roll;
+        have_pitch |= motor_has_pitch;
+        have_yaw   |= motor_has_yaw;
+
+        // calculate the thrust outputs for roll and pitch
+        _thrust_rpyt_out[i] = roll_thrust * _roll_factor[i] + pitch_thrust * _pitch_factor[i] + yaw_thrust * _yaw_factor[i];
+
+        // Record the range
+        rpy_low = MIN(rpy_low, _thrust_rpyt_out[i]);
+        rpy_high = MAX(rpy_high, _thrust_rpyt_out[i]);
     }
 
     // calculate any scaling needed to make the combined outputs fit within the output range
