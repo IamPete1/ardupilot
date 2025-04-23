@@ -542,7 +542,12 @@ void AP_MotorsMatrix::mix_stabilization(const float roll_thrust, const float pit
 
     // Offset such that minumum output is 0 and apply scale factor
     for (uint8_t i = 0; i < AP_MOTORS_MAX_NUM_MOTORS; i++) {
-        if (is_stabilization_motor(i)) {
+        const bool motor_has_roll = !is_zero(_roll_factor[i]);
+        const bool motor_has_pitch = !is_zero(_pitch_factor[i]);
+        const bool motor_has_yaw = !is_zero(_yaw_factor[i]);
+
+        const bool pure_yaw = !motor_has_roll && !motor_has_pitch && motor_has_yaw;
+        if (is_stabilization_motor(i) && !pure_yaw) {
             _thrust_rpyt_out[i] -= rpy_low;
             _thrust_rpyt_out[i] *= rpy_scale;
         }
