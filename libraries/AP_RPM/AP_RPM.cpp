@@ -316,6 +316,8 @@ void AP_RPM::Log_RPM() const
             LOG_PACKET_HEADER_INIT(LOG_RPM_MSG),
             time_us     : AP_HAL::micros64(),
             inst        : i,
+            count       : state[i].count,
+            raw_rpm     : state[i].raw_rpm,
             rpm         : state[i].rate_rpm,
             quality     : get_signal_quality(i),
             health      : uint8_t(healthy(i))

@@ -73,30 +73,29 @@ void AP_RPM_Pin::update(void)
 
         // disable interrupts to prevent race with irq_handler
         void *irqstate = hal.scheduler->disable_interrupts_save();
-        const float dt_avg = static_cast<float>(irq_state[state.instance].dt_sum) / irq_state[state.instance].dt_count;
+        const uint32_t dt_count = irq_state[state.instance].dt_count;
         irq_state[state.instance].dt_count = 0;
+        const uint32_t dt_sum = irq_state[state.instance].dt_sum;
         irq_state[state.instance].dt_sum = 0;
         hal.scheduler->restore_interrupts(irqstate);
 
+        const float dt_avg = static_cast<float>(dt_sum) / dt_count;
+
         const float scaling = ap_rpm._params[state.instance].scaling;
+        state.raw_rpm = scaling * (1.0e6 / dt_avg) * 60;
+        state.rate_rpm = signal_quality_filter.apply(state.raw_rpm);
+        state.count = dt_count;
+
         const float maximum = ap_rpm._params[state.instance].maximum;
         const float minimum = ap_rpm._params[state.instance].minimum;
-        float quality;
-        const float rpm = scaling * (1.0e6 / dt_avg) * 60;
         const float filter_value = signal_quality_filter.get();
-
-        state.rate_rpm = signal_quality_filter.apply(rpm);
-
-        if ((maximum <= 0 || rpm <= maximum) && (rpm >= minimum)) {
-            if (is_zero(filter_value)){
-                quality = 0;
-            } else {
-                quality = 1 - constrain_float((fabsf(rpm-filter_value))/filter_value, 0.0, 1.0);
+        float quality = 0;
+        if ((maximum <= 0 || state.raw_rpm <= maximum) && (state.raw_rpm >= minimum)) {
+            if (!is_zero(filter_value)) {
+                quality = 1 - constrain_float((fabsf(state.raw_rpm-filter_value))/filter_value, 0.0, 1.0);
                 quality = powf(quality, 2.0);
             }
             state.last_reading_ms = AP_HAL::millis();
-        } else {
-            quality = 0;
         }
         state.signal_quality = (0.1 * quality) + (0.9 * state.signal_quality);
     }

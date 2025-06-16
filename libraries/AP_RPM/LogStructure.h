@@ -17,6 +17,8 @@ struct PACKED log_RPM {
     LOG_PACKET_HEADER;
     uint64_t time_us;
     uint8_t inst;
+    uint32_t count;
+    float raw_rpm;
     float rpm;
     float quality;
     uint8_t health;
@@ -25,7 +27,7 @@ struct PACKED log_RPM {
 #if AP_RPM_ENABLED
 #define LOG_STRUCTURE_FROM_RPM        \
     { LOG_RPM_MSG, sizeof(log_RPM), \
-      "RPM",  "QBffB", "TimeUS,I,RPM,Qual,H", "s#q--", "F-000" , true },
+      "RPM",  "QBIfffB", "TimeUS,I,count,RAW,RPM,Qual,H", "s#q----", "F-00000" , true },
 #else
 #define LOG_STRUCTURE_FROM_RPM
 #endif

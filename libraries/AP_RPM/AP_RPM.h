@@ -65,9 +65,11 @@ public:
     // The RPM_State structure is filled in by the backend driver
     struct RPM_State {
         uint8_t                instance;        // the instance number of this RPM
+        float                  raw_rpm;
         float                  rate_rpm;        // measured rate in revs per minute
         uint32_t               last_reading_ms; // time of last reading
         float                  signal_quality;  // synthetic quality metric 
+        uint32_t               count;
     };
 
     // parameters for each instance
