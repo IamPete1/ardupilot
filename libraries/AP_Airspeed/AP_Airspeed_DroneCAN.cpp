@@ -28,10 +28,10 @@ AP_Airspeed_Backend* AP_Airspeed_DroneCAN::probe(AP_Airspeed &_frontend, uint8_t
 {
     WITH_SEMAPHORE(_sem_registry);
 
-    AP_Airspeed_DroneCAN* backend = nullptr;
-
+    bool haveDetected = false;
     for (uint8_t i = 0; i < AIRSPEED_MAX_SENSORS; i++) {
         if (_detected_modules[i].driver == nullptr && _detected_modules[i].ap_dronecan != nullptr) {
+            haveDetected = true;
             const auto bus_id = AP_HAL::Device::make_bus_id(AP_HAL::Device::BUS_TYPE_UAVCAN,
                                                             _detected_modules[i].ap_dronecan->get_driver_index(),
                                                             _detected_modules[i].node_id, 0);
@@ -39,7 +39,7 @@ AP_Airspeed_Backend* AP_Airspeed_DroneCAN::probe(AP_Airspeed &_frontend, uint8_t
                 // match with previous ID only
                 continue;
             }
-            backend = NEW_NOTHROW AP_Airspeed_DroneCAN(_frontend, _instance);
+            AP_Airspeed_DroneCAN* backend = NEW_NOTHROW AP_Airspeed_DroneCAN(_frontend, _instance);
             if (backend == nullptr) {
                 AP::can().log_text(AP_CANManager::LOG_INFO,
                                    LOG_TAG,
@@ -55,9 +55,56 @@ AP_Airspeed_Backend* AP_Airspeed_DroneCAN::probe(AP_Airspeed &_frontend, uint8_t
                                    _detected_modules[i].ap_dronecan->get_driver_index());
                 backend->set_bus_id(bus_id);
             }
-            break;
+            return backend;
         }
     }
+
+    // If some sensors have been detected the user might be tying to swap to a new device
+    if (haveDetected) {
+        return nullptr;
+    }
+
+    // No detected sensors but a valid ID, declare the driver and hope the sensor turns up later
+    if ((previous_devid == 0) || (AP_HAL::Device::devid_get_bus_type(previous_devid) != AP_HAL::Device::BUS_TYPE_UAVCAN)) {
+        return nullptr;
+    }
+
+    // See if the driver is valid
+    const uint8_t driver_index = AP_HAL::Device::devid_get_bus(previous_devid);
+    AP_DroneCAN *ap_dronecan = AP_DroneCAN::get_dronecan(driver_index);
+    if (ap_dronecan == nullptr) {
+        return nullptr;
+    }
+
+    // Extract node ID
+    const uint8_t node_id = AP_HAL::Device::devid_get_address(previous_devid);
+
+    // Declare a new driver
+    AP_Airspeed_DroneCAN* backend = NEW_NOTHROW AP_Airspeed_DroneCAN(_frontend, _instance);
+    if (backend == nullptr) {
+        AP::can().log_text(AP_CANManager::LOG_INFO,
+                            LOG_TAG,
+                            "Failed register undetected DroneCAN Airspeed Node %d on Bus %d\n",
+                            node_id,
+                            driver_index);
+        return nullptr;
+    }
+
+    // Set the detected variables as they are used at runtime to identify drivers
+    _detected_modules[0] = {
+        ap_dronecan: ap_dronecan,
+        node_id: node_id,
+        driver: backend
+    };
+
+    // Make sure the backend bus ID is set correctly
+    backend->set_bus_id(previous_devid);
+
+    AP::can().log_text(AP_CANManager::LOG_INFO,
+                        LOG_TAG,
+                        "Registered undetected DroneCAN Airspeed Node %d on Bus %d\n",
+                        node_id,
+                        driver_index);
 
     return backend;
 }
