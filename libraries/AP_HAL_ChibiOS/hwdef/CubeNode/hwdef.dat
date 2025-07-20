@@ -11,9 +11,6 @@ define SMPS_PWR
 # board ID. See Tools/AP_Bootloader/board_types.txt
 APJ_BOARD_ID AP_HW_CUBENODE
 
-# setup build for a peripheral firmware
-env AP_PERIPH 1
-
 FLASH_SIZE_KB 2048
 
 # the location where the bootloader will put the firmware
@@ -68,7 +65,6 @@ PA1  ETH_RMII_REF_CLK   ETH1
 
 define BOARD_PHY_ID  MII_LAN8720_ID
 define BOARD_PHY_RMII
-define AP_PERIPH_NETWORKING_ENABLED 1
 
 # IMU
 PC10 SPI3_SCK SPI3
@@ -80,25 +76,5 @@ SPIDEV icm45686  SPI3  DEVID4  IMU_CS   MODE0  24*MHZ  24*MHZ
 
 IMU Invensensev3 SPI:icm45686 ROTATION_NONE
 
-define AP_PERIPH_IMU_ENABLED 1
-
-# Periph GCS
 define HAL_GCS_ENABLED 1
-
-#################################
-# AP_Periph - configurations specific to this App
-#################################
-
 define HAL_BARO_ALLOW_INIT_NO_BARO
-
-define AP_NETWORKING_MAX_INSTANCES 4
-
-define AP_SCRIPTING_ENABLED 1
-define AP_FILESYSTEM_ROMFS_ENABLED 1
-
-# listen for reboot command from uploader.py script
-# undefine to disable. Use -1 to allow on all ports, otherwise serial number index defined in SERIAL_ORDER starting at 0
-define HAL_PERIPH_LISTEN_FOR_SERIAL_UART_REBOOT_CMD_PORT 0
-#################################
-
-define HAL_MONITOR_THREAD_ENABLED 1
