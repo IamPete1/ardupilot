@@ -764,7 +764,7 @@ AP_GPS_Backend *AP_GPS::_detect_instance(const uint8_t instance)
             return NEW_NOTHROW AP_GPS_UBLOX(*this, params[instance], state[instance], port, GPS_ROLE_NORMAL);
         }
 
-        const uint32_t ublox_mb_required_baud = option_set(DriverOptions::UBX_MBUseUart2)?230400:460800;
+        const uint32_t ublox_mb_required_baud = 230400;
         if ((type == GPS_TYPE_UBLOX_RTK_BASE ||
              type == GPS_TYPE_UBLOX_RTK_ROVER) &&
             _baudrates[dstate->current_baud] == ublox_mb_required_baud &&
