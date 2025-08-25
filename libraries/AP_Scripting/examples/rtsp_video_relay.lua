@@ -4,9 +4,6 @@
    this relays RTSP video between a camera and a media server such as mediamtx
 --]]
 
--- language checker does not understand socket_wrapper() methods
----@diagnostic disable: undefined-field
-
 -- ==== Defaults you can override via parameters ====
 local RTSP_PATH      = "/0/SUB"     -- default to H.264 substream
 local RTSP_USER      = "user1"
@@ -19,8 +16,6 @@ local MAV_SEVERITY = {EMERGENCY=0, ALERT=1, CRITICAL=2, ERROR=3, WARNING=4, NOTI
 
 -- convenient CRLF
 local CRLF = string.char(13,10)
-
-local EINPROGRESS = 119
 
 local MAX_BUFFER = 200000
 
@@ -208,15 +203,21 @@ end
 --[[
    wrapper around a TCP socket with write buffer
 --]]
-local function socket_wrapper(_name)
+---@param name string
+---@return SocketWrapper
+local function socket_wrapper(name)
+
+   -- Helper which adds functionality to a socket
+   ---@class SocketWrapper
   local self = {}
   local sock = Socket(0)
   local q, q_head, q_tail, q_bytes = {}, 1, 1, 0
   local dead = false
-  local name = _name
 
   sock:set_blocking(false)
 
+  ---Send data
+  ---@param data string
   function self.send(data)
      if dead or not data or #data == 0 then
         return
@@ -232,6 +233,7 @@ local function socket_wrapper(_name)
      self:write_pending()
   end
 
+  ---Write any pending data
   function self.write_pending()
     if dead or not sock then
         return
@@ -263,9 +265,13 @@ local function socket_wrapper(_name)
     end
   end
 
+  ---Return true if the socket is dead
+  ---@return boolean
   function self.is_dead()
      return dead
   end
+
+  --- Close the socket
   function self.close()
     if sock then
        sock:close()
@@ -278,15 +284,29 @@ local function socket_wrapper(_name)
   function self.pollout(t)
      return sock and sock:pollout(t)
   end
+
+  ---Return true is the socket is connected
+  ---@return boolean
   function self.is_connected()
      return sock and sock:is_connected()
   end
+
+  ---Connect to a port
+  ---@param ip string
+  ---@param port integer
+  ---@return boolean
   function self.connect(ip, port)
      return sock and sock:connect(ip, port)
   end
   function self.is_pending()
-     return sock and sock:is_pending()
+     return sock and false -- sock:is_pending() This does not exist??
   end
+
+  ---Receive n bytes
+  ---@param n integer
+  ---@return string|nil
+  ---@return uint32_t_ud|nil -- source IP
+  ---@return integer|nil -- source port
   function self.recv(n)
      if not sock or dead then
         return nil
