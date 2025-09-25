@@ -177,6 +177,30 @@ const AP_Param::GroupInfo AP_Airspeed::var_info[] = {
 
     // index 30 is used by enable at the top of the table
 
+#if AIRSPEED_MAX_SENSORS > 2
+    // @Group: 3_
+    // @Path: AP_Airspeed_Params.cpp
+    AP_SUBGROUPINFO(param[2], "3_", 31, AP_Airspeed, AP_Airspeed_Params),
+#endif
+
+#if AIRSPEED_MAX_SENSORS > 3
+    // @Group: 4_
+    // @Path: AP_Airspeed_Params.cpp
+    AP_SUBGROUPINFO(param[3], "4_", 32, AP_Airspeed, AP_Airspeed_Params),
+#endif
+
+#if AIRSPEED_MAX_SENSORS > 4
+    // @Group: 5_
+    // @Path: AP_Airspeed_Params.cpp
+    AP_SUBGROUPINFO(param[4], "5_", 33, AP_Airspeed, AP_Airspeed_Params),
+#endif
+
+#if AIRSPEED_MAX_SENSORS > 5
+    // @Group: 6_
+    // @Path: AP_Airspeed_Params.cpp
+    AP_SUBGROUPINFO(param[5], "6_", 34, AP_Airspeed, AP_Airspeed_Params),
+#endif
+
     AP_GROUPEND
 };
 

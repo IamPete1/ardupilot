@@ -57,7 +57,7 @@
 
 // other AP_Airspeed options:
 #ifndef AIRSPEED_MAX_SENSORS
-#define AIRSPEED_MAX_SENSORS 2
+#define AIRSPEED_MAX_SENSORS 6
 #endif
 
 #ifndef AP_AIRSPEED_AUTOCAL_ENABLE
