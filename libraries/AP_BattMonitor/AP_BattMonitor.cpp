@@ -28,6 +28,7 @@
 #include "AP_BattMonitor_Synthetic_Current.h"
 #include "AP_BattMonitor_AD7091R5.h"
 #include "AP_BattMonitor_Scripting.h"
+#include "AP_BattMonitor_INA260.h"
 
 #include <AP_HAL/AP_HAL.h>
 
@@ -706,7 +707,12 @@ AP_BattMonitor::init()
             case Type::INA3221:
                 drivers[instance] = NEW_NOTHROW AP_BattMonitor_INA3221(*this, state[instance], _params[instance]);
                 break;
-#endif  // AP_BATTERY_INA3221_ENABLED
+#endif // AP_BATTERY_INA3221_ENABLED
+#if AP_BATTERY_INA260_ENABLED
+            case Type::INA260:
+                drivers[instance] = NEW_NOTHROW AP_BattMonitor_INA260(*this, state[instance], _params[instance]);
+                break;
+#endif // AP_BATTERY_INA260_ENABLED
             case Type::NONE:
             default:
                 break;
