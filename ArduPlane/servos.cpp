@@ -731,8 +731,12 @@ void Plane::set_servos_flaps(void)
 void Plane::servos_twin_engine_mix(void)
 {
     float throttle = SRV_Channels::get_output_scaled(SRV_Channel::k_throttle);
-    float rud_gain = float(plane.g2.rudd_dt_gain) * 0.01f;
-    rudder_dt = rud_gain * SRV_Channels::get_output_scaled(SRV_Channel::k_rudder) / SERVO_MAX;
+
+    rudder_dt = 0.0;
+    if (quadplane.available()) {
+        rudder_dt = quadplane.motors->get_yaw() + quadplane.motors->get_yaw_ff();
+    }
+
 
 #if AP_ADVANCEDFAILSAFE_ENABLED
     if (afs.should_crash_vehicle()) {
@@ -743,17 +747,14 @@ void Plane::servos_twin_engine_mix(void)
 
     float throttle_left, throttle_right;
 
-    if (throttle < 0 && have_reverse_thrust() && allow_reverse_thrust()) {
-        // doing reverse thrust
-        throttle_left  = constrain_float(throttle + 50 * rudder_dt, -100, 0);
-        throttle_right = constrain_float(throttle - 50 * rudder_dt, -100, 0);
-    } else if (throttle <= 0) {
-        throttle_left  = throttle_right = 0;
-    } else {
-        // doing forward thrust
-        throttle_left  = constrain_float(throttle + 50 * rudder_dt, 0, 100);
-        throttle_right = constrain_float(throttle - 50 * rudder_dt, 0, 100);
+    // doing forward thrust
+    if (quadplane.available() && (abs(rudder_dt) > 1.0)) {
+        quadplane.motors->limit.yaw = true;
     }
+
+    throttle_left  = constrain_float(throttle + 50 * rudder_dt, 0, 100);
+    throttle_right = constrain_float(throttle - 50 * rudder_dt, 0, 100);
+
     if (!arming.is_armed_and_safety_off()) {
         if (arming.arming_required() == AP_Arming::Required::YES_ZERO_PWM) {
             SRV_Channels::set_output_limit(SRV_Channel::k_throttleLeft, SRV_Channel::Limit::ZERO_PWM);
