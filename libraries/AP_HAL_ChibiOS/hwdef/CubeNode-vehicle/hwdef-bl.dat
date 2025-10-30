@@ -1,0 +1,12 @@
+include ../CubeNode/hwdef-bl.inc
+
+# board ID. See Tools/AP_Bootloader/board_types.txt
+APJ_BOARD_ID AP_HW_CUBENODE
+
+# the H757 has 128k sectors; 1 sector for BL
+FLASH_BOOTLOADER_LOAD_KB 128
+
+# Add activity LEDs
+PB1 LED_BOOTLOADER OUTPUT OPENDRAIN HIGH # Blue
+PB0 LED_ACTIVITY OUTPUT OPENDRAIN HIGH # Green
+define HAL_LED_ON 0
