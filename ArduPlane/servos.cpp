@@ -765,8 +765,20 @@ void Plane::set_servos_flaps(void)
  */
 void Plane::servos_twin_engine_mix(void)
 {
-    float throttle = SRV_Channels::get_output_scaled(SRV_Channel::k_throttle);
-    float rud_gain = float(plane.g2.rudd_dt_gain) * 0.01f;
+    // No mixing if disarmed
+    if (!arming.is_armed_and_safety_off()) {
+        if (arming.arming_required() == AP_Arming::Required::YES_ZERO_PWM) {
+            SRV_Channels::set_output_limit(SRV_Channel::k_throttleLeft, SRV_Channel::Limit::ZERO_PWM);
+            SRV_Channels::set_output_limit(SRV_Channel::k_throttleRight, SRV_Channel::Limit::ZERO_PWM);
+        } else {
+            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleLeft, 0);
+            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleRight, 0);
+        }
+        return;
+    }
+
+    const float throttle = SRV_Channels::get_output_scaled(SRV_Channel::k_throttle);
+    const float rud_gain = float(plane.g2.rudd_dt_gain) * 0.01f;
     rudder_dt = rud_gain * SRV_Channels::get_output_scaled(SRV_Channel::k_rudder) / SERVO_MAX;
 
 #if AP_ADVANCEDFAILSAFE_ENABLED
@@ -778,29 +790,51 @@ void Plane::servos_twin_engine_mix(void)
 
     float throttle_left, throttle_right;
 
-    if (throttle < 0 && have_reverse_thrust() && allow_reverse_thrust()) {
+    const bool reverseThrustAllowed = have_reverse_thrust() && allow_reverse_thrust();
+#if HAL_QUADPLANE_ENABLED
+    if (quadplane.available() && (quadplane.motors->get_spool_state() == AP_Motors::SpoolState::THROTTLE_UNLIMITED)) {
+        // Output rudder from VTOL yaw controller, giving absolute priority to yaw
+        rudder_dt = quadplane.motors->get_yaw() + quadplane.motors->get_yaw_ff();
+
+        // The amount of available throttle range being used by yaw
+        // total range is 100 - - 100 = 200 or 100 - 0 = 100
+        float rudderRangeRatio = fabsf(rudder_dt) * 50 * 2.0 / (reverseThrustAllowed ? 200.0 : 100.0);
+
+        // Set limit flags when yaw output saturates
+        if (rudderRangeRatio > 1.0) {
+            quadplane.motors->limit.yaw = true;
+            //Scale back rudder_dt, this means we don't have to constrain the output it will always be in the 0 to 100 or -100 to 100 range
+            rudder_dt /= rudderRangeRatio;
+            rudderRangeRatio = 1.0;
+        }
+
+        // This average throttle level that gives the maximum available yaw range.
+        // (-100 + 100)/2 or (0 + 100)/2
+        const float bestYawThrottle = reverseThrustAllowed ? 0.0 : 50.0;
+
+        // Move from the best yaw throttle to the demanded throttle while there is room for yaw
+        const float throttleLimited = bestYawThrottle + (throttle - bestYawThrottle) * (1.0 - rudderRangeRatio);
+
+        // Mix into left and right outputs
+        throttle_left  = throttleLimited + 50 * rudder_dt;
+        throttle_right = throttleLimited - 50 * rudder_dt;
+
+    } else
+#endif // HAL_QUADPLANE_ENABLED
+    if (throttle < 0 && reverseThrustAllowed) {
         // doing reverse thrust
         throttle_left  = constrain_float(throttle + 50 * rudder_dt, -100, 0);
         throttle_right = constrain_float(throttle - 50 * rudder_dt, -100, 0);
     } else if (throttle <= 0) {
-        throttle_left  = throttle_right = 0;
+        throttle_left = throttle_right = 0;
     } else {
         // doing forward thrust
         throttle_left  = constrain_float(throttle + 50 * rudder_dt, 0, 100);
         throttle_right = constrain_float(throttle - 50 * rudder_dt, 0, 100);
     }
-    if (!arming.is_armed_and_safety_off()) {
-        if (arming.arming_required() == AP_Arming::Required::YES_ZERO_PWM) {
-            SRV_Channels::set_output_limit(SRV_Channel::k_throttleLeft, SRV_Channel::Limit::ZERO_PWM);
-            SRV_Channels::set_output_limit(SRV_Channel::k_throttleRight, SRV_Channel::Limit::ZERO_PWM);
-        } else {
-            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleLeft, 0);
-            SRV_Channels::set_output_scaled(SRV_Channel::k_throttleRight, 0);
-        }
-    } else {
-        SRV_Channels::set_output_scaled(SRV_Channel::k_throttleLeft, throttle_left);
-        SRV_Channels::set_output_scaled(SRV_Channel::k_throttleRight, throttle_right);
-    }
+
+    SRV_Channels::set_output_scaled(SRV_Channel::k_throttleLeft, throttle_left);
+    SRV_Channels::set_output_scaled(SRV_Channel::k_throttleRight, throttle_right);
 }
 
 /*
