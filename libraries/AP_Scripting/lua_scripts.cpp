@@ -479,6 +479,9 @@ void lua_scripts::run(void) {
         return;
     }
 
+    hal.scheduler->delay(5000);
+
+
     // panic should be hooked first
     if (setjmp(panic_jmp)) {
         if (!succeeded_initial_load) {
