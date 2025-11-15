@@ -153,6 +153,7 @@ end
 
 -- parse data from CMD.GET_BUS_VOLTAGE_CURRENT and stuff in ESC telem
 local esc_telem_data = ESCTelemetryData()
+local servo_telem_data = ServoTelemetryData()
 local function update_volt_curr_telem(frame)
    local bus_voltage = unpack_data(frame, 0, 3, "f") -- float
    local bus_current = unpack_data(frame, 4, 7, "f") -- float
@@ -164,8 +165,6 @@ local function update_volt_curr_telem(frame)
    -- update esc telem data
    esc_telem_data:voltage(bus_voltage)
    esc_telem_data:current(bus_current)
-   -- 0x0C is mask for voltage and current data
-   esc_telem:update_telem_data(escId, esc_telem_data, 0x0C)
 end
 
 -- parse data from CMD.GET_TEMPERATURE and stuff in esc telem
@@ -182,8 +181,6 @@ local function update_temp_telem(frame)
 
    -- update esc telem data
    esc_telem_data:temperature_cdeg(fet_temp)
-   -- 0x01 is mask for temperature
-   esc_telem:update_telem_data(escId, esc_telem_data, 0x01)
 end
 
 -- update the reported position from the odrive
@@ -197,7 +194,8 @@ local function update_position_est(frame)
    end
    havePositionEst = true
 
-   -- Note: We also get vel estimate from this message but we just throw it away
+   local vel = unpack_data(frame, 4, 7, "f") -- float
+   servo_telem_data:speed(vel)
 end
 
 -- Read data from can buffer
@@ -255,6 +253,7 @@ local msg_input_pos = CANFrame()
 msg_input_pos:id(get_id(CMD.SET_INPUT_POS))
 msg_input_pos:dlc(8)
 local function send_position_command(des_pos)
+   servo_telem_data:command_position(des_pos)
 
    local payload = string.pack("<f", des_pos)
    for i = 1, #payload do
@@ -353,11 +352,14 @@ local function update()
       gcs:send_named_float("pos", reportedPos)
    end
 
-   -- Report state using rpm and error rate
-   esc_telem:update_rpm(escId, odrive_status.axis_errors:tofloat(), state)
-
    -- read data sent from the ODrive
    read_data()
+
+   -- Update telem data
+   esc_telem:update_telem_data(escId, esc_telem_data, 0x0D) -- voltage, current, temperature
+   esc_telem:update_rpm(escId, odrive_status.axis_errors:tofloat(), state)
+   servo_telem:update_telem_data(escId, servo_telem_data)
+
 
    -- update timeout on heartbeat state
    local now = millis()
