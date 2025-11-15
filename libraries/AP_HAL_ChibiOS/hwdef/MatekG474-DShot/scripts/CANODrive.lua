@@ -1,5 +1,4 @@
-local CMD_ID_MASK = 0x1F
-local NODE_ID_SHIFT = 5
+-- Control a ODrive based actuator with and home with a analog pot feedback
 
 local STATE = {
    UNDEFINED = 0,
@@ -20,13 +19,15 @@ local STATE = {
    HARMONIC_CALIBRATION_COMMUTATION = 16,
 }
 
-local CMD_HEARTBEAT = 0x1
-local CMD_RXSDO = 0x04
-local CMD_SET_AXIS_STATE = 0x7
-local CMD_GET_ENCODER_ESTIMATES = 0x9
-local CMD_SET_INPUT_POS = 0x0C
-local CMD_GET_TEMPERATURE = 0x15
-local CMD_GET_BUS_VOLTAGE_CURRENT = 0x17
+local CMD = {
+   HEARTBEAT = 0x1,
+   RXSDO = 0x04,
+   SET_AXIS_STATE = 0x7,
+   GET_ENCODER_ESTIMATES = 0x9,
+   SET_INPUT_POS = 0x0C,
+   GET_TEMPERATURE = 0x15,
+   GET_BUS_VOLTAGE_CURRENT = 0x17,
+}
 
 local LOCAL_STATE = {
    SETTINGS_REQUIRED = 0,
@@ -48,9 +49,10 @@ local odrive_status = {
 
 local target_node_id = 10
 
-local last_heartbeat_ms = millis()
+local last_heartbeat_ms = uint32_t(0)
 local HEARTBEAT_TIMEOUT = uint32_t(2000)
 local position_est = nil
+local havePositionEst = false
 
 local OPCODE_WRITE = 0x01
 
@@ -117,6 +119,9 @@ if periph ~= nil then
    escId = assert(param:get("CAN_NODE")) - 1
 end
 
+-- Node ID and command ID are packed into the CAN frame ID
+local NODE_ID_SHIFT = 5
+
 -- Helper to pack 11-bit ID format used by ODrive
 local function get_id(cmd)
    return (target_node_id << NODE_ID_SHIFT) | cmd
@@ -146,7 +151,7 @@ local function update_heartbeat(frame)
    last_heartbeat_ms = millis()
 end
 
--- parse data from CMD_GET_BUS_VOLTAGE_CURRENT and stuff in ESC telem
+-- parse data from CMD.GET_BUS_VOLTAGE_CURRENT and stuff in ESC telem
 local esc_telem_data = ESCTelemetryData()
 local function update_volt_curr_telem(frame)
    local bus_voltage = unpack_data(frame, 0, 3, "f") -- float
@@ -163,7 +168,7 @@ local function update_volt_curr_telem(frame)
    esc_telem:update_telem_data(escId, esc_telem_data, 0x0C)
 end
 
--- parse data from CMD_GET_TEMPERATURE and stuff in esc telem
+-- parse data from CMD.GET_TEMPERATURE and stuff in esc telem
 local function update_temp_telem(frame)
    local fet_temp = unpack_data(frame, 0, 3, "f") -- float
 
@@ -190,6 +195,8 @@ local function update_position_est(frame)
    else
       position_est = nil
    end
+   havePositionEst = true
+
    -- Note: We also get vel estimate from this message but we just throw it away
 end
 
@@ -203,15 +210,15 @@ local function read_data()
          return
       end
 
-      local cmd_id = (frame:id() & CMD_ID_MASK):toint()
+      local cmd_id = (frame:id() & 0x1F):toint()
 
-      if (cmd_id == CMD_HEARTBEAT) then
+      if (cmd_id == CMD.HEARTBEAT) then
          update_heartbeat(frame)
-      elseif (cmd_id == CMD_GET_BUS_VOLTAGE_CURRENT) then
+      elseif (cmd_id == CMD.GET_BUS_VOLTAGE_CURRENT) then
          update_volt_curr_telem(frame)
-      elseif (cmd_id == CMD_GET_TEMPERATURE) then
+      elseif (cmd_id == CMD.GET_TEMPERATURE) then
          update_temp_telem(frame)
-      elseif (cmd_id == CMD_GET_ENCODER_ESTIMATES) then
+      elseif (cmd_id == CMD.GET_ENCODER_ESTIMATES) then
          update_position_est(frame)
       end
    end
@@ -220,7 +227,7 @@ end
 
 -- Set control mode on odrive. This is needed before we can drive the motor.
 local state_msg = CANFrame()
-state_msg:id(get_id(CMD_SET_AXIS_STATE))
+state_msg:id(get_id(CMD.SET_AXIS_STATE))
 state_msg:dlc(4)
 local function set_odrive_state(tagetState)
    -- note, requested state is a uint32_t, i am just being lazy as currently will only need one byte
@@ -245,7 +252,7 @@ end
 
 -- send position input commands to odrive
 local msg_input_pos = CANFrame()
-msg_input_pos:id(get_id(CMD_SET_INPUT_POS))
+msg_input_pos:id(get_id(CMD.SET_INPUT_POS))
 msg_input_pos:dlc(8)
 local function send_position_command(des_pos)
 
@@ -262,7 +269,7 @@ end
 local function send_RxSdo(opcode, endpoint, value)
    local msg = CANFrame()
 
-   msg:id(get_id(CMD_RXSDO))
+   msg:id(get_id(CMD.RXSDO))
 
    -- pack payload
    local format = "<BHB" .. endpoint.type
@@ -297,6 +304,7 @@ local function run_setup()
 
    -- set message rates for cyclic telem
    if state == LOCAL_STATE.SETTINGS_REQUIRED then
+      -- Setup message streaming
       send_RxSdo(OPCODE_WRITE, axis0.config.can.bus_voltage_msg_rate_ms, 500)
       send_RxSdo(OPCODE_WRITE, axis0.config.can.temperature_msg_rate_ms, 500)
       send_RxSdo(OPCODE_WRITE, axis0.config.can.encoder_msg_rate_ms, 250)
@@ -306,14 +314,13 @@ local function run_setup()
 
       -- config applied, advance state
       if position_est ~= nil then
+         -- If we have a position already then we can go straight to disarmed state and skip the calibration
          state = LOCAL_STATE.DISARMED
       else
          state = LOCAL_STATE.NOT_CALIBRATED
       end
 
    elseif state == LOCAL_STATE.NOT_CALIBRATED then
-   -- see if we are going to run calibration
-
       -- wait until safety switch is disabled before trying to do index search
       if not SRV_Channels:get_safety_state() and not is_armed() then
          set_odrive_state(STATE.ENCODER_INDEX_SEARCH)
@@ -321,14 +328,13 @@ local function run_setup()
       end
 
    elseif state == LOCAL_STATE.INDEX_FIND_SENT then
-      if position_est ~= nil then
+      -- Once index search is done the ODrive will return to idle, but will now have a position estimate
+      if (position_est ~= nil) and (odrive_status.axis_state == STATE.IDLE) then
          -- Set the origin from the pot
          local pos = potPos()
          local turn = math.floor(pos + 0.5)
-         send_RxSdo(OPCODE_WRITE, axis0.pos_estimate, turn + INDEX_OFFSET:get())
-
-         -- Safety must be off for the index search to start, go straight to armed
-         state = LOCAL_STATE.ARMED
+         send_RxSdo(OPCODE_WRITE, axis0.pos_estimate, turn + position_est + INDEX_OFFSET:get())
+         state = LOCAL_STATE.DISARMED
       end
    end
 end
@@ -355,12 +361,12 @@ local function update()
 
    -- update timeout on heartbeat state
    local now = millis()
-   if now - last_heartbeat_ms > HEARTBEAT_TIMEOUT then
+   if ((now - last_heartbeat_ms) > HEARTBEAT_TIMEOUT) or (last_heartbeat_ms == 0) then
       -- we are not speaking to the odrive, no point in continuing
       return update, 10
    end
 
-   -- For errors reset sate and wait for them to clear
+   -- Errors reset state and wait for them to clear
    if odrive_status.axis_errors:toint() ~= 0 then
       state = LOCAL_STATE.SETTINGS_REQUIRED
       return update, 10
@@ -372,12 +378,15 @@ local function update()
    end
 
    if state < LOCAL_STATE.DISARMED then
-      run_setup()
+      -- Must be getting position data for calibration
+      if havePositionEst then
+         run_setup()
+      end
       return update, 10
    end
 
    -- Allow closed loop control if not safe
-   local allowClosedLoop = not SRV_Channels:get_safety_state()
+   local allowClosedLoop = SRV_Channels:get_safety_state() == false
 
    -- If disarmed then arm on safety state change
    if state == LOCAL_STATE.DISARMED then
