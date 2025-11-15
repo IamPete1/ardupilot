@@ -1,6 +1,6 @@
 -- Control mode channel output
 
--- Switch posisitions
+-- Switch positions
 local modes = {
     EStop = 1,
     AutoStop = 2,
@@ -10,7 +10,7 @@ local modes = {
 -- Channel for outgoing command to turbine
 local outputServoChannel = 2
 
--- Channel for incomming command signal from FC
+-- Channel for incoming command signal from FC
 local commandServoChannel = 3
 
 -- GPIO input from remote stop
@@ -20,6 +20,15 @@ gpio:pinMode(stopGPIOPin, 0)
 -- Telemetry object and mask
 local telem = ESCTelemetryData()
 local telemMask = 1 << 3 -- current
+
+-- Return true if the vehicle is armed
+local armed_mask = uint64_t(0, 2)
+local function is_armed()
+    if not periph then
+       return arming:is_armed()
+    end
+    return (periph:get_vehicle_state() & armed_mask):toint() ~= 0
+end
 
 local remoteStop = false
 local function update()
@@ -48,7 +57,7 @@ local function update()
     elseif SRV_Channels:get_safety_state() then
         mode = modes.EStop
 
-    elseif not arming:is_armed() and (mode == modes.Run) then
+    elseif not is_armed() and (mode == modes.Run) then
         mode = modes.EStop
 
     end
@@ -62,7 +71,7 @@ local function update()
 
     SRV_Channels:set_output_pwm_chan(outputServoChannel, outputPWM)
 
-    -- Send back status in esc telem current feild
+    -- Send back status in esc telem current field
     local status = 0
     if remoteStopNew then
         status = status | 0x1
@@ -73,7 +82,7 @@ local function update()
     status = status | (mode << 2)
     telem:current(status)
 
-    esc_telem:update_telem_data(0, telem, telemMask)
+    esc_telem:update_telem_data(5, telem, telemMask)
 
     return update, 50
 end

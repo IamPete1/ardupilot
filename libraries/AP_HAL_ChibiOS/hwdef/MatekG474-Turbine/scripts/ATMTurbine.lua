@@ -14,7 +14,7 @@ local types = {
     LYNX = 5
 }
 
--- Switch posisitions
+-- Switch positions
 local switchPositions = {
     Unknown = 0,
     EStop = 1,
@@ -37,7 +37,7 @@ local status = statuses.Unknown
 
 -- Telemetry object and mask
 local telem = ESCTelemetryData()
-local telemMask = 1 << 0 | -- temprature
+local telemMask = 1 << 0 | -- temperature
                   1 << 2 | -- voltage
                   1 << 3 -- power percentage
 
@@ -51,7 +51,7 @@ local buffer = ""
 -- Parse normal data in both normal and error messages
 local function parseNormal(data3, data4, data5)
 
-    -- Temprature
+    -- Temperature
     local tempDeg = (data3 * 4.6) - 50.0
     telem:temperature_cdeg(math.floor((tempDeg / 100) + 0.5))
 
@@ -71,9 +71,9 @@ local function parseNormal(data3, data4, data5)
 
 end
 
-local function parseStatus(data1)
+local function parseStatus(data)
 
-    local switchData = data1 & 0x07
+    local switchData = data & 0x07
     if switchData == 0x1 then
         switchPosition = switchPositions.EStop
 
@@ -206,14 +206,14 @@ local function parse()
             parseNormal(data3, data4, data5)
 
         end
-        esc_telem:update_telem_data(0, telem, telemMask)
+        esc_telem:update_telem_data(5, telem, telemMask)
     end
 
     -- Remove one element and run again
     buffer = string.sub(buffer, 2)
 
     -- Run again on next section of buffer
-    return parse()
+    parse()
 
 end
 
@@ -222,7 +222,7 @@ local function update()
     while true do
         local data = port:readstring(6)
         if data == nil then
-            return
+            break
         end
 
         -- Add to the buffer
