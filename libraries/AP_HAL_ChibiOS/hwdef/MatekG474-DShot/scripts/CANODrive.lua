@@ -290,11 +290,12 @@ local function potPos()
 end
 
 -- Return true if the vehicle is armed
+local armed_mask = uint64_t(0, 2)
 local function is_armed()
    if not periph then
       return arming:is_armed()
    end
-   return false -- not ((periph:get_vehicle_state() & 2) == 0)
+   return (periph:get_vehicle_state() & armed_mask):toint() ~= 0
 end
 
 -- Send all required settings to odrive when we first start talking to it
@@ -312,12 +313,7 @@ local function run_setup()
       send_RxSdo(OPCODE_WRITE, axis0.controller.config.vel_ramp_rate, 10.0) -- rev/s/s
 
       -- config applied, advance state
-      if position_est ~= nil then
-         -- If we have a position already then we can go straight to disarmed state and skip the calibration
-         state = LOCAL_STATE.DISARMED
-      else
-         state = LOCAL_STATE.NOT_CALIBRATED
-      end
+      state = LOCAL_STATE.NOT_CALIBRATED
 
    elseif state == LOCAL_STATE.NOT_CALIBRATED then
       -- wait until safety switch is disabled before trying to do index search
