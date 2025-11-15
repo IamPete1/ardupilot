@@ -1,5 +1,4 @@
 local CMD_ID_MASK = 0x1F
-local NODE_ID_MASK = 0x7E0
 local NODE_ID_SHIFT = 5
 
 local STATE = {
@@ -41,7 +40,7 @@ local LOCAL_STATE = {
 local state = LOCAL_STATE.SETTINGS_REQUIRED
 
 local odrive_status = {
-   axis_errors = 0,
+   axis_errors = uint32_t(0),
    axis_state = STATE.UNDEFINED,
    procedure_result = 0,
    trajectory_done_flag = 0
@@ -67,14 +66,6 @@ axis0.config.can.encoder_msg_rate_ms = {
     id = 275,
     type = "I" -- uint32
 }
-axis0.config.can.iq_msg_rate_ms = {
-    id = 276,
-    type = "I" -- uint32
-}
-axis0.config.can.error_msg_rate_ms = {
-    id = 277,
-    type = "I" -- uint32
-}
 axis0.config.can.temperature_msg_rate_ms = {
     id = 278,
     type = "I" -- uint32
@@ -83,58 +74,12 @@ axis0.config.can.bus_voltage_msg_rate_ms = {
     id = 279,
     type = "I", -- uint32
 }
-axis0.config.can.torques_msg_rate_ms = {
-    id = 280,
-    type = "I", -- uint32
-}
-axis0.config.can.powers_msg_rate_ms = {
-    id = 281,
-    type = "I", -- uint32
-}
-axis0.config.can.input_vel_scale = {
-    id = 282,
-    type = "I", -- uint32
-}
-axis0.config.can.input_torque_scale = {
-    id = 283,
-    type = "I", -- uint32
-}
-
-axis0.config.calibration_lockin = {}
-axis0.config.calibration_lockin.ramp_distance = {
-   id = 251,
-   type = "f"
-}
-axis0.config.calibration_lockin.accel = {
-   id = 252,
-   type = "f"
-}
-axis0.config.calibration_lockin.vel = {
-   id = 253,
-   type = "f",
-}
 
 axis0.controller = {}
 axis0.controller.config = {}
-axis0.controller.config.homing_speed = {
-    id = 395,
-    type = "f" -- float
-}
 axis0.controller.config.vel_ramp_rate = {
     id = 386,
     type = "f" -- float
-}
-
-axis0.min_endstop = {}
-axis0.min_endstop.state = {
-   id = 415,
-   type = "B" -- is actually a bool but sending a byte
-}
-
-axis0.max_endstop = {}
-axis0.max_endstop.state = {
-   id = 421,
-   type = "B" -- is actually a bool but sending a byte
 }
 
 local PARAM_TABLE_KEY = 2
@@ -166,6 +111,11 @@ if periph ~= nil then
    potPin = 12 -- MATEK G4 PWM 8
 end
 assert(potInput:set_pin(potPin), "No ADC pin")
+
+local escId = 0
+if periph ~= nil then
+   escId = assert(param:get("CAN_NODE")) - 1
+end
 
 -- Helper to pack 11-bit ID format used by ODrive
 local function get_id(cmd)
@@ -210,7 +160,7 @@ local function update_volt_curr_telem(frame)
    esc_telem_data:voltage(bus_voltage)
    esc_telem_data:current(bus_current)
    -- 0x0C is mask for voltage and current data
-   esc_telem:update_telem_data(0, esc_telem_data, 0x0C)
+   esc_telem:update_telem_data(escId, esc_telem_data, 0x0C)
 end
 
 -- parse data from CMD_GET_TEMPERATURE and stuff in esc telem
@@ -228,7 +178,7 @@ local function update_temp_telem(frame)
    -- update esc telem data
    esc_telem_data:temperature_cdeg(fet_temp)
    -- 0x01 is mask for temperature
-   esc_telem:update_telem_data(0, esc_telem_data, 0x01)
+   esc_telem:update_telem_data(escId, esc_telem_data, 0x01)
 end
 
 -- update the reported position from the odrive
@@ -299,10 +249,6 @@ msg_input_pos:id(get_id(CMD_SET_INPUT_POS))
 msg_input_pos:dlc(8)
 local function send_position_command(des_pos)
 
-   --local vel_ff = 0
-   --local torque_ff = 0
-   --local payload = string.pack("<fhh", des_pos, vel_ff, torque_ff)
-
    local payload = string.pack("<f", des_pos)
    for i = 1, #payload do
       msg_input_pos:data(i - 1, string.byte(payload, i))
@@ -331,10 +277,18 @@ local function send_RxSdo(opcode, endpoint, value)
    driver:write_frame(msg, 1000)
 end
 
--- Return the position as caculated by the potentiometer
+-- Return the position as calculated by the potentiometer
 local function potPos()
    local voltage = potInput:voltage_average_ratiometric()
    return LERP(voltage, POT_MIN_VOLT:get(), POT_MAX_VOLT:get(), POS_MIN:get(), POS_MAX:get())
+end
+
+-- Return true if the vehicle is armed
+local function is_armed()
+   if not periph then
+      return arming:is_armed()
+   end
+   return false -- not ((periph:get_vehicle_state() & 2) == 0)
 end
 
 -- Send all required settings to odrive when we first start talking to it
@@ -361,19 +315,7 @@ local function run_setup()
    -- see if we are going to run calibration
 
       -- wait until safety switch is disabled before trying to do index search
-      if not SRV_Channels:get_safety_state() and not arming:is_armed() then
-         --[[ -- This does not work, seems to be a ODrive bug!
-         -- Search towards zero
-         local sign = 1.0
-         if potPos() > 0 then
-            sign = -1.0
-         end
-
-         send_RxSdo(OPCODE_WRITE, axis0.config.calibration_lockin.ramp_distance, 0.5)
-         send_RxSdo(OPCODE_WRITE, axis0.config.calibration_lockin.vel, 6.0)
-         send_RxSdo(OPCODE_WRITE, axis0.config.calibration_lockin.accel, 3.0 * sign)
-         --]]
-
+      if not SRV_Channels:get_safety_state() and not is_armed() then
          set_odrive_state(STATE.ENCODER_INDEX_SEARCH)
          state = LOCAL_STATE.INDEX_FIND_SENT
       end
@@ -384,7 +326,9 @@ local function run_setup()
          local pos = potPos()
          local turn = math.floor(pos + 0.5)
          send_RxSdo(OPCODE_WRITE, axis0.pos_estimate, turn + INDEX_OFFSET:get())
-         state = LOCAL_STATE.DISARMED
+
+         -- Safety must be off for the index search to start, go straight to armed
+         state = LOCAL_STATE.ARMED
       end
    end
 end
@@ -403,6 +347,9 @@ local function update()
       gcs:send_named_float("pos", reportedPos)
    end
 
+   -- Report state using rpm and error rate
+   esc_telem:update_rpm(escId, odrive_status.axis_errors:tofloat(), state)
+
    -- read data sent from the ODrive
    read_data()
 
@@ -414,7 +361,7 @@ local function update()
    end
 
    -- For errors reset sate and wait for them to clear
-   if odrive_status.axis_errors ~= 0 then
+   if odrive_status.axis_errors:toint() ~= 0 then
       state = LOCAL_STATE.SETTINGS_REQUIRED
       return update, 10
    end
@@ -455,7 +402,9 @@ local function update()
          -- +13.5 at + 10 deg
          -- -12.8 at - 10 deg
          local PWMCmd = SRV_Channels:get_output_pwm_chan(0)
-         send_position_command(constrainedLERP(PWMCmd, 1000, 2000, -12.8, 13.5))
+         if PWMCmd ~= 0 then
+            send_position_command(constrainedLERP(PWMCmd, 1000, 2000, -12.8, 13.5))
+         end
       end
    end
 
