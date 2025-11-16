@@ -34,7 +34,7 @@ local remoteStop = false
 local function update()
 
     local commandPWM = SRV_Channels:get_output_pwm_chan(commandServoChannel)
-    local mode = modes.Estop
+    local mode = modes.EStop
     if commandPWM > 1750 then
         mode = modes.Run
     elseif commandPWM > 1250 then
