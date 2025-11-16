@@ -189,9 +189,7 @@ local function updateTelem()
         end
     end
 
-
-
-
+    gcs:send_named_float("LYNX", statusVal)
 
 end
 
