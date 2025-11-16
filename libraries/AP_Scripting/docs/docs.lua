@@ -2437,6 +2437,12 @@ function esc_telem:set_rpm_scale(esc_index, scale_factor) end
 ---@return uint32_t_ud
 function esc_telem:get_last_telem_data_ms(esc_index) end
 
+-- Get RAW RPM and error rate
+---@param esc_index integer
+---@return number -- raw RPM
+---@return number -- error rate
+function esc_telem:get_raw_rpm_and_error_rate(esc_index) end
+
 -- desc
 optical_flow = {}
 
