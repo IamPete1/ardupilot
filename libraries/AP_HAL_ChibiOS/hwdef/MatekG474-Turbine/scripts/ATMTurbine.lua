@@ -51,9 +51,9 @@ local buffer = ""
 -- Parse normal data in both normal and error messages
 local function parseNormal(data3, data4, data5)
 
-    -- Temperature
-    local tempDeg = (data3 * 4.6) - 50.0
-    telem:temperature_cdeg(math.floor((tempDeg / 100) + 0.5))
+    -- Temperature, we send as raw byte to fit into AP's available data types
+    --local tempDeg = (data3 * 4.6) - 50.0
+    telem:temperature_cdeg(math.floor((data3 * 100) + 0.5))
 
     -- Throttle position
     telem:power_percentage(math.floor((data4 / 2) + 0.5))
@@ -167,26 +167,27 @@ local function parse()
        data3 ~= 0xFF and
        data4 ~= 0xFF and
        data5 ~= 0xFF then
+
         if data1 == 0 then
             errorMask = data2
             parseNormal(data3, data4, data5)
 
-        elseif (data == 0x03) or (data == 0x10) then
+        elseif (data1 == 0x03) or (data1 == 0x10) then
             parseAlternate(types.PEGASUS)
 
-        elseif (data == 0x06) or (data == 0x18) then
+        elseif (data1 == 0x06) or (data1 == 0x18) then
             parseAlternate(types.OLYMPUS)
 
-        elseif (data == 0x07) or (data == 0x08) then
+        elseif (data1 == 0x07) or (data1 == 0x08) then
             parseAlternate(types.MERCURY)
 
-        elseif data == 0x20 then
+        elseif data1 == 0x20 then
             parseAlternate(types.TITAN)
 
-        elseif data == 0x28 then
+        elseif data1 == 0x28 then
             parseAlternate(types.NIKE)
 
-        elseif data == 0x30 then
+        elseif data1 == 0x30 then
             parseAlternate(types.LYNX)
 
         else
@@ -201,12 +202,14 @@ local function parse()
                 else
                     rpm = data2 * 500
                 end
-                esc_telem:update_rpm(5, rpm, getStatus())
+                esc_telem:update_rpm(4, rpm, getStatus())
             end
             parseNormal(data3, data4, data5)
-
         end
-        esc_telem:update_telem_data(5, telem, telemMask)
+        esc_telem:update_telem_data(4, telem, telemMask)
+
+        -- Remove parsed data from bufffer
+        buffer = string.sub(buffer, 7)
     end
 
     -- Remove one element and run again
@@ -219,22 +222,13 @@ end
 
 
 local function update()
-    while true do
-        local data = port:readstring(6)
-        if data == nil then
-            break
-        end
+    local readSize = 64
 
-        -- Add to the buffer
+    local data = port:readstring(readSize)
+    if data ~= nil then
         buffer = buffer .. data
-
-        if #data < 6 then
-            -- Did not read full length, must have emptied the port buffer
-            break
-        end
+        parse()
     end
-
-    parse()
 
     return update, 50
 end

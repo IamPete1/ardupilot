@@ -25,6 +25,9 @@ local rcSwitch = assert(rc:find_channel_for_option(309), "no RCx_OPTION 309")
 local outputChan = assert(SRV_Channels:find_channel(98), "No scripting 5 channel")
 SRV_Channels:set_output_pwm_chan(outputChan, 1000)
 
+-- ESC index to use for feedback
+local escID = 4
+
 -- Switch positions
 local modes = {
     Unknown = 0,
@@ -89,7 +92,7 @@ end
 
 local function getRemoteStop()
     -- ESC current is used to transport data
-    local val = esc_telem:get_current(5)
+    local val = esc_telem:get_current(escID)
     if val == nil then
         return true
     end
@@ -164,7 +167,7 @@ local lastSwitchPos
 local lastErrors
 local lastSatus = statuses.Unknown
 local function updateTelem()
-    local _, statusVal = esc_telem:get_raw_rpm_and_error_rate(5)
+    local _, statusVal = esc_telem:get_raw_rpm_and_error_rate(escID)
     if statusVal == nil then
         return
     end
@@ -172,7 +175,13 @@ local function updateTelem()
     local switchPos = (statusVal >> 4) & 0xF
     local errorMask = (statusVal >> 8) & 0xFF
 
-    logger:write("LYNX", "status,switch,error", "BBB", status, switchPos, errorMask)
+    local temp = 0/0
+    local tempRaw = esc_telem:get_temperature(escID)
+    if tempRaw ~= nil then
+        temp = (tempRaw * 4.6) - 50.0
+    end
+
+    logger:write("LYNX", "status,switch,error,temp", "BBBf", status, switchPos, errorMask, temp)
 
     if status ~= lastSatus then
         lastSatus = status
@@ -202,7 +211,7 @@ local function update()
 
     updateTelem()
 
-    local powerPct = esc_telem:get_power_percentage(5)
+    local powerPct = esc_telem:get_power_percentage(escID)
     if powerPct ~= nil then
         gcs:send_named_float("LYNXThr", powerPct)
     end
