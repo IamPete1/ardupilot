@@ -82,7 +82,7 @@ local function update()
     status = status | (mode << 2)
     telem:current(status)
 
-    esc_telem:update_telem_data(5, telem, telemMask)
+    esc_telem:update_telem_data(4, telem, telemMask)
 
     return update, 50
 end
