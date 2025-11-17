@@ -2439,6 +2439,11 @@ function esc_telem:get_last_telem_data_ms(esc_index) end
 ---@return number -- error rate
 function esc_telem:get_raw_rpm_and_error_rate(esc_index) end
 
+-- Get power percentage
+---@param esc_index integer
+---@return integer -- power pecentage
+function esc_telem:get_power_percentage(esc_index) end
+
 -- desc
 optical_flow = {}
 

@@ -67,9 +67,9 @@ local function getSwitchMode()
     local switch = rcSwitch:get_aux_switch_pos()
     local RCMode = modes.EStop
     if switch == 1 then
-        return modes.AutoStop
+        RCMode = modes.AutoStop
     elseif switch == 2 then
-        return modes.Run
+        RCMode = modes.Run
     end
 
     -- Don't do anything on intial command or on command change
@@ -90,6 +90,9 @@ end
 local function getRemoteStop()
     -- ESC current is used to transport data
     local val = esc_telem:get_current(5)
+    if val == nil then
+        return true
+    end
     return (val & 1) ~= 0
 end
 
@@ -119,9 +122,9 @@ local function getGCSMode()
         local cmdMode = parsed_msg.param1
         if (cmdMode ~= modes.EStop) and (cmdMode ~= modes.AutoStop) and (cmdMode ~= modes.Run) then
             cmdMode = nil
-            sendMAVLinkACK(msg, chan, 2) -- MAV_RESULT_DENIED
+            sendMAVLinkACK(parsed_msg, chan, 2) -- MAV_RESULT_DENIED
         end
-        return msg, chan, cmdMode
+        return parsed_msg, chan, cmdMode
     end
 end
 
@@ -135,22 +138,22 @@ local statuses = {
     MaxRPM = 6,
 }
 local function getStatusString(val)
-    if val == modes.StartClearance then
+    if val == statuses.StartClearance then
         return "StartClearance"
 
-    elseif val == modes.Starting then
+    elseif val == statuses.Starting then
         return "Starting"
 
-    elseif val == modes.StartedUp then
+    elseif val == statuses.StartedUp then
         return "StartedUp"
 
-    elseif val == modes.IdleCalibration then
+    elseif val == statuses.IdleCalibration then
         return "IdleCalibration"
 
-    elseif val == modes.Running then
+    elseif val == statuses.Running then
         return "Running"
 
-    elseif val == modes.MaxRPM then
+    elseif val == statuses.MaxRPM then
         return "MaxRPM"
 
     end
@@ -159,7 +162,7 @@ end
 
 local lastSwitchPos
 local lastErrors
-local lastSatus
+local lastSatus = statuses.Unknown
 local function updateTelem()
     local _, statusVal = esc_telem:get_raw_rpm_and_error_rate(5)
     if statusVal == nil then
@@ -169,7 +172,7 @@ local function updateTelem()
     local switchPos = (statusVal >> 4) & 0xF
     local errorMask = (statusVal >> 8) & 0xFF
 
-    logger:write("LYNX", "BBB", "status,switch,error", status, switchPos, errorMask)
+    logger:write("LYNX", "status,switch,error", "BBB", status, switchPos, errorMask)
 
     if status ~= lastSatus then
         lastSatus = status
@@ -198,6 +201,11 @@ local lastArmed = nil
 local function update()
 
     updateTelem()
+
+    local powerPct = esc_telem:get_power_percentage(5)
+    if powerPct ~= nil then
+        gcs:send_named_float("LYNXThr", powerPct)
+    end
 
     local failsafeReason = nil
 
@@ -240,19 +248,26 @@ local function update()
         end
 
     elseif rcMode ~= nil then
-        setMode(rcMode, "RC")
+        if (rcMode == modes.Run) and not armed then
+            gcs:send_text(4, string.format("Lynx RC mode change ignored (disarmed)"))
+        else
+            setMode(rcMode, "RC")
+        end
         sendMAVLinkACK(msg, chan, 1) -- MAV_RESULT_TEMPORARILY_REJECTED
 
     elseif GCSMode ~= nil then
-        setMode(GCSMode, "GCS")
-        sendMAVLinkACK(msg, chan, 0) -- MAV_RESULT_ACCEPTED
-
+        if (GCSMode == modes.Run) and not armed then
+            sendMAVLinkACK(msg, chan, 1) -- MAV_RESULT_TEMPORARILY_REJECTED
+        else
+            setMode(GCSMode, "GCS")
+            sendMAVLinkACK(msg, chan, 0) -- MAV_RESULT_ACCEPTED
+        end
     end
 
     local PWM = 1000
     if mode == modes.AutoStop then
         PWM = 1500
-    elseif mode == modes.AutoStop then
+    elseif mode == modes.Run then
         PWM = 2000
     end
 

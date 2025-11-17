@@ -497,6 +497,8 @@ singleton AP_ESC_Telem method update_telem_data void uint8_t 0 ESC_TELEM_MAX_ESC
 singleton AP_ESC_Telem method set_rpm_scale void uint8_t 0 ESC_TELEM_MAX_ESCS float'skip_check
 singleton AP_ESC_Telem method get_last_telem_data_ms uint32_t uint8_t 0 ESC_TELEM_MAX_ESCS
 singleton AP_ESC_Telem method get_raw_rpm_and_error_rate boolean uint8_t 0 ESC_TELEM_MAX_ESCS float'Null float'Null
+singleton AP_ESC_Telem method get_power_percentage boolean uint8_t 0 ESC_TELEM_MAX_ESCS uint8_t'Null
+singleton AP_ESC_Telem method get_power_percentage depends AP_EXTENDED_ESC_TELEM_ENABLED
 
 include AP_Param/AP_Param.h
 singleton AP_Param rename param
