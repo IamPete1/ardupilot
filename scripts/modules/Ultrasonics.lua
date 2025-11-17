@@ -152,7 +152,8 @@ function ultrasonics.get_height(vertical_velocity, attitude, dt)
     end
 
     -- No readings
-    return ultrasonics.complementary_filter.update(nil, vertical_velocity, dt)
+    ultrasonics.complementary_filter.value = nil
+    return nil
 end
 
 

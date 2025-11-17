@@ -8,13 +8,13 @@ local modes = {
 }
 
 -- Channel for outgoing command to turbine
-local outputServoChannel = 2
+local outputServoChannel = 4
 
 -- Channel for incoming command signal from FC
-local commandServoChannel = 3
+local commandServoChannel = 2
 
 -- GPIO input from remote stop
-local stopGPIOPin = 0
+local stopGPIOPin = 50
 gpio:pinMode(stopGPIOPin, 0)
 
 -- Telemetry object and mask
@@ -33,7 +33,7 @@ end
 local remoteStop = false
 local function update()
 
-    local commandPWM = SRV_Channels:get_output_pwm_chan(commandServoChannel)
+    local commandPWM = SRV_Channels:get_output_pwm_chan(commandServoChannel - 1)
     local mode = modes.EStop
     if commandPWM > 1750 then
         mode = modes.Run
@@ -69,7 +69,7 @@ local function update()
         outputPWM = 2000
     end
 
-    SRV_Channels:set_output_pwm_chan(outputServoChannel, outputPWM)
+    SRV_Channels:set_output_pwm_chan(outputServoChannel - 1, outputPWM)
 
     -- Send back status in esc telem current field
     local status = 0
