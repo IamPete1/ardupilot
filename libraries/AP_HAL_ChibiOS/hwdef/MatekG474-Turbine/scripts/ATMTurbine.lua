@@ -39,7 +39,7 @@ local status = statuses.Unknown
 local telem = ESCTelemetryData()
 local telemMask = 1 << 0 | -- temperature
                   1 << 2 | -- voltage
-                  1 << 3 -- power percentage
+                  1 << 13 -- power percentage
 
 -- Engine status
 local errorMask = 0
@@ -201,7 +201,7 @@ local function parse()
                 else
                     rpm = data2 * 500
                 end
-                esc_telem:update_rpm(0, rpm, getStatus())
+                esc_telem:update_rpm(5, rpm, getStatus())
             end
             parseNormal(data3, data4, data5)
 
