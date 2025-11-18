@@ -31,9 +31,18 @@ local function is_armed()
 end
 
 local remoteStop = false
+local wasZero = false
 local function update()
 
     local commandPWM = SRV_Channels:get_output_pwm_chan(commandServoChannel - 1)
+
+    -- Commands may timeout after SRV_CMD_TIME_OUT
+    local isZero = commandPWM == 0
+    if isZero and not wasZero then
+        print("Estop (0 PWM)")
+    end
+    wasZero = isZero
+
     local mode = modes.EStop
     if commandPWM > 1750 then
         mode = modes.Run
@@ -56,13 +65,13 @@ local function update()
 
     elseif SRV_Channels:get_safety_state() then
         if mode ~= modes.EStop then
-            print("EStop safety")
+            print("EStop (safety)")
         end
         mode = modes.EStop
 
     elseif not is_armed() and (mode == modes.Run) then
         mode = modes.EStop
-        print("EStop disarmed")
+        print("EStop (disarmed)")
 
     end
 
