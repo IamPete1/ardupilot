@@ -41,7 +41,7 @@ local function update()
         mode = modes.AutoStop
     end
 
-    local remoteStopNew = gpio:read(stopGPIOPin)
+    local remoteStopNew = false--gpio:read(stopGPIOPin)
     if remoteStopNew then
         -- Always EStop if remote stop is active
         mode = modes.EStop
@@ -55,10 +55,14 @@ local function update()
         mode = modes.EStop
 
     elseif SRV_Channels:get_safety_state() then
+        if mode ~= modes.EStop then
+            print("EStop safety")
+        end
         mode = modes.EStop
 
     elseif not is_armed() and (mode == modes.Run) then
         mode = modes.EStop
+        print("EStop disarmed")
 
     end
 

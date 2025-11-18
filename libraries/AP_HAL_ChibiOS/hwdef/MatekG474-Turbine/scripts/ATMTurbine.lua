@@ -41,6 +41,8 @@ local telemMask = 1 << 0 | -- temperature
                   1 << 2 | -- voltage
                   1 << 13 -- power percentage
 
+local telemB = ESCTelemetryData()
+
 -- Engine status
 local errorMask = 0
 local type
@@ -114,8 +116,8 @@ local function parseStatus(data)
 
 end
 
--- Parse alternate information message
-local function parseAlternate(newType)
+-- Update engine type
+local function updateType(newType)
 
     if type == newType then
         -- Type already correct
@@ -148,6 +150,32 @@ local function parseAlternate(newType)
 
 end
 
+-- Parse alternate information message
+local function parseAlternate(newType, data5)
+
+    updateType(newType)
+
+    -- Supply voltage if we know the type
+    if type ~= nil then
+        local voltage
+        if (type == types.MERCURY) or (type == types.PEGASUS) then
+            voltage = 7 + (data5 * (6.25 / 255))
+
+        elseif (type == types.OLYMPUS) or (type == types.TITAN) or (type == types.NIKE) then
+            voltage = 7 + (data5 * (9.30 / 255))
+
+        elseif (type == types.LYNX) then
+            voltage = 18 + (data5 * (12.00 / 255))
+
+        else
+            voltage = 5 + data5 * 0.1
+        end
+        telemB:voltage(voltage)
+        esc_telem:update_telem_data(5, telemB, 1 << 2)
+    end
+
+end
+
 -- Combine errors and statuses for feedback over telem
 local function getStatus()
     return ((errorMask & 0xFF) << 8) | ((switchPosition & 0xF) << 4) | (status & 0xF)
@@ -173,22 +201,25 @@ local function parse()
             parseNormal(data3, data4, data5)
 
         elseif (data1 == 0x03) or (data1 == 0x10) then
-            parseAlternate(types.PEGASUS)
+            parseAlternate(types.PEGASUS, data5)
 
         elseif (data1 == 0x06) or (data1 == 0x18) then
-            parseAlternate(types.OLYMPUS)
+            parseAlternate(types.OLYMPUS, data5)
 
         elseif (data1 == 0x07) or (data1 == 0x08) then
-            parseAlternate(types.MERCURY)
+            parseAlternate(types.MERCURY, data5)
 
         elseif data1 == 0x20 then
-            parseAlternate(types.TITAN)
+            parseAlternate(types.TITAN, data5)
 
         elseif data1 == 0x28 then
-            parseAlternate(types.NIKE)
+            parseAlternate(types.NIKE, data5)
 
         elseif data1 == 0x30 then
-            parseAlternate(types.LYNX)
+            parseAlternate(types.LYNX, data5)
+
+        elseif data1 == 0x05 then
+            -- ECU setup data, not parsed
 
         else
             -- Get control mode and status
