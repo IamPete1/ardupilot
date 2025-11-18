@@ -96,7 +96,7 @@ local function getRemoteStop()
     if val == nil then
         return true
     end
-    return (val & 1) ~= 0
+    return (val & 2) ~= 0
 end
 
 local function sendMAVLinkACK(msg, chan, result)
