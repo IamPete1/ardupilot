@@ -155,24 +155,9 @@ local function parseAlternate(newType, data5)
 
     updateType(newType)
 
-    -- Supply voltage if we know the type
-    if type ~= nil then
-        local voltage
-        if (type == types.MERCURY) or (type == types.PEGASUS) then
-            voltage = 7 + (data5 * (6.25 / 255))
-
-        elseif (type == types.OLYMPUS) or (type == types.TITAN) or (type == types.NIKE) then
-            voltage = 7 + (data5 * (9.30 / 255))
-
-        elseif (type == types.LYNX) then
-            voltage = 18 + (data5 * (12.00 / 255))
-
-        else
-            voltage = 5 + data5 * 0.1
-        end
-        telemB:voltage(voltage)
-        esc_telem:update_telem_data(5, telemB, 1 << 2)
-    end
+    -- Supply voltage (maybe)
+    telemB:voltage(5 + data5 * 0.1)
+    esc_telem:update_telem_data(5, telemB, 1 << 2)
 
 end
 
