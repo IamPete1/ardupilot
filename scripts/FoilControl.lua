@@ -282,7 +282,6 @@ local function update()
         if I_relax then
             roll_PID.relax_integrator(0.0, dt)
             pitch_PID.relax_integrator(0.0, dt)
-            height_PID.relax_integrator(0.0, dt)
         end
 
         -- Constant roll, pitch and height targets
@@ -304,7 +303,12 @@ local function update()
         log_angle_control(targetRoll, measuredRoll, targetPitch, measuredPitch, rollRate, pitchRate)
 
         -- Height PID with flap
-        flap_out = height_PID.update(targetHeight, height, flap_upper, flap_lower, 1.0, dt)
+        if I_relax or (height == nil) then
+            flap_out = height_PID.relax_integrator(0.0, dt)
+        end
+        if height ~= nil then
+            flap_out = height_PID.update(targetHeight, height, flap_upper, flap_lower, 1.0, dt)
+        end
 
     end
 
