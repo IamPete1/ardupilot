@@ -132,16 +132,20 @@ local function getGCSMode()
 end
 
 local statuses = {
-    Unknown = 0,
+    NoStartClearance = 0,
     StartClearance = 1,
     Starting = 2,
     StartedUp = 3,
     IdleCalibration = 4,
     Running = 5,
     MaxRPM = 6,
+    Unknown = 7,
 }
 local function getStatusString(val)
-    if val == statuses.StartClearance then
+    if val == statuses.NoStartClearance then
+        return "NoStartClearance"
+
+    elseif val == statuses.StartClearance then
         return "StartClearance"
 
     elseif val == statuses.Starting then
@@ -163,8 +167,47 @@ local function getStatusString(val)
     return "Unknown"
 end
 
+-- Return a string for the error bitmask
+local function getErrorString(val)
+
+    local errors = {}
+    if (val & 0x01) ~= 0 then
+        table.insert(errors, "rpm low")
+    end
+
+    if (val & 0x02) ~= 0 then
+        table.insert(errors, "switch channel not present")
+    end
+
+    if (val & 0x04) ~= 0 then
+        table.insert(errors, "throttle channel not present")
+    end
+
+    if (val & 0x08) ~= 0 then
+        table.insert(errors, "EGT error")
+    end
+
+    if (val & 0x10) ~= 0 then
+        table.insert(errors, "rpm high")
+    end
+
+    if (val & 0x20) ~= 0 then
+        table.insert(errors, "supply low")
+    end
+
+    if (val & 0x40) ~= 0 then
+        table.insert(errors, "supply low for Auto Start System")
+    end
+
+    if (val & 0x80) ~= 0 then
+        table.insert(errors, string.format("0x%02X", val))
+    end
+
+    return table.concat(errors, ", ")
+end
+
 local lastSwitchPos
-local lastErrors
+local lastErrorMask = 0
 local lastSatus = statuses.Unknown
 local function updateTelem()
     local _, statusVal = esc_telem:get_raw_rpm_and_error_rate(escID)
@@ -193,11 +236,12 @@ local function updateTelem()
         gcs:send_text(4, string.format("Lynx mode: %s", getModeString(switchPos)))
     end
 
-    local haveErrors = errorMask ~= 0
-    if haveErrors ~= lastErrors then
-        lastErrors = haveErrors
-        if haveErrors then
-            gcs:send_text(4, string.format("Lynx errors: 0x%02X", errorMask))
+    if lastErrorMask ~= errorMask then
+        lastErrorMask = errorMask
+        if errorMask == 0 then
+            gcs:send_text(4, string.format("Lynx error: cleared"))
+        else
+            gcs:send_text(4, string.format("Lynx error: %s", getErrorString(errorMask)))
         end
     end
 
