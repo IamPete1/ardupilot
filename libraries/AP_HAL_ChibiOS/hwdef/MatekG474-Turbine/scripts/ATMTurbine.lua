@@ -11,7 +11,8 @@ local types = {
     MERCURY = 2,
     TITAN = 3,
     NIKE = 4,
-    LYNX = 5
+    LYNX = 5,
+    ORION = 6,
 }
 
 -- Switch positions
@@ -25,13 +26,14 @@ local switchPosition = switchPositions.Unknown
 
 -- Status
 local statuses = {
-    Unknown = 0,
+    NoStartClearance = 0,
     StartClearance = 1,
     Starting = 2,
     StartedUp = 3,
     IdleCalibration = 4,
     Running = 5,
     MaxRPM = 6,
+    Unknown = 7,
 }
 local status = statuses.Unknown
 
@@ -45,6 +47,8 @@ local telemB = ESCTelemetryData()
 
 -- Engine status
 local errorMask = 0
+local lastError = uint32_t(0)
+local errorTimeOut = uint32_t(5000)
 local type
 
 -- Incoming message buffer
@@ -91,7 +95,10 @@ local function parseStatus(data)
     end
 
     local statusData = data & 0xF8
-    if statusData == 0x08 then
+    if statusData == 0x00 then
+        status = statuses.NoStartClearance
+
+    elseif statusData == 0x08 then
         status = statuses.StartClearance
 
     elseif statusData == 0x16 then
@@ -144,6 +151,9 @@ local function updateType(newType)
     elseif type == types.LYNX then
         name = "LYNX"
 
+    elseif type == types.ORION then
+        name = "ORION"
+
     end
 
     print("AMT: detected " .. name)
@@ -151,13 +161,15 @@ local function updateType(newType)
 end
 
 -- Parse alternate information message
-local function parseAlternate(newType, data5)
+local function parseAlternate(newType, data4, data5)
 
     updateType(newType)
 
-    -- Supply voltage (maybe)
-    telemB:voltage(5 + data5 * 0.1)
-    esc_telem:update_telem_data(5, telemB, 1 << 2)
+    -- Supply voltage only valid if special info flag is set
+    if data4 == 254 then
+        telemB:voltage(5 + data5 * 0.1)
+        esc_telem:update_telem_data(5, telemB, 1 << 2)
+    end
 
 end
 
@@ -174,76 +186,90 @@ local function parse()
     end
 
     local leader, data1, data2, data3, data4, data5 = string.byte(buffer, 1, 6)
-    if leader == 0xFF and -- header is always 0xFF
-       data1 ~= 0xFF and -- data is never 0xFF
-       data2 ~= 0xFF and
-       data3 ~= 0xFF and
-       data4 ~= 0xFF and
-       data5 ~= 0xFF then
+    if leader ~= 0xFF or -- header is always 0xFF
+       data1 == 0xFF or -- data is never 0xFF
+       data2 == 0xFF or
+       data3 == 0xFF or
+       data4 == 0xFF or
+       data5 == 0xFF then
+        -- Not synced to data, move one by one
+        buffer = string.sub(buffer, 2)
 
-        if data1 == 0 then
-            errorMask = data2
-            parseNormal(data3, data4, data5)
+        -- Run again on next section of buffer
+        parse()
 
-        elseif (data1 == 0x03) or (data1 == 0x10) then
-            parseAlternate(types.PEGASUS, data5)
-
-        elseif (data1 == 0x06) or (data1 == 0x18) then
-            parseAlternate(types.OLYMPUS, data5)
-
-        elseif (data1 == 0x07) or (data1 == 0x08) then
-            parseAlternate(types.MERCURY, data5)
-
-        elseif data1 == 0x20 then
-            parseAlternate(types.TITAN, data5)
-
-        elseif data1 == 0x28 then
-            parseAlternate(types.NIKE, data5)
-
-        elseif data1 == 0x30 then
-            parseAlternate(types.LYNX, data5)
-
-        elseif data1 == 0x05 then
-            -- ECU setup data, not parsed
-
-        else
-            -- Get control mode and status
-            parseStatus(data1)
-
-            -- RPM if we know the type
-            if type ~= nil then
-                local rpm
-                if type == types.MERCURY then
-                    rpm = data2 * 700
-                else
-                    rpm = data2 * 500
-                end
-                esc_telem:update_rpm(4, rpm, getStatus())
-            end
-            parseNormal(data3, data4, data5)
-        end
-        esc_telem:update_telem_data(4, telem, telemMask)
-
-        -- Remove parsed data from bufffer
-        buffer = string.sub(buffer, 7)
+        return
     end
 
-    -- Remove one element and run again
-    buffer = string.sub(buffer, 2)
+    -- Valid data packet
+    if data1 == 0 then
+        -- Error packet
+        lastError = millis()
+        errorMask = data2
+        parseNormal(data3, data4, data5)
 
-    -- Run again on next section of buffer
+    elseif data1 == 0x03 then
+        parseAlternate(types.PEGASUS, data4, data5)
+
+    elseif data1 == 0x06 then
+        parseAlternate(types.OLYMPUS, data4, data5)
+
+    elseif data1 == 0x07 then
+        parseAlternate(types.MERCURY, data4, data5)
+
+    elseif data1 == 0x20 then
+        parseAlternate(types.TITAN, data4, data5)
+
+    elseif data1 == 0x28 then
+        parseAlternate(types.NIKE, data4, data5)
+
+    elseif data1 == 0x30 then
+        parseAlternate(types.LYNX, data4, data5)
+
+    elseif data1 == 0x38 then
+        parseAlternate(types.ORION, data4, data5)
+
+    elseif data1 == 0x05 then
+        -- ECU setup data, not parsed
+
+    else
+        -- Get control mode and status
+        parseStatus(data1)
+
+        -- RPM if we know the type
+        if type ~= nil then
+            local rpm
+            if type == types.MERCURY then
+                rpm = data2 * 700
+            else
+                rpm = data2 * 500
+            end
+            esc_telem:update_rpm(4, rpm, getStatus())
+        end
+        parseNormal(data3, data4, data5)
+    end
+    esc_telem:update_telem_data(4, telem, telemMask)
+
+    -- Remove parsed data from buffer
+    buffer = string.sub(buffer, 7)
+
+    -- Try to parse the next message
     parse()
-
 end
 
 
 local function update()
-    local readSize = 64
 
-    local data = port:readstring(readSize)
+    -- Read incoming data
+    local data = port:readstring(64)
     if data ~= nil then
         buffer = buffer .. data
         parse()
+    end
+
+    -- Clear error if out of date
+    if (errorMask ~= 0) and ((millis() - lastError) > errorTimeOut) then
+        errorMask = 0
     end
 
     return update, 50
