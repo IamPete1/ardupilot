@@ -262,7 +262,7 @@ local function update()
 
     -- Read incoming data
     local data = port:readstring(64)
-    if data ~= nil then
+    if (data ~= nil) and (#data > 0) then
         buffer = buffer .. data
         parse()
     end

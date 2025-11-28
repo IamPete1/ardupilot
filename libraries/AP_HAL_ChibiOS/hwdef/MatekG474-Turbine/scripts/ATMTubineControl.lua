@@ -1,5 +1,12 @@
 -- Control mode channel output
 
+-- Serial port to receive remote stop command
+local port = assert(serial:find_serial(1), "No Scripting Serial port found")
+port:begin()
+
+-- Incoming message buffer
+local buffer = ""
+
 -- Switch positions
 local modes = {
     EStop = 1,
@@ -30,6 +37,26 @@ local function is_armed()
     return (periph:get_vehicle_state() & armed_mask):toint() ~= 0
 end
 
+-- Read parse serial buffer
+---@return string|nil -- source of stop if command received
+local function parse()
+
+    for source in string.gmatch(buffer, "[\r\n]+(.-): *StopStopStop.-[\r\n]") do
+        if source then
+            -- If we found a valid stop then we can dump the buffer
+            buffer = ""
+            return source
+        end
+    end
+
+    -- Never expecting more than 50 chars
+    local remove = #buffer - 49
+    if remove > 0 then
+        buffer = string.sub(buffer, remove)
+    end
+
+end
+
 local remoteStop = false
 local wasZero = false
 local function update()
@@ -50,10 +77,20 @@ local function update()
         mode = modes.AutoStop
     end
 
-    local remoteStopNew = false--gpio:read(stopGPIOPin)
-    if remoteStopNew then
+    -- Assume no remote stop command
+    local remoteStopNew = nil
+
+    -- Read incoming serial data
+    local data = port:readstring(64)
+    if (data ~= nil) and (#data > 0) then
+        buffer = buffer .. data
+        remoteStopNew = parse()
+    end
+
+    if remoteStopNew ~= nil then
         -- Always EStop if remote stop is active
         mode = modes.EStop
+        print(string.format("EStop (remote: %s)", remoteStopNew))
         remoteStop = true
 
     elseif remoteStop then
