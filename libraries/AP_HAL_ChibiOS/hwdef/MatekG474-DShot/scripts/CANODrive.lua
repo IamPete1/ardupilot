@@ -100,8 +100,6 @@ local POS_MAX = bind_add_param('POS_MAX', 1, 10) -- Max endpoint position, turns
 local POS_MIN = bind_add_param('POS_MIN', 2, -10) -- Min endpoint position, turns from centre
 local POT_MAX_VOLT = bind_add_param('POT_MAX_VOLT', 3, 3.0) -- Potentiometer voltage reading corresponding to max position endpoint position
 local POT_MIN_VOLT = bind_add_param('POT_MIN_VOLT', 4, 0.3) -- Potentiometer voltage reading corresponding to min position endpoint position
-local INDEX_OFFSET = bind_add_param('INDEX_OFFSET', 5, 0.0) -- Offset index when setting the turn from pot
-
 
 -- Load CAN driver. The first will attach to a protocol of 10
 local driver = assert(CAN:get_device(20), "No scripting CAN interfaces found")
@@ -325,10 +323,16 @@ local function run_setup()
    elseif state == LOCAL_STATE.INDEX_FIND_SENT then
       -- Once index search is done the ODrive will return to idle, but will now have a position estimate
       if (position_est ~= nil) and (odrive_status.axis_state == STATE.IDLE) then
-         -- Set the origin from the pot
-         local pos = potPos()
-         local turn = math.floor(pos + 0.5)
-         send_RxSdo(OPCODE_WRITE, axis0.pos_estimate, turn + position_est + INDEX_OFFSET:get())
+         -- Round the pos position to the nearest turn
+         local turn = math.floor(potPos() + 0.5)
+
+         -- Wrap the position estimate down to +-0.5
+         local subTurn = math.fmod(position_est, 1.0)
+         if subTurn < -0.5 then
+            subTurn = subTurn + 1.0
+         end
+
+         send_RxSdo(OPCODE_WRITE, axis0.pos_estimate, turn + subTurn)
          state = LOCAL_STATE.DISARMED
       end
    end
@@ -392,7 +396,7 @@ local function update()
          set_odrive_state(STATE.CLOSED_LOOP_CONTROL)
          state = LOCAL_STATE.ARMED
       end
-      return
+      return update, 10
    end
 
    if state == LOCAL_STATE.ARMED then
@@ -400,17 +404,15 @@ local function update()
       if not allowClosedLoop then
          set_odrive_state(STATE.IDLE)
          state = LOCAL_STATE.DISARMED
-         return
+         return update, 10
       end
 
       -- Make sure the ODrive state is correct
       if odrive_status.axis_state == STATE.CLOSED_LOOP_CONTROL then
          -- Send position commands
-         -- +13.5 at + 10 deg
-         -- -12.8 at - 10 deg
          local PWMCmd = SRV_Channels:get_output_pwm_chan(0)
          if PWMCmd ~= 0 then
-            send_position_command(constrainedLERP(PWMCmd, 1000, 2000, -12.8, 13.5))
+            send_position_command(constrainedLERP(PWMCmd, 1000, 2000, -13.15, 13.15))
          end
       end
    end
