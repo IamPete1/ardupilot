@@ -19,7 +19,13 @@ Setup the ODrive for motor and encoder and run calibration.
 
 If the setup is successful you should be able to control the motor from the web gui in position mode.
 
-# Flight controller
+# AP setup
+
+This can be done on periph or a flight controller.
+
+The safety switch must be enabled, changing safety state is what causes the script to initialize the ODrive.
+
+### Flight controller
 
 Setup a flight controller with the script and a scripting CAN port. Setup the GCS to display some named value floats.
 
@@ -28,7 +34,12 @@ Setup a flight controller with the script and a scripting CAN port. Setup the GC
 * `potPos`: calculated potentiometer positions
 * `pos`: position reported by ODrive (maybe NaN)
 
-The safety switch must be enabled, changing safety state is what causes the script to initialize the ODrive.
+
+### Periph setup
+
+See also node setup section. On periph the same debug values are available. They are printed to the debug console (if the debug param is set). This can be seen in the DroneCAN setup page of mission planner. If the flight controller has `CAN_LOGLEVEL` set (which it should) then the message should be duplicated in the messages tab.
+
+### Common
 
 Connect the flight controller CAN port to the ODrive.
 
@@ -38,6 +49,7 @@ There are a number of parameters with the `OD_` prefix:
 * `OD_POS_MIN`: Min endpoint position, turns from centre
 * `OD_POT_MAX_VOLT`: Potentiometer voltage reading corresponding to max position endpoint position
 * `OD_POT_MIN_VOLT`: Potentiometer voltage reading corresponding to min position endpoint position
+* `OD_DEBUG`: Debug print enable on periph 0 to disable, 1 to enable.
 
 The script is looking at the first servo output function, set this to `SERVOn_TRIM`, the output should be 1500 PWM.
 

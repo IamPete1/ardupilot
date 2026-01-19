@@ -100,6 +100,7 @@ local POS_MAX = bind_add_param('POS_MAX', 1, 10) -- Max endpoint position, turns
 local POS_MIN = bind_add_param('POS_MIN', 2, -10) -- Min endpoint position, turns from centre
 local POT_MAX_VOLT = bind_add_param('POT_MAX_VOLT', 3, 3.0) -- Potentiometer voltage reading corresponding to max position endpoint position
 local POT_MIN_VOLT = bind_add_param('POT_MIN_VOLT', 4, 0.3) -- Potentiometer voltage reading corresponding to min position endpoint position
+local DEBUG = bind_add_param('DEBUG', 5, 0.0) -- Debug enable/disable
 
 -- Load CAN driver. The first will attach to a protocol of 10
 local driver = assert(CAN:get_device(20), "No scripting CAN interfaces found")
@@ -338,7 +339,10 @@ local function run_setup()
    end
 end
 
+local lastDebugSend = uint32_t(0)
 local function update()
+
+   local now = millis()
 
    -- Send back debug data if running on a vehicle
    if gcs ~= nil then
@@ -350,6 +354,23 @@ local function update()
          reportedPos = 0/0
       end
       gcs:send_named_float("pos", reportedPos)
+
+   elseif DEBUG:get() > 0 then
+      -- Debug on periph at 1Hz
+      if ((now - lastDebugSend) > 1000) then
+         lastDebugSend = now
+
+         local reportedPos = position_est
+         if reportedPos == nil then
+            reportedPos = 0/0
+         end
+
+         print(string.format("state: %i, potVolt: %0.4f, potPos: %0.4f, pos: %0.4f",
+            state,
+            potInput:voltage_average_ratiometric(),
+            potPos(),
+            reportedPos))
+      end
    end
 
    -- read data sent from the ODrive
@@ -362,7 +383,6 @@ local function update()
 
 
    -- update timeout on heartbeat state
-   local now = millis()
    if ((now - last_heartbeat_ms) > HEARTBEAT_TIMEOUT) or (last_heartbeat_ms == 0) then
       -- we are not speaking to the odrive, no point in continuing
       return update, 10
