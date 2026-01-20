@@ -345,17 +345,7 @@ local function update()
    local now = millis()
 
    -- Send back debug data if running on a vehicle
-   if gcs ~= nil then
-      gcs:send_named_float("stat", state)
-      gcs:send_named_float("potVolt", potInput:voltage_average_ratiometric())
-      gcs:send_named_float("potPos", potPos())
-      local reportedPos = position_est
-      if reportedPos == nil then
-         reportedPos = 0/0
-      end
-      gcs:send_named_float("pos", reportedPos)
-
-   elseif DEBUG:get() > 0 then
+   if DEBUG:get() > 0 then
       -- Debug on periph at 1Hz
       if ((now - lastDebugSend) > 1000) then
          lastDebugSend = now
