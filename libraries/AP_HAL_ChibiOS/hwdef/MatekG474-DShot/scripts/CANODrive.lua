@@ -1,22 +1,10 @@
--- Control a ODrive based actuator with and home with a analog pot feedback
+-- Control a ODrive based actuator and home with a analog pot feedback
 
 local STATE = {
    UNDEFINED = 0,
    IDLE = 1,
-   STARTUP_SEQUENCE = 2,
-   FULL_CALIBRATION_SEQUENCE = 3,
-   MOTOR_CALIBRATION = 4,
    ENCODER_INDEX_SEARCH = 6,
-   ENCODER_OFFSET_CALIBRATION = 7,
    CLOSED_LOOP_CONTROL = 8,
-   LOCKIN_SPIN = 9,
-   ENCODER_DIR_FIND = 10,
-   HOMING = 11,
-   ENCODER_HALL_POLARITY_CALIBRATION = 12,
-   ENCODER_HALL_PHASE_CALIBRATION = 13,
-   ANTICOGGING_CALIBRATION = 14,
-   HARMONIC_CALIBRATION = 15,
-   HARMONIC_CALIBRATION_COMMUTATION = 16,
 }
 
 local CMD = {
@@ -35,7 +23,6 @@ local LOCAL_STATE = {
    INDEX_FIND_SENT = 2,
    DISARMED = 3,
    ARMED = 4,
-   ERROR = 10,
 }
 -- init to not calibrated state
 local state = LOCAL_STATE.SETTINGS_REQUIRED
@@ -43,8 +30,6 @@ local state = LOCAL_STATE.SETTINGS_REQUIRED
 local odrive_status = {
    axis_errors = uint32_t(0),
    axis_state = STATE.UNDEFINED,
-   procedure_result = 0,
-   trajectory_done_flag = 0
 }
 
 local target_node_id = 10
@@ -53,8 +38,6 @@ local last_heartbeat_ms = uint32_t(0)
 local HEARTBEAT_TIMEOUT = uint32_t(2000)
 local position_est = nil
 local havePositionEst = false
-
-local OPCODE_WRITE = 0x01
 
 -- ODrive settings as found from: https://odrive-cdn.nyc3.digitaloceanspaces.com/releases/firmware/P5x-2epyHO8DXkyYEYQCpBsdw9skZ1GP04WKg4RVIjo/flat_endpoints.json
 local axis0 = {}
@@ -94,13 +77,15 @@ local function bind_add_param(name, idx, default_value)
 end
 
 -- setup script specific parameters
-assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 50), 'could not add param table')
+assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 10), 'could not add param table')
 
 local POS_MAX = bind_add_param('POS_MAX', 1, 10) -- Max endpoint position, turns from centre
 local POS_MIN = bind_add_param('POS_MIN', 2, -10) -- Min endpoint position, turns from centre
 local POT_MAX_VOLT = bind_add_param('POT_MAX_VOLT', 3, 3.0) -- Potentiometer voltage reading corresponding to max position endpoint position
 local POT_MIN_VOLT = bind_add_param('POT_MIN_VOLT', 4, 0.3) -- Potentiometer voltage reading corresponding to min position endpoint position
 local DEBUG = bind_add_param('DEBUG', 5, 0.0) -- Debug enable/disable
+local MAX_LIMIT = bind_add_param('MAX_LIMIT', 6,  13.15) -- Maximum operational limit in turns from center, will move to this at 2000PWM
+local MIN_LIMIT = bind_add_param('MIN_LIMIT', 7, -13.15) -- Minimum operational limit in turns from center, will move to this at 1000PWM
 
 -- Load CAN driver. The first will attach to a protocol of 10
 local driver = assert(CAN:get_device(20), "No scripting CAN interfaces found")
@@ -143,8 +128,6 @@ local function update_heartbeat(frame)
 
    odrive_status.axis_errors = uint32_t(frame:data(0) | (frame:data(1) << 8) | (frame:data(2) << 16) | (frame:data(3) << 24))
    odrive_status.axis_state = frame:data(4)
-   odrive_status.procedure_result = frame:data(5)
-   odrive_status.trajectory_done_flag = frame:data(6)
 
    -- We have a valid heartbeat, update timer and state
    last_heartbeat_ms = millis()
@@ -264,14 +247,14 @@ local function send_position_command(des_pos)
 end
 
 -- Read/Write an endpoint value
-local function send_RxSdo(opcode, endpoint, value)
+local function send_write_RxSdo(endpoint, value)
    local msg = CANFrame()
 
    msg:id(get_id(CMD.RXSDO))
 
    -- pack payload
    local format = "<BHB" .. endpoint.type
-   local payload = string.pack(format, opcode, endpoint.id, 0, value)
+   local payload = string.pack(format, 0x01, endpoint.id, 0, value)
    for i = 1, #payload do
       msg:data(i - 1, string.byte(payload, i))
    end
@@ -304,12 +287,12 @@ local function run_setup()
    -- set message rates for cyclic telem
    if state == LOCAL_STATE.SETTINGS_REQUIRED then
       -- Setup message streaming
-      send_RxSdo(OPCODE_WRITE, axis0.config.can.bus_voltage_msg_rate_ms, 500)
-      send_RxSdo(OPCODE_WRITE, axis0.config.can.temperature_msg_rate_ms, 500)
-      send_RxSdo(OPCODE_WRITE, axis0.config.can.encoder_msg_rate_ms, 250)
+      send_write_RxSdo(axis0.config.can.bus_voltage_msg_rate_ms, 500)
+      send_write_RxSdo(axis0.config.can.temperature_msg_rate_ms, 500)
+      send_write_RxSdo(axis0.config.can.encoder_msg_rate_ms, 250)
 
       -- set kinematic limits
-      send_RxSdo(OPCODE_WRITE, axis0.controller.config.vel_ramp_rate, 10.0) -- rev/s/s
+      send_write_RxSdo(axis0.controller.config.vel_ramp_rate, 10.0) -- rev/s/s
 
       -- config applied, advance state
       state = LOCAL_STATE.NOT_CALIBRATED
@@ -333,7 +316,7 @@ local function run_setup()
             subTurn = subTurn + 1.0
          end
 
-         send_RxSdo(OPCODE_WRITE, axis0.pos_estimate, turn + subTurn)
+         send_write_RxSdo(axis0.pos_estimate, turn + subTurn)
          state = LOCAL_STATE.DISARMED
       end
    end
@@ -422,7 +405,7 @@ local function update()
          -- Send position commands
          local PWMCmd = SRV_Channels:get_output_pwm_chan(0)
          if PWMCmd ~= 0 then
-            send_position_command(constrainedLERP(PWMCmd, 1000, 2000, -13.15, 13.15))
+            send_position_command(constrainedLERP(PWMCmd, 1000, 2000, MIN_LIMIT:get(), MAX_LIMIT:get()))
          end
       end
    end
