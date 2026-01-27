@@ -377,8 +377,8 @@ float Mode::calc_speed_max(float cruise_speed, float cruise_throttle) const
         speed_max = (1.0f / cruise_throttle) * cruise_speed;
     }
 
-    // constrain to 30m/s (108km/h) and return
-    return constrain_float(speed_max, 0.0f, 30.0f);
+    // Ensure positive
+    return MAX(speed_max, 0.0);
 }
 
 // calculate pilot input to nudge speed up or down
