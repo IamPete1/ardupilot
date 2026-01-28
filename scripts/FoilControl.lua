@@ -104,6 +104,9 @@ local HEIGHT_FILT = bind_add_param('HEIGHT_FILT', 8, 10)
 -- Speed at which we cannot be flying, used for is-flying checks
 local FLY_SPD_MIN = bind_add_param('FLY_SPD_MIN', 9, 4.0)
 
+-- Height below which we cannot be flying.
+local FLY_H_MIN = bind_add_param('FLY_H_MIN', 10, 0.06)
+
 -- ANGLE P, rate PID
 local roll_PID = PID.get_angle_controller("FRLL", PARAM_TABLE_PREFIX .. 'RLL_', PARAM_TABLE_KEY + 1)
 local pitch_PID = PID.get_angle_controller("FPIT", PARAM_TABLE_PREFIX .. 'PIT_', PARAM_TABLE_KEY + 2)
@@ -113,10 +116,10 @@ local height_PID = PID.controller("FALT", PARAM_TABLE_PREFIX .. 'HEIGHT_', PARAM
 ultrasonics.init(PARAM_TABLE_PREFIX .. 'ULTRA_', PARAM_TABLE_KEY + 4)
 
 local outputs = {
-    frontRight = outputChan(94, -10.0, 10.0, FRONT_TRIM), -- Scripting 1
+    frontRight = outputChan(94, -5.0,  15.0, FRONT_TRIM), -- Scripting 1
     rearRight  = outputChan(95, -10.0, 10.0, REAR_TRIM),  -- Scripting 2
     rearLeft   = outputChan(96, -10.0, 10.0, REAR_TRIM),  -- Scripting 3
-    frontLeft  = outputChan(97, -10.0, 10.0, FRONT_TRIM), -- Scripting 4
+    frontLeft  = outputChan(97, -5.0,  15.0, FRONT_TRIM), -- Scripting 4
 }
 local heightFilter = filter.get_low_pass(HEIGHT_FILT)
 
@@ -263,7 +266,7 @@ local function update()
         scale = get_speed_scale(speed)
 
         -- Decide if flying or not
-        if (height ~= nil) and (height > flying_height) and (speed > FLY_SPD_MIN:get()) then
+        if (height ~= nil) and (height > FLY_H_MIN:get()) and (speed > FLY_SPD_MIN:get()) then
             is_flying = true
         end
         local I_relax = is_flying == false
@@ -317,8 +320,8 @@ local function update()
     outputs.frontRight.update(flap_out)
 
     -- Rear do both roll and pitch
-    outputs.frontLeft.update(-pitch_out + roll_out)
-    outputs.frontRight.update(-pitch_out - roll_out)
+    outputs.rearLeft.update(-pitch_out + roll_out)
+    outputs.rearRight.update(-pitch_out - roll_out)
 
     -- Write log
     write_log(scale, is_flying, raw_height, height, dt)
