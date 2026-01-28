@@ -142,12 +142,12 @@ function ultrasonics.get_height(vertical_velocity, attitude, dt)
 
     -- Use front sensor by preference
     local now_ms = millis()
-    if (now_ms - ultrasonics.front.last_valid_ms) < 200 then
+    if ((now_ms - ultrasonics.front.last_valid_ms) < 200) and (ultrasonics.front.filter.value ~= nil) then
         return ultrasonics.complementary_filter.update(ultrasonics.front.filter.value, vertical_velocity, dt)
     end
 
     -- Otherwise use rear sensor
-    if (now_ms - ultrasonics.rear.last_valid_ms) < 200 then
+    if ((now_ms - ultrasonics.rear.last_valid_ms) < 200) and (ultrasonics.rear.filter.value ~= nil) then
         return ultrasonics.complementary_filter.update(ultrasonics.rear.filter.value, vertical_velocity, dt)
     end
 
