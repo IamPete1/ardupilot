@@ -225,7 +225,7 @@ local function update()
         -- Note that this function is named incorrectly, it should be `body_to_earth`
         -- See: https://github.com/ArduPilot/ardupilot/pull/28178
         attitude:inverse():earth_to_body(velocity_ned)
-        speed = velocity_ned:x()
+        speed = math.max(velocity_ned:x(), 0.0)
     end
 
     -- Get height estimate from ultrasonics
