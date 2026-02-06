@@ -12,6 +12,12 @@ void AP_Periph_FW::servo_telem_update()
 
     // Run update function at 50hz mirroring vehicle update rate
     if (now_ms - servo_telem.last_update_ms > 20) {
+        // Update periph only actuator telem
+#if AP_PERIPH_ACTUATOR_TELEM_ENABLED
+        actuator_telem.update();
+#endif
+
+        // Update main servo telem lib
         servo_telem.lib.update();
         servo_telem.last_update_ms = now_ms;
     }
