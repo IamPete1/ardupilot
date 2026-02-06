@@ -171,6 +171,10 @@ local function update_position_est(frame)
    if pos == pos then
       -- not nan
       position_est = pos
+
+      -- convert turns to degrees
+      servo_telem_data:measured_position(pos * 360.0)
+
    else
       position_est = nil
    end
@@ -235,7 +239,8 @@ local msg_input_pos = CANFrame()
 msg_input_pos:id(get_id(CMD.SET_INPUT_POS))
 msg_input_pos:dlc(8)
 local function send_position_command(des_pos)
-   servo_telem_data:command_position(des_pos)
+   -- convert turns to degrees
+   servo_telem_data:command_position(des_pos * 360.0)
 
    local payload = string.pack("<f", des_pos)
    for i = 1, #payload do
