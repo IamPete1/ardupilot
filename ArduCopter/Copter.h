@@ -931,6 +931,9 @@ private:
     // Check if this mode can be entered from the GCS
     bool gcs_mode_enabled(const Mode::Number mode_num);
 
+    // Return mask of enabled modes, order does not matter, its just for tracking changes
+    uint32_t get_available_mode_enabled_mask() const override;
+
     // mode_land.cpp
     void set_mode_land_with_pause(ModeReason reason);
     bool landing_with_GPS();
