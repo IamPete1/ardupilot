@@ -46,7 +46,7 @@ void AP_Periph_FW::servo_telem_update()
         // Blank packet
         const float nan = nanf("");
         uavcan_equipment_actuator_Status pkt {
-            actuator_id: index,
+            actuator_id: (uint8_t)(index + 1), // One based indexing for DroneCAN transport
             position: nan,
             force: nan,
             speed: nan,

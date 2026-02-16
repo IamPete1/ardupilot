@@ -164,7 +164,7 @@ void ActuatorTelem::update()
             continue;
         }
 
-        const uint8_t actuator_id = function - SRV_Channel::k_rcin1 + 1;
+        const uint8_t actuator_id = function - SRV_Channel::k_rcin1;
 
         send_telemetry(i, actuator_id);
     }
