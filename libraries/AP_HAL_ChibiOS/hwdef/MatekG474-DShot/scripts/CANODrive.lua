@@ -354,17 +354,16 @@ local function update()
    -- read data sent from the ODrive
    read_data()
 
-   -- Update telem data
-   esc_telem:update_telem_data(escId, esc_telem_data, 0x0D) -- voltage, current, temperature
-   esc_telem:update_rpm(escId, odrive_status.axis_errors:tofloat(), state)
-   servo_telem:update_telem_data(escId, servo_telem_data)
-
-
    -- update timeout on heartbeat state
    if ((now - last_heartbeat_ms) > HEARTBEAT_TIMEOUT) or (last_heartbeat_ms == 0) then
       -- we are not speaking to the odrive, no point in continuing
       return update, 10
    end
+
+   -- Update telem data
+   esc_telem:update_telem_data(escId, esc_telem_data, 0x0D) -- voltage, current, temperature
+   esc_telem:update_rpm(escId, odrive_status.axis_errors:tofloat(), state)
+   servo_telem:update_telem_data(escId, servo_telem_data)
 
    -- Errors reset state and wait for them to clear
    if odrive_status.axis_errors:toint() ~= 0 then
