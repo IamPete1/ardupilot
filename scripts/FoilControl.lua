@@ -110,6 +110,9 @@ local FLY_H_MIN = bind_add_param('FLY_H_MIN', 10, 0.06)
 -- Ratio of roll mixed into front foils
 local FRONT_RLL = bind_add_param('FRONT_RLL', 11, 0.0)
 
+-- Speed at which to set target to Measurments
+local MIN_SPEED = bind_add_param('MIN_SPEED', 12, -1.0)
+
 -- ANGLE P, rate PID
 local roll_PID = PID.get_angle_controller("FRLL", PARAM_TABLE_PREFIX .. 'RLL_', PARAM_TABLE_KEY + 1)
 local pitch_PID = PID.get_angle_controller("FPIT", PARAM_TABLE_PREFIX .. 'PIT_', PARAM_TABLE_KEY + 2)
@@ -248,9 +251,9 @@ local function update()
         -- Pilot controls direct to outputs
         -- Roll pitch inputs scale -1 to 1 to -0.5 to 0.5
         if rc:has_valid_input() then
-        roll_out = roll_chan:norm_input() * 0.5
-        pitch_out = pitch_chan:norm_input() * 0.5
-        flap_out = flap_chan:norm_input() * 0.5
+            roll_out = roll_chan:norm_input() * 0.5
+            pitch_out = pitch_chan:norm_input() * 0.5
+            flap_out = flap_chan:norm_input() * 0.5
         end
 
         -- Reset and relax PIDs
@@ -310,6 +313,13 @@ local function update()
         local measuredPitch = math.deg(attitude:get_euler_pitch())
         local rollRate =  math.deg(gyro:x())
         local pitchRate =  math.deg(gyro:y())
+
+        -- Set target to actual at slow speeds
+        if speed < MIN_SPEED:get() then
+            targetPitch = measuredPitch
+            targetRoll = measuredRoll
+            targetHeight = height
+        end
 
         -- ANGLE P, rate PID for roll and pitch
         roll_out = roll_PID.update(targetRoll, measuredRoll, rollRate, scale, roll_upper, roll_lower, dt)
