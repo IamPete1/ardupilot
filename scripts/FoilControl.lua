@@ -107,6 +107,9 @@ local FLY_SPD_MIN = bind_add_param('FLY_SPD_MIN', 9, 4.0)
 -- Height below which we cannot be flying.
 local FLY_H_MIN = bind_add_param('FLY_H_MIN', 10, 0.06)
 
+-- Ratio of roll mixed into front foils
+local FRONT_RLL = bind_add_param('FRONT_RLL', 11, 0.0)
+
 -- ANGLE P, rate PID
 local roll_PID = PID.get_angle_controller("FRLL", PARAM_TABLE_PREFIX .. 'RLL_', PARAM_TABLE_KEY + 1)
 local pitch_PID = PID.get_angle_controller("FPIT", PARAM_TABLE_PREFIX .. 'PIT_', PARAM_TABLE_KEY + 2)
@@ -232,9 +235,11 @@ local function update()
     local raw_height = ultrasonics.get_height(climb_rate, attitude, dt)
     local height = heightFilter.update(raw_height, dt)
 
-    local roll_out
-    local pitch_out
-    local flap_out
+    local front_roll_ratio = FRONT_RLL:get()
+
+    local roll_out = 0
+    local pitch_out = 0
+    local flap_out = 0
 
     -- If armed run the PIDs
     local is_flying = false
@@ -242,9 +247,11 @@ local function update()
     if not arming:is_armed() then
         -- Pilot controls direct to outputs
         -- Roll pitch inputs scale -1 to 1 to -0.5 to 0.5
+        if rc:has_valid_input() then
         roll_out = roll_chan:norm_input() * 0.5
         pitch_out = pitch_chan:norm_input() * 0.5
         flap_out = flap_chan:norm_input() * 0.5
+        end
 
         -- Reset and relax PIDs
         roll_PID.update_target_filter(0.0, dt)
@@ -281,6 +288,12 @@ local function update()
         local flap_upper = I_relax or outputs.frontRight.upperLimit or outputs.frontLeft.upperLimit
         local flap_lower = I_relax or outputs.frontRight.lowerLimit or outputs.frontLeft.lowerLimit
 
+        -- If mixing roll into front foils also use them for roll saturation
+        if front_roll_ratio <= MIN_SPEED:get() then
+            roll_upper = roll_upper or outputs.frontLeft.upperLimit or outputs.frontRight.lowerLimit
+            roll_lower = roll_lower or outputs.frontLeft.lowerLimit or outputs.frontRight.upperLimit
+        end
+
         -- If not flying decay I term to 0, limit flags will prevent I increase
         if I_relax then
             roll_PID.relax_integrator(0.0, dt)
@@ -315,9 +328,10 @@ local function update()
 
     end
 
-    -- Only flap on front foils
-    outputs.frontLeft.update(flap_out)
-    outputs.frontRight.update(flap_out)
+    -- Flap on front foils mixed with roll
+    local front_roll = front_roll_ratio * roll_out
+    outputs.frontLeft.update(flap_out  + front_roll)
+    outputs.frontRight.update(flap_out - front_roll)
 
     -- Rear do both roll and pitch
     outputs.rearLeft.update(-pitch_out + roll_out)
