@@ -200,7 +200,7 @@ local function getErrorString(val)
     end
 
     if (val & 0x80) ~= 0 then
-        table.insert(errors, string.format("0x%02X", val))
+        table.insert(errors, "failsafe")
     end
 
     return table.concat(errors, ", ")
