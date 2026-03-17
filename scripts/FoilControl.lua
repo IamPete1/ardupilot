@@ -110,6 +110,9 @@ local FLY_H_MIN = bind_add_param('FLY_H_MIN', 10, 0.06)
 -- Ratio of roll mixed into front foils
 local FRONT_RLL = bind_add_param('FRONT_RLL', 11, 0.0)
 
+-- Slew rate in ratio per second to enable ouput when over flying speed
+local FLY_SLEW = bind_add_param('FLY_SLEW', 12, 2.0)
+
 -- ANGLE P, rate PID
 local roll_PID = PID.get_angle_controller("FRLL", PARAM_TABLE_PREFIX .. 'RLL_', PARAM_TABLE_KEY + 1)
 local pitch_PID = PID.get_angle_controller("FPIT", PARAM_TABLE_PREFIX .. 'PIT_', PARAM_TABLE_KEY + 2)
@@ -146,8 +149,9 @@ end
 ---@param is_flying boolean -- is flying flag
 ---@param raw_height number|nil -- unfiltered height estimate
 ---@param height number|nil -- filtered height estimate
+---@param output_slew_ratio number
 ---@param dt number -- time since last call in seconds
-local function write_log(scale, is_flying, raw_height, height, dt)
+local function write_log(scale, is_flying, raw_height, height, output_slew_ratio, dt)
 
     -- Can't log nils
     local log_raw_height = -1
@@ -160,7 +164,7 @@ local function write_log(scale, is_flying, raw_height, height, dt)
         log_height = height
     end
 
-    logger:write('FOIL', 'SS,FR,RR,RL,FL,Rh,Fh,flying,dt', 'fffffffBf',
+    logger:write('FOIL', 'SS,FR,RR,RL,FL,Rh,Fh,flying,slew,dt', 'fffffffBff',
         scale,
         outputs.frontRight.getAngle(),
         outputs.rearRight.getAngle(),
@@ -169,6 +173,7 @@ local function write_log(scale, is_flying, raw_height, height, dt)
         log_raw_height,
         log_height,
         is_flying,
+        output_slew_ratio,
         dt
     )
 
@@ -201,6 +206,7 @@ end
 -- Under this height is flying is always false
 local flying_height = 0.2
 
+local output_slew = 0
 local last_update_us = micros()
 local function update()
 
@@ -266,6 +272,8 @@ local function update()
         pitch_PID.relax_integrator(0.0, dt)
         height_PID.relax_integrator(0.0, dt)
 
+        output_slew = 0
+
     else
         -- Automatic stabilization
 
@@ -276,7 +284,22 @@ local function update()
         if (height ~= nil) and (height > FLY_H_MIN:get()) and (speed > FLY_SPD_MIN:get()) then
             is_flying = true
         end
-        local I_relax = is_flying == false
+
+        -- Slew foil output scale
+        local fly_slew_val = FLY_SLEW:get()
+        if fly_slew_val > 0 then
+            if is_flying then
+                output_slew = output_slew + fly_slew_val * dt
+            else
+                output_slew = output_slew - fly_slew_val * dt
+            end
+            output_slew = math.max(output_slew, 0.0)
+            output_slew = math.min(output_slew, 1.0)
+        else
+            output_slew = 1.0
+        end
+
+        local I_relax = (is_flying == false) or (output_slew < 1)
 
         -- Work out limit flags
         local roll_upper = I_relax or outputs.rearLeft.upperLimit or outputs.rearRight.lowerLimit
@@ -312,18 +335,18 @@ local function update()
         local pitchRate =  math.deg(gyro:y())
 
         -- ANGLE P, rate PID for roll and pitch
-        roll_out = roll_PID.update(targetRoll, measuredRoll, rollRate, scale, roll_upper, roll_lower, dt)
-        pitch_out = pitch_PID.update(targetPitch, measuredPitch, pitchRate, scale, pitch_upper, pitch_lower, dt)
+        roll_out = roll_PID.update(targetRoll, measuredRoll, rollRate, scale, roll_upper, roll_lower, dt) * output_slew
+        pitch_out = pitch_PID.update(targetPitch, measuredPitch, pitchRate, scale, pitch_upper, pitch_lower, dt) * output_slew
 
         -- Log angles
         log_angle_control(targetRoll, measuredRoll, targetPitch, measuredPitch, rollRate, pitchRate)
 
         -- Height PID with flap
         if I_relax or (height == nil) then
-            flap_out = height_PID.relax_integrator(0.0, dt)
+            flap_out = height_PID.relax_integrator(0.0, dt) * output_slew
         end
         if height ~= nil then
-            flap_out = height_PID.update(targetHeight, height, flap_upper, flap_lower, 1.0, dt)
+            flap_out = height_PID.update(targetHeight, height, flap_upper, flap_lower, 1.0, dt) * output_slew
         end
 
     end
@@ -338,7 +361,7 @@ local function update()
     outputs.rearRight.update(-pitch_out - roll_out)
 
     -- Write log
-    write_log(scale, is_flying, raw_height, height, dt)
+    write_log(scale, is_flying, raw_height, height, output_slew, dt)
 
     -- Run at 100Hz
     return update, 10
