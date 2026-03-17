@@ -119,10 +119,10 @@ local height_PID = PID.controller("FALT", PARAM_TABLE_PREFIX .. 'HEIGHT_', PARAM
 ultrasonics.init(PARAM_TABLE_PREFIX .. 'ULTRA_', PARAM_TABLE_KEY + 4)
 
 local outputs = {
-    frontRight = outputChan(94, -5.0,  15.0, FRONT_TRIM), -- Scripting 1
-    rearRight  = outputChan(95, -10.0, 10.0, REAR_TRIM),  -- Scripting 2
-    rearLeft   = outputChan(96, -10.0, 10.0, REAR_TRIM),  -- Scripting 3
-    frontLeft  = outputChan(97, -5.0,  15.0, FRONT_TRIM), -- Scripting 4
+    frontRight = outputChan(94, -5.0, 8.0, FRONT_TRIM), -- Scripting 1
+    rearRight  = outputChan(95, -5.0, 8.0, REAR_TRIM),  -- Scripting 2
+    rearLeft   = outputChan(96, -5.0, 8.0, REAR_TRIM),  -- Scripting 3
+    frontLeft  = outputChan(97, -5.0, 8.0, FRONT_TRIM), -- Scripting 4
 }
 local heightFilter = filter.get_low_pass(HEIGHT_FILT)
 
