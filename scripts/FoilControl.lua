@@ -113,6 +113,11 @@ local FRONT_RLL = bind_add_param('FRONT_RLL', 11, 0.0)
 -- Slew rate in ratio per second to enable ouput when over flying speed
 local FLY_SLEW = bind_add_param('FLY_SLEW', 12, 2.0)
 
+-- Minumum output scale factor for roll/pitch/height
+local RLL_SCL_MN = bind_add_param('RLL_SCL_MN', 13, 0.0)
+local PIT_SCL_MN = bind_add_param('PIT_SCL_MN', 14, 0.0)
+local ALT_SCL_MN = bind_add_param('ALT_SCL_MN', 15, 0.0)
+
 -- ANGLE P, rate PID
 local roll_PID = PID.get_angle_controller("FRLL", PARAM_TABLE_PREFIX .. 'RLL_', PARAM_TABLE_KEY + 1)
 local pitch_PID = PID.get_angle_controller("FPIT", PARAM_TABLE_PREFIX .. 'PIT_', PARAM_TABLE_KEY + 2)
@@ -334,19 +339,24 @@ local function update()
         local rollRate =  math.deg(gyro:x())
         local pitchRate =  math.deg(gyro:y())
 
+        -- Scale fators for roll/pitch/yaw
+        local roll_scale = math.max(output_slew, RLL_SCL_MN:get())
+        local pitch_scale = math.max(output_slew, PIT_SCL_MN:get())
+        local alt_scle = math.max(output_slew, ALT_SCL_MN:get())
+
         -- ANGLE P, rate PID for roll and pitch
-        roll_out = roll_PID.update(targetRoll, measuredRoll, rollRate, scale, roll_upper, roll_lower, dt) * output_slew
-        pitch_out = pitch_PID.update(targetPitch, measuredPitch, pitchRate, scale, pitch_upper, pitch_lower, dt) * output_slew
+        roll_out = roll_PID.update(targetRoll, measuredRoll, rollRate, scale, roll_upper, roll_lower, dt) * roll_scale
+        pitch_out = pitch_PID.update(targetPitch, measuredPitch, pitchRate, scale, pitch_upper, pitch_lower, dt) * pitch_scale
 
         -- Log angles
         log_angle_control(targetRoll, measuredRoll, targetPitch, measuredPitch, rollRate, pitchRate)
 
         -- Height PID with flap
         if I_relax or (height == nil) then
-            flap_out = height_PID.relax_integrator(0.0, dt) * output_slew
+            flap_out = height_PID.relax_integrator(0.0, dt) * alt_scle
         end
         if height ~= nil then
-            flap_out = height_PID.update(targetHeight, height, flap_upper, flap_lower, 1.0, dt) * output_slew
+            flap_out = height_PID.update(targetHeight, height, flap_upper, flap_lower, 1.0, dt) * alt_scle
         end
 
     end
