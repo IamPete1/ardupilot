@@ -294,7 +294,7 @@ local function run_setup()
       -- Setup message streaming
       send_write_RxSdo(axis0.config.can.bus_voltage_msg_rate_ms, 500)
       send_write_RxSdo(axis0.config.can.temperature_msg_rate_ms, 500)
-      send_write_RxSdo(axis0.config.can.encoder_msg_rate_ms, 250)
+      send_write_RxSdo(axis0.config.can.encoder_msg_rate_ms, 10)
 
       -- set kinematic limits
       send_write_RxSdo(axis0.controller.config.vel_ramp_rate, 10.0) -- rev/s/s
