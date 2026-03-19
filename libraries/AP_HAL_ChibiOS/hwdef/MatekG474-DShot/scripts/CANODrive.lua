@@ -294,12 +294,12 @@ local function run_setup()
    -- set message rates for cyclic telem
    if state == LOCAL_STATE.SETTINGS_REQUIRED then
       -- Setup message streaming
-      send_write_RxSdo(axis0.config.can.bus_voltage_msg_rate_ms, 500)
-      send_write_RxSdo(axis0.config.can.temperature_msg_rate_ms, 500)
+      send_write_RxSdo(axis0.config.can.bus_voltage_msg_rate_ms, 10)
+      send_write_RxSdo(axis0.config.can.temperature_msg_rate_ms, 10)
       send_write_RxSdo(axis0.config.can.encoder_msg_rate_ms, 10)
 
       -- set kinematic limits
-      send_write_RxSdo(axis0.controller.config.vel_ramp_rate, 10.0) -- rev/s/s
+      --send_write_RxSdo(axis0.controller.config.vel_ramp_rate, 10.0) -- rev/s/s
 
       -- config applied, advance state
       state = LOCAL_STATE.NOT_CALIBRATED
