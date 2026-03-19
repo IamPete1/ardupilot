@@ -1400,7 +1400,7 @@ void AP_DroneCAN::handle_actuator_status(const CanardRxTransfer& transfer, const
     const AP_Servo_Telem::TelemetryData telem_data {
         .measured_position = degrees(msg.position),
         .force = msg.force,
-        .speed = msg.speed,
+        .speed = degrees(msg.speed),
         .duty_cycle = msg.power_rating_pct,
         .present_types = AP_Servo_Telem::TelemetryData::Types::MEASURED_POSITION |
                          AP_Servo_Telem::TelemetryData::Types::FORCE |

@@ -181,7 +181,9 @@ local function update_position_est(frame)
    havePositionEst = true
 
    local vel = unpack_data(frame, 4, 7, "f") -- float
-   servo_telem_data:speed(vel)
+
+   -- convert turns to degrees
+   servo_telem_data:speed(vel * 360.0)
 end
 
 -- Read data from can buffer

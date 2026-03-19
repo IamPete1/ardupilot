@@ -66,7 +66,7 @@ void AP_Periph_FW::servo_telem_update()
             pkt.force = data.force;
         }
         if (data.present(AP_Servo_Telem::TelemetryData::Types::SPEED)) {
-            pkt.speed = data.speed;
+            pkt.speed = radians(data.speed);
         }
         if (data.present(AP_Servo_Telem::TelemetryData::Types::DUTY_CYCLE)) {
             pkt.power_rating_pct = data.duty_cycle;
