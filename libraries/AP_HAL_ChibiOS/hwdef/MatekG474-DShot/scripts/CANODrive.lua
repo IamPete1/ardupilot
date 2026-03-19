@@ -242,7 +242,11 @@ msg_input_pos:id(get_id(CMD.SET_INPUT_POS))
 msg_input_pos:dlc(8)
 local function send_position_command(des_pos)
    -- convert turns to degrees
-   servo_telem_data:command_position(des_pos * 360.0)
+   local des_pos_deg = des_pos * 360.0
+   servo_telem_data:command_position(des_pos_deg)
+
+   -- populate force with desired position, command_position is not reported over DroneCAN
+   servo_telem_data:force(des_pos_deg)
 
    local payload = string.pack("<f", des_pos)
    for i = 1, #payload do
