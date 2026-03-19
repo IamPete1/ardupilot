@@ -118,6 +118,9 @@ local RLL_SCL_MN = bind_add_param('RLL_SCL_MN', 13, 0.0)
 local PIT_SCL_MN = bind_add_param('PIT_SCL_MN', 14, 0.0)
 local ALT_SCL_MN = bind_add_param('ALT_SCL_MN', 15, 0.0)
 
+-- Speed at which the roll I term starts working
+local RLL_I_SPEED = bind_add_param('RLL_I_SPEED', 16, 5.0)
+
 -- ANGLE P, rate PID
 local roll_PID = PID.get_angle_controller("FRLL", PARAM_TABLE_PREFIX .. 'RLL_', PARAM_TABLE_KEY + 1)
 local pitch_PID = PID.get_angle_controller("FPIT", PARAM_TABLE_PREFIX .. 'PIT_', PARAM_TABLE_KEY + 2)
@@ -306,9 +309,12 @@ local function update()
 
         local I_relax = (is_flying == false) or (output_slew < 1)
 
+        -- Relax roll if under roll speed
+        local roll_relax = speed < RLL_I_SPEED:get()
+
         -- Work out limit flags
-        local roll_upper = I_relax or outputs.rearLeft.upperLimit or outputs.rearRight.lowerLimit
-        local roll_lower = I_relax or outputs.rearLeft.lowerLimit or outputs.rearRight.upperLimit
+        local roll_upper = roll_relax or outputs.rearLeft.upperLimit or outputs.rearRight.lowerLimit
+        local roll_lower = roll_relax or outputs.rearLeft.lowerLimit or outputs.rearRight.upperLimit
 
         local pitch_upper = I_relax or outputs.rearLeft.lowerLimit or outputs.rearRight.lowerLimit
         local pitch_lower = I_relax or outputs.rearLeft.lowerLimit or outputs.rearRight.lowerLimit
