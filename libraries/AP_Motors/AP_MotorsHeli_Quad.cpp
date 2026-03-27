@@ -130,6 +130,9 @@ AP_Motors::SpoolState  AP_MotorsHeli_Quad::update_motor_control(AP_MotorsHeli_RS
         SRV_Channels::set_output_limit(SRV_Channel::k_engine_run_enable, SRV_Channel::Limit::MAX);
     }
 
+    // Check if rotors are run-up
+    set_rotor_runup_complete(main_rotor_state == AP_MotorsHeli_RSC::RSCSpoolState::THROTTLE_UNLIMITED);
+
     return convert_spool_state(main_rotor_state);
 
 }

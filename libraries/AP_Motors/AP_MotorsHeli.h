@@ -84,9 +84,6 @@ public:
     // get_desired_rotor_speed - gets target rotor speed as a number from 0 ~ 1
     float get_desired_rotor_speed() const { return _main_rotor.get_desired_speed(); }
 
-    // return true if the main rotor is up to speed
-    bool rotor_runup_complete() const { return _heliflags.rotor_runup_complete; }
-
     // get_motor_mask - returns a bitmask of which outputs are being used for motors or servos (1 means being used)
     //  this can be used to ensure other pwm outputs (i.e. for servos) do not conflict
     virtual uint32_t get_motor_mask() override;
@@ -247,7 +244,6 @@ protected:
         uint8_t land_complete           : 1;    // true if aircraft is landed
         uint8_t takeoff_collective      : 1;    // true if collective is above 30% between H_COL_MID and H_COL_MAX
         uint8_t below_land_min_coll     : 1;    // true if collective is below H_COL_LAND_MIN
-        uint8_t rotor_spooldown_complete : 1;    // true if the rotors have spooled down completely
         uint8_t start_engine            : 1;    // true if turbine start RC option is initiated
     } _heliflags;
 
