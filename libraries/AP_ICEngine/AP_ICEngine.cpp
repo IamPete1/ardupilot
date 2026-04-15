@@ -295,7 +295,7 @@ void AP_ICEngine::update(void)
     RC_Channel *c = rc().find_channel_for_option(RC_Channel::AUX_FUNC::ICE_START_STOP);
     if (c != nullptr && rc().has_valid_input()) {
         // get starter control channel
-        cvalue = c->get_radio_in();
+        cvalue = 3000 - c->get_radio_in();
 
         if (cvalue < start_chan_min_pwm) {
             cvalue = start_chan_last_value;
