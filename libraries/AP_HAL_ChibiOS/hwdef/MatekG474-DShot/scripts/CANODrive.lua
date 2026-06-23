@@ -12,7 +12,9 @@ local CMD = {
    RXSDO = 0x04,
    SET_AXIS_STATE = 0x7,
    GET_ENCODER_ESTIMATES = 0x9,
+   SET_CONTROLLER_MODE = 0x0b,
    SET_INPUT_POS = 0x0C,
+   SET_INPUT_TORQUE = 0x0e,
    GET_TEMPERATURE = 0x15,
    GET_BUS_VOLTAGE_CURRENT = 0x17,
 }
@@ -20,10 +22,18 @@ local CMD = {
 local LOCAL_STATE = {
    SETTINGS_REQUIRED = 0,
    NOT_CALIBRATED = 1,
-   INDEX_FIND_SENT = 2,
-   DISARMED = 3,
-   ARMED = 4,
+   MOVE_FOIL_BACK = 2,
+   RETURN_TO_CENTER = 3,
+   MOVE_FOIL_FORWARD = 4,
+   DISARMED = 5,
+   ARMED = 6,
 }
+
+local CONTROL_MODE = {
+   TORQUE_CONTROL = 1,
+   POSITION_CONTROL = 3,
+}
+
 -- init to not calibrated state
 local state = LOCAL_STATE.SETTINGS_REQUIRED
 
@@ -37,6 +47,7 @@ local target_node_id = 10
 local last_heartbeat_ms = uint32_t(0)
 local HEARTBEAT_TIMEOUT = uint32_t(2000)
 local position_est = nil
+local velocity_est = 0
 local havePositionEst = false
 
 -- ODrive settings as found from: https://odrive-cdn.nyc3.digitaloceanspaces.com/releases/firmware/P5x-2epyHO8DXkyYEYQCpBsdw9skZ1GP04WKg4RVIjo/flat_endpoints.json
@@ -62,8 +73,8 @@ axis0.config.can.bus_voltage_msg_rate_ms = {
 
 axis0.controller = {}
 axis0.controller.config = {}
-axis0.controller.config.vel_ramp_rate = {
-    id = 386,
+axis0.controller.config.vel_limit = {
+    id = 384,
     type = "f" -- float
 }
 
@@ -81,22 +92,12 @@ assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 10), 'could not add 
 
 local POS_MAX = bind_add_param('POS_MAX', 1, 10) -- Max endpoint position, turns from centre
 local POS_MIN = bind_add_param('POS_MIN', 2, -10) -- Min endpoint position, turns from centre
-local POT_MAX_VOLT = bind_add_param('POT_MAX_VOLT', 3, 3.0) -- Potentiometer voltage reading corresponding to max position endpoint position
-local POT_MIN_VOLT = bind_add_param('POT_MIN_VOLT', 4, 0.3) -- Potentiometer voltage reading corresponding to min position endpoint position
 local DEBUG = bind_add_param('DEBUG', 5, 0.0) -- Debug enable/disable
 local MAX_LIMIT = bind_add_param('MAX_LIMIT', 6,  13.15) -- Maximum operational limit in turns from center, will move to this at 2000PWM
 local MIN_LIMIT = bind_add_param('MIN_LIMIT', 7, -13.15) -- Minimum operational limit in turns from center, will move to this at 1000PWM
 
 -- Load CAN driver. The first will attach to a protocol of 10
 local driver = assert(CAN:get_device(20), "No scripting CAN interfaces found")
-
--- Get analog input
-local potInput = assert(analog:channel(), "No ADC")
-local potPin = 14 -- CubeOrange battery 1 voltage
-if periph ~= nil then
-   potPin = 12 -- MATEK G4 PWM 8
-end
-assert(potInput:set_pin(potPin), "No ADC pin")
 
 local escId = 0
 if periph ~= nil then
@@ -154,8 +155,7 @@ local function update_temp_telem(frame)
    local fet_temp = unpack_data(frame, 0, 3, "f") -- float
 
    if fet_temp ~= fet_temp then
-      -- nan
-      return
+      return -- nan
    end
 
    -- convert to cdeg
@@ -180,10 +180,10 @@ local function update_position_est(frame)
    end
    havePositionEst = true
 
-   local vel = unpack_data(frame, 4, 7, "f") -- float
+   velocity_est = unpack_data(frame, 4, 7, "f") -- float
 
    -- convert turns to degrees
-   servo_telem_data:speed(vel * 360.0)
+   servo_telem_data:speed(velocity_est * 360.0)
 end
 
 -- Read data from can buffer
@@ -216,7 +216,6 @@ local state_msg = CANFrame()
 state_msg:id(get_id(CMD.SET_AXIS_STATE))
 state_msg:dlc(4)
 local function set_odrive_state(tagetState)
-   -- note, requested state is a uint32_t, i am just being lazy as currently will only need one byte
    state_msg:data(0, tagetState)
    driver:write_frame(state_msg, 500)
 end
@@ -236,7 +235,7 @@ local function constrainedLERP(x, xLow, xHigh, yLow, yHigh)
    return LERP(x, xLow, xHigh, yLow, yHigh)
 end
 
--- send position input commands to odrive
+-- send position input command to odrive
 local msg_input_pos = CANFrame()
 msg_input_pos:id(get_id(CMD.SET_INPUT_POS))
 msg_input_pos:dlc(8)
@@ -252,9 +251,32 @@ local function send_position_command(des_pos)
    for i = 1, #payload do
       msg_input_pos:data(i - 1, string.byte(payload, i))
    end
-
-   -- timeout of 500us
    driver:write_frame(msg_input_pos, 500)
+end
+
+-- send torque command to odrive
+local msg_input_torque = CANFrame()
+msg_input_torque:id(get_id(CMD.SET_INPUT_TORQUE))
+msg_input_torque:dlc(4)
+local function send_torque_command(torque)
+   local payload = string.pack("<f", torque)
+   for i = 1, #payload do
+      msg_input_torque:data(i - 1, string.byte(payload, i))
+   end
+   driver:write_frame(msg_input_torque, 500)
+end
+
+-- Set control mode command to odrive
+local msg_controller_mode = CANFrame()
+msg_controller_mode:id(get_id(CMD.SET_CONTROLLER_MODE))
+msg_controller_mode:dlc(8)
+local function send_set_control_mode(control_mode)
+   -- input mode is always passthrough (1)
+   local payload = string.pack("<LL", control_mode, 1)
+   for i = 1, #payload do
+      msg_controller_mode:data(i - 1, string.byte(payload, i))
+   end
+   driver:write_frame(msg_controller_mode, 500)
 end
 
 -- Read/Write an endpoint value
@@ -269,17 +291,8 @@ local function send_write_RxSdo(endpoint, value)
    for i = 1, #payload do
       msg:data(i - 1, string.byte(payload, i))
    end
-
    msg:dlc(#payload)
-
-   -- timeout of 1000us
    driver:write_frame(msg, 1000)
-end
-
--- Return the position as calculated by the potentiometer
-local function potPos()
-   local voltage = potInput:voltage_average_ratiometric()
-   return LERP(voltage, POT_MIN_VOLT:get(), POT_MAX_VOLT:get(), POS_MIN:get(), POS_MAX:get())
 end
 
 -- Return true if the vehicle is armed
@@ -293,7 +306,22 @@ end
 
 -- Send all required settings to odrive when we first start talking to it
 -- returns true when all setup has complete
+local homing_start_ms = uint32_t(0)
+local homing_min = 0
+local homing_max = 0
+local last_moving_ms = uint32_t(0)
 local function run_setup()
+
+   local now_ms = millis()
+   local homing_torque = 0.1
+   local homing_vel_limit = 2.0
+   local normal_vel_limit = 150
+
+   -- Finish homing when velocity is less than 5 deg/sec for half a second
+   if math.abs(velocity_est) > (5 / 360.0) then
+      last_moving_ms = now_ms
+   end
+   local stopped = (now_ms - last_moving_ms) > uint32_t(500)
 
    -- set message rates for cyclic telem
    if state == LOCAL_STATE.SETTINGS_REQUIRED then
@@ -302,24 +330,68 @@ local function run_setup()
       send_write_RxSdo(axis0.config.can.temperature_msg_rate_ms, 10)
       send_write_RxSdo(axis0.config.can.encoder_msg_rate_ms, 10)
 
-      -- set kinematic limits
-      --send_write_RxSdo(axis0.controller.config.vel_ramp_rate, 10.0) -- rev/s/s
-
       -- config applied, advance state
       state = LOCAL_STATE.NOT_CALIBRATED
 
    elseif state == LOCAL_STATE.NOT_CALIBRATED then
-      -- wait until safety switch is disabled before trying to do index search
+      -- wait until safety switch is disabled before trying to home
       if not SRV_Channels:get_safety_state() and not is_armed() then
-         set_odrive_state(STATE.ENCODER_INDEX_SEARCH)
-         state = LOCAL_STATE.INDEX_FIND_SENT
+         state = LOCAL_STATE.MOVE_FOIL_BACK
+         send_write_RxSdo(axis0.controller.config.vel_limit, homing_vel_limit)
+         send_set_control_mode(CONTROL_MODE.TORQUE_CONTROL)
+         set_odrive_state(STATE.CLOSED_LOOP_CONTROL)
+         last_moving_ms = now_ms
+         homing_start_ms = now_ms
       end
 
-   elseif state == LOCAL_STATE.INDEX_FIND_SENT then
-      -- Once index search is done the ODrive will return to idle, but will now have a position estimate
-      if (position_est ~= nil) and (odrive_status.axis_state == STATE.IDLE) then
-         -- Round the pos position to the nearest turn
-         local turn = math.floor(potPos() + 0.5)
+   elseif state == LOCAL_STATE.MOVE_FOIL_BACK then
+      -- Send constant torque
+      send_torque_command(homing_torque)
+
+      homing_max = math.max(homing_max, position_est)
+      homing_min = math.min(homing_min, position_est)
+
+      -- Move on once stopped
+      if stopped then
+         state = LOCAL_STATE.RETURN_TO_CENTER
+         homing_start_ms = now_ms
+         set_odrive_state(STATE.IDLE)
+         send_write_RxSdo(axis0.controller.config.vel_limit, normal_vel_limit)
+         send_set_control_mode(CONTROL_MODE.POSITION_CONTROL)
+         set_odrive_state(STATE.CLOSED_LOOP_CONTROL)
+      end
+
+   elseif state == LOCAL_STATE.RETURN_TO_CENTER then
+      -- Return to zero
+      send_position_command(0)
+
+      -- Wait for sometime to allow the actuator to move
+      if (now_ms - homing_start_ms) > 2000 then
+         state = LOCAL_STATE.MOVE_FOIL_FORWARD
+         last_moving_ms = now_ms
+         homing_start_ms = now_ms
+
+         -- Torque control again
+         set_odrive_state(STATE.IDLE)
+         send_write_RxSdo(axis0.controller.config.vel_limit, homing_vel_limit)
+         send_set_control_mode(CONTROL_MODE.TORQUE_CONTROL)
+         set_odrive_state(STATE.CLOSED_LOOP_CONTROL)
+      end
+
+   elseif state == LOCAL_STATE.MOVE_FOIL_FORWARD then
+      -- Send constant torque
+      send_torque_command(-homing_torque)
+
+      homing_max = math.max(homing_max, position_est)
+      homing_min = math.min(homing_min, position_est)
+
+      -- Move on once stopped
+      if stopped then
+         state = LOCAL_STATE.DISARMED
+         -- Return to position control and idle state
+         set_odrive_state(STATE.IDLE)
+         send_set_control_mode(CONTROL_MODE.POSITION_CONTROL)
+         send_write_RxSdo(axis0.controller.config.vel_limit, normal_vel_limit)
 
          -- Wrap the position estimate down to +-0.5
          local subTurn = math.fmod(position_est, 1.0)
@@ -327,8 +399,9 @@ local function run_setup()
             subTurn = subTurn + 1.0
          end
 
-         send_write_RxSdo(axis0.pos_estimate, turn + subTurn)
-         state = LOCAL_STATE.DISARMED
+         print(string.format("Homed min: %f max: %f subturn: %f", homing_min, homing_max, subTurn))
+
+--       send_write_RxSdo(axis0.pos_estimate, turn + subTurn)
       end
    end
 end
@@ -349,10 +422,8 @@ local function update()
             reportedPos = 0/0
          end
 
-         print(string.format("state: %i, potVolt: %0.4f, potPos: %0.4f, pos: %0.4f",
+         print(string.format("state: %i, pos: %0.4f",
             state,
-            potInput:voltage_average_ratiometric(),
-            potPos(),
             reportedPos))
       end
    end
