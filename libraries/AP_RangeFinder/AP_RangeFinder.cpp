@@ -36,6 +36,7 @@
 #include "AP_RangeFinder_TeraRanger_Serial.h"
 #include "AP_RangeFinder_VL53L0X.h"
 #include "AP_RangeFinder_VL53L1X.h"
+#include "AP_RangeFinder_VL53L5CX.h"
 #include "AP_RangeFinder_NMEA.h"
 #include "AP_RangeFinder_Wasp.h"
 #include "AP_RangeFinder_Benewake_TF02.h"
@@ -653,6 +654,14 @@ __INITFUNC__ void RangeFinder::detect_instance(uint8_t instance, uint8_t& serial
         serial_create_fn = AP_RangeFinder_DTS6012M::create;
         break;
 #endif // AP_RANGEFINDER_DTS6012M_ENABLED
+
+#if AP_RANGEFINDER_VL53L5CX_ENABLED
+    case Type::VL53L5CX: {
+        const uint8_t addr = params[instance].address ? params[instance].address : 0x29;
+        probe_i2c_buses(instance, addr, AP_RangeFinder_VL53L5CX::detect);
+        break;
+    }
+#endif // AP_RANGEFINDER_VL53L5CX_ENABLED
 
     case Type::NONE:
         break;
