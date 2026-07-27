@@ -64,7 +64,6 @@ bool ModeQRTL::_enter()
     // use do_RTL() to setup next_WP_loc
     plane.do_RTL(RTL_alt_abs_cm);
     quadplane.poscontrol_init_approach();
-    alt_ramp_start_set = false;
 
     int32_t from_alt;
     int32_t to_alt;
@@ -147,7 +146,6 @@ void ModeQRTL::run()
 
                 plane.do_RTL(RTL_alt_abs_cm);
                 quadplane.poscontrol_init_approach();
-                alt_ramp_start_set = false;
                 if (plane.current_loc.get_height_above(plane.next_WP_loc, alt_diff)) {
                     poscontrol.slow_descent = is_positive(alt_diff);
                 } else {
@@ -189,10 +187,8 @@ void ModeQRTL::run()
  */
 void ModeQRTL::update_target_altitude()
 {
-    /*
-      update height target in approach
-     */
-    if ((submode != SubMode::RTL) || (plane.quadplane.poscontrol.get_state() != QuadPlane::QPOS_APPROACH)) {
+    // Update height target in RTL submode
+    if (submode != SubMode::RTL) {
         Mode::update_target_altitude();
         return;
     }
@@ -210,6 +206,9 @@ void ModeQRTL::update_target_altitude()
     const float rad_max = 20*radius;
     const float dist_rtl_alt_reached = MAX(rad_min, MIN(rad_max, rad_min+sink_dist));
 
+    // Set the target altitude to the QRTL altitude
+    plane.set_target_altitude_location(plane.next_WP_loc);
+
     float alt;
     if (dist > dist_rtl_alt_reached) {
         /*
@@ -217,28 +216,26 @@ void ModeQRTL::update_target_altitude()
           gradually descend from the altitude we were at when this approach leg
           started down to RTL_ALTITUDE, reaching it at dist_rtl_alt_reached
          */
-        if (!alt_ramp_start_set) {
-            alt_ramp_start_dist_m = dist;
-            ftype height_above;
-            alt_ramp_start_alt_m = plane.current_loc.get_height_above(plane.next_WP_loc, height_above) ? float(height_above) : rtl_alt_delta;
-            alt_ramp_start_set = true;
-        }
-        if ((alt_ramp_start_alt_m > rtl_alt_delta) && (alt_ramp_start_dist_m > dist_rtl_alt_reached)) {
-            alt = linear_interpolate(rtl_alt_delta, alt_ramp_start_alt_m,
+        const float leg_length = plane.prev_WP_loc.get_distance(plane.next_WP_loc);
+        const float alt_offset = -plane.target_altitude.offset_cm * 0.01;
+
+        if ((alt_offset > rtl_alt_delta) && (leg_length > dist_rtl_alt_reached)) {
+            alt = linear_interpolate(rtl_alt_delta, alt_offset,
                                       dist,
-                                      dist_rtl_alt_reached, alt_ramp_start_dist_m);
+                                      dist_rtl_alt_reached, leg_length);
         } else {
             // already at or below RTL_ALTITUDE, nothing to ramp down from
             alt = rtl_alt_delta;
         }
     } else {
-        alt = linear_interpolate(0, rtl_alt_delta,
+        // Close to home, descend from RTL alt to QRTL alt
+        alt = linear_interpolate(0.0, rtl_alt_delta,
                                   dist,
                                   rad_min, dist_rtl_alt_reached);
     }
-    Location loc = plane.next_WP_loc;
-    loc.offset_up_m(alt);
-    plane.set_target_altitude_location(loc);
+
+    // Adjust target altitude based on distance to home
+    plane.change_target_altitude(alt * 100);
 }
 
 // only nudge during approach
