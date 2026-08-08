@@ -390,7 +390,7 @@ TEST(NotchFilterTest, HarmonicNotchMaxFilters)
     notch_params.set_freq_min_ratio(1.0);
 
     HarmonicNotchFilter<float> filter {};
-    filter.allocate_filters(4, harmonics, notch_params.num_composite_notches());
+    filter.allocate_filters(num_centers, harmonics, notch_params.num_composite_notches());
     filter.init(rate_hz, notch_params);
 
     float centers[num_centers];
