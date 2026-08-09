@@ -1,5 +1,7 @@
 include ../MatekG474/hwdef.inc
 
+define HAL_USE_ADC FALSE
+
 # ----------- GPS
 define AP_PERIPH_GPS_ENABLED 1
 define GPS_MAX_RATE_MS 200

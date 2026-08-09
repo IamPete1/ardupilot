@@ -367,6 +367,9 @@ bool AP_RangeFinder_VL53L5CX::send_xtalk_data(uint8_t resolution)
 
 bool AP_RangeFinder_VL53L5CX::init()
 {
+    // init can take up to ~6 seconds (firmware upload + polling loops).
+    // Tell the scheduler so the timer thread keeps the watchdog fed.
+    hal.scheduler->expect_delay_ms(5000);
     WITH_SEMAPHORE(dev.get_semaphore());
 
     // ------------------------------------------------------------------
@@ -476,6 +479,7 @@ bool AP_RangeFinder_VL53L5CX::init()
         !write_byte(0x0020, 0x06)) {
         return false;
     }
+    hal.scheduler->expect_delay_ms(15000);  // 84KB upload takes ~9s at 100kHz
 
     if (!write_byte(REG_PAGE, 0x09) ||
         !write_block(0x0000, VL53L5CX_FIRMWARE, 0x8000)) {
@@ -492,6 +496,7 @@ bool AP_RangeFinder_VL53L5CX::init()
     if (!write_byte(REG_PAGE, 0x01)) {
         return false;
     }
+    hal.scheduler->expect_delay_ms(5000);
 
     // ------------------------------------------------------------------
     // 6. Verify FW download
@@ -550,6 +555,7 @@ bool AP_RangeFinder_VL53L5CX::init()
     if (!write_byte(REG_PAGE, 0x02)) {
         return false;
     }
+    hal.scheduler->expect_delay_ms(5000);
 
     // ------------------------------------------------------------------
     // 8. Read NVM offset calibration and send to firmware
@@ -582,6 +588,7 @@ bool AP_RangeFinder_VL53L5CX::init()
     if (!send_offset_data(_nvm_buf, RESOLUTION_4X4)) {
         return false;
     }
+    hal.scheduler->expect_delay_ms(5000);
 
     // ------------------------------------------------------------------
     // 9. Send default xtalk correction (non-fatal — calibration data may
@@ -628,6 +635,7 @@ bool AP_RangeFinder_VL53L5CX::init()
     if (!dci_write(DCI_SINGLE_RANGE, (uint8_t *)&single_range, sizeof(single_range))) {
         return false;
     }
+    hal.scheduler->expect_delay_ms(5000);
 
     // ------------------------------------------------------------------
     // 12. Configure and start ranging
