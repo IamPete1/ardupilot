@@ -24,8 +24,9 @@
  * AP_RangeFinder_VL53L5CX_data.h – copy them from the ULD package available
  * at https://www.st.com/en/embedded-software/stsw-img023.html
  *
- * In 8x8 mode the sensor reports 64 zone distances.  This driver returns the
- * minimum valid distance among the four centre zones (27, 28, 35, 36).
+ * In 8x8 mode the sensor reports 64 zone distances.  Among the four centre
+ * zones (27, 28, 35, 36) this driver returns the distance of the valid zone
+ * with the strongest signal, which is the most trustworthy return over water.
  */
 
 #include "AP_RangeFinder_VL53L5CX.h"
@@ -80,6 +81,7 @@ static constexpr uint32_t BH_MOTION_DETECT      = 0xCC5008C0U;
 
 static constexpr uint16_t IDX_DISTANCE       = 0xD33C;
 static constexpr uint16_t IDX_TARGET_STATUS  = 0xD47C;
+static constexpr uint16_t IDX_SIGNAL         = 0xCFBC;  // signal per SPAD (kcps/SPAD)
 
 // Resolution constant (this driver always runs the sensor in 8x8 mode)
 static constexpr uint8_t  RESOLUTION_8X8     = 64;
@@ -627,7 +629,24 @@ bool AP_RangeFinder_VL53L5CX::start_ranging()
     }
     uint8_t resolution = res_buf[0x00] * res_buf[0x01];
 
-    // Full output list matching ST ULD example (12 entries)
+    // Full output list matching ST ULD example (12 entries).  The whole list is
+    // always written to the firmware (it describes the stream layout); which
+    // blocks are actually streamed is gated by output_bh_enable below.  Entry N
+    // is gated by bit N of the enable mask.
+    enum OutputIndex : uint8_t {
+        OUT_START = 0,
+        OUT_METADATA,
+        OUT_COMMONDATA,
+        OUT_AMBIENT_RATE,
+        OUT_SPAD_COUNT,
+        OUT_NB_TARGET_DETECTED,
+        OUT_SIGNAL_RATE,       // signal-per-SPAD ("SPAD signal strength")
+        OUT_RANGE_SIGMA_MM,
+        OUT_DISTANCE,
+        OUT_REFLECTANCE,
+        OUT_TARGET_STATUS,
+        OUT_MOTION_DETECT,
+    };
     static const uint32_t output[] = {
         BH_START,
         BH_METADATA,
@@ -644,8 +663,13 @@ bool AP_RangeFinder_VL53L5CX::start_ranging()
     };
     static constexpr uint8_t N_OUTPUT = ARRAY_SIZE(output);
 
+    // Stream only what this driver consumes: the three mandatory stream blocks
+    // (START/METADATA/COMMONDATA) plus signal-per-SPAD, distance and target
+    // status.  Dropping the unused blocks shrinks data_read_size (~1440 -> ~508
+    // bytes at 8x8), cutting the per-read I2C transfer time.
     uint32_t output_bh_enable[4] = {
-        (1U << N_OUTPUT) - 1U,  // enable all N_OUTPUT entries
+        (1U << OUT_START)       | (1U << OUT_METADATA) | (1U << OUT_COMMONDATA) |
+        (1U << OUT_SIGNAL_RATE) | (1U << OUT_DISTANCE) | (1U << OUT_TARGET_STATUS),
         0, 0, 0xC0000000U
     };
 
@@ -669,8 +693,8 @@ bool AP_RangeFinder_VL53L5CX::start_ranging()
     }
     _data_read_size += 20;  // fixed header overhead
 
-    // Write output list with sizes corrected for 4x4 resolution, matching the
-    // ULD which modifies the array in-place before writing to DCI.
+    // Write output list with per-block sizes patched to the active resolution,
+    // matching the ULD which modifies the array in-place before writing to DCI.
     uint32_t out_copy[N_OUTPUT];
     memcpy(out_copy, output, sizeof(out_copy));
     for (uint8_t i = 0; i < N_OUTPUT; i++) {
@@ -733,10 +757,12 @@ bool AP_RangeFinder_VL53L5CX::read_distance(uint16_t &out_mm)
     swap_buffer(_tmp, _data_read_size);
 
     // Parse block headers starting at byte 16 (skip 16-byte stream header)
-    int16_t dist[RESOLUTION_8X8];
-    uint8_t status[RESOLUTION_8X8];
+    int16_t  dist[RESOLUTION_8X8];
+    uint8_t  status[RESOLUTION_8X8];
+    uint32_t signal[RESOLUTION_8X8];   // signal per SPAD, kcps/SPAD
     bool have_dist   = false;
     bool have_status = false;
+    bool have_signal = false;
 
     for (uint32_t i = 16; i < _data_read_size; ) {
         union BlockHeader bh;
@@ -756,19 +782,24 @@ bool AP_RangeFinder_VL53L5CX::read_distance(uint16_t &out_mm)
         } else if (bh.idx == IDX_TARGET_STATUS && msize >= sizeof(status)) {
             memcpy(status, &_tmp[i], sizeof(status));
             have_status = true;
+        } else if (bh.idx == IDX_SIGNAL && msize >= sizeof(signal)) {
+            memcpy(signal, &_tmp[i], sizeof(signal));
+            have_signal = true;
         }
 
         i += msize;
     }
 
-    if (!have_dist || !have_status) {
+    if (!have_dist || !have_status || !have_signal) {
         return false;
     }
 
-    // Find the minimum valid distance in the four centre zones.
+    // Among the four centre zones, use the one with the strongest return: over
+    // water the highest-signal zone is the most trustworthy distance.
     // Raw distance is in 1/4 mm units; divide by 4 for mm.
-    uint16_t best  = UINT16_MAX;
-    bool     found = false;
+    uint16_t best_mm     = 0;
+    uint32_t best_signal = 0;
+    bool     found       = false;
 
     for (uint8_t zi = 0; zi < ARRAY_SIZE(CENTRE_ZONES); zi++) {
         const uint8_t z = CENTRE_ZONES[zi];
@@ -778,17 +809,17 @@ bool AP_RangeFinder_VL53L5CX::read_distance(uint16_t &out_mm)
         if (dist[z] <= 0) {
             continue;
         }
-        uint16_t d_mm = (uint16_t)((uint16_t)dist[z] / 4);
-        if (d_mm < best) {
-            best  = d_mm;
-            found = true;
+        if (!found || signal[z] > best_signal) {
+            best_signal = signal[z];
+            best_mm     = (uint16_t)((uint16_t)dist[z] / 4);
+            found       = true;
         }
     }
 
     if (!found) {
         return false;
     }
-    out_mm = best;
+    out_mm = best_mm;
     return true;
 }
 
