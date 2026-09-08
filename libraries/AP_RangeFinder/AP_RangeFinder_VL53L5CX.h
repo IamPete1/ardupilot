@@ -76,11 +76,10 @@ private:
     bool dci_read(uint32_t index, uint8_t *data, uint16_t size);
 
     // Calibration helpers (ported from ST ULD internal functions).
-    // 8x8 only — this driver always configures the sensor for 8x8.
+    // 4x4 only — this driver runs the sensor in its native 4x4 mode.
     bool send_offset_data();
     bool send_xtalk_data();
 
-    bool set_resolution();
     bool start_ranging();
     bool read_distance(uint16_t &distance_mm);
 
@@ -90,10 +89,10 @@ private:
     bool     _new_distance{false};
     uint32_t _data_read_size{0};  // computed in start_ranging()
 
-    // Scratch buffer for DCI transfers, offset-calibration assembly, and the
-    // result stream (data_read_size = 1440 for 8x8 all-outputs).
+    // Scratch buffer for DCI transfers, offset/xtalk-calibration assembly, and
+    // the result stream (data_read_size ~172 bytes for the 4x4 output set).
     uint8_t _tmp[1500];
-    // NVM offset data (488 bytes) stashed during init for reuse by set_resolution()
+    // NVM offset data (488 bytes) stashed during init for send_offset_data()
     uint8_t _nvm_buf[488];
 
     // Target status values indicating a valid range (from ST ULD)
@@ -101,9 +100,9 @@ private:
         return s == 5 || s == 9 || s == 10;
     }
 
-    // Centre-zone indices for 8x8 (row-major, top-left = 0)
-    // Rows 3-4, cols 3-4: zones 27, 28, 35, 36
-    static constexpr uint8_t CENTRE_ZONES[] = {27, 28, 35, 36};
+    // Centre-zone indices for 4x4 (row-major, top-left = 0)
+    // Rows 2-3, cols 2-3: zones 5, 6, 9, 10
+    static constexpr uint8_t CENTRE_ZONES[] = {5, 6, 9, 10};
 };
 
 #endif  // AP_RANGEFINDER_VL53L5CX_ENABLED
