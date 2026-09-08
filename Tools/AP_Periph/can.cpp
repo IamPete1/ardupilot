@@ -1141,6 +1141,29 @@ bool AP_Periph_FW::canard_broadcast(uint64_t data_type_signature,
 }
 
 /*
+  Broadcast a DroneCAN FlexDebug message carrying an opaque byte payload.
+  Bridge for libraries (e.g. the VL53L5CX rangefinder driver) that want to emit
+  debug data without depending on the AP_Periph app headers.  Thread-safe:
+  canard_broadcast() serialises TX access via canard_broadcast_semaphore.
+ */
+bool AP_Periph_send_flexdebug(uint16_t id, const uint8_t *data, uint8_t len)
+{
+    dronecan_protocol_FlexDebug msg {};
+    // len is uint8_t so it can never exceed the 255-byte u8.data payload.
+    msg.id = id;
+    msg.u8.len = len;
+    memcpy(msg.u8.data, data, len);
+
+    uint8_t buffer[DRONECAN_PROTOCOL_FLEXDEBUG_MAX_SIZE];
+    const uint16_t total_size = dronecan_protocol_FlexDebug_encode(&msg, buffer, !periph.canfdout());
+    return periph.canard_broadcast(DRONECAN_PROTOCOL_FLEXDEBUG_SIGNATURE,
+                                   DRONECAN_PROTOCOL_FLEXDEBUG_ID,
+                                   CANARD_TRANSFER_PRIORITY_LOW,
+                                   &buffer[0],
+                                   total_size);
+}
+
+/*
   send a response
  */
 bool AP_Periph_FW::canard_respond(CanardInstance* canard_instance,

@@ -54,6 +54,18 @@ public:
     float max_distance() const override { return 4.0f; }
     float min_distance() const override { return 0.02f; }
 
+    // 4x4 mode: 16 zones
+    static constexpr uint8_t NUM_ZONES = 16;
+
+    // Packed per-zone debug payload length (see store_debug_frame() for layout).
+    static constexpr uint8_t DEBUG_LEN =
+        NUM_ZONES * (sizeof(int16_t) + sizeof(uint8_t) + sizeof(uint32_t)) + sizeof(uint16_t);
+
+    // Copy the latest packed per-zone debug frame (up to DEBUG_LEN bytes) for
+    // broadcast from the main thread.  Returns bytes copied, or 0 if there is no
+    // new frame since the last call or buf is too small.  Thread-safe.
+    uint8_t get_flexdebug(uint8_t *buf, uint8_t buf_size);
+
 protected:
     MAV_DISTANCE_SENSOR _get_mav_distance_sensor_type() const override {
         return MAV_DISTANCE_SENSOR_LASER;
@@ -61,6 +73,11 @@ protected:
 
 private:
     bool init() override;
+
+    // Full sensor bring-up (firmware download, calibration, config).  Run once
+    // from the periodic callback (I2C bus thread), not from init(), so the slow
+    // work does not block the caller's thread.
+    bool bootstrap();
 
     void timer();
 
@@ -83,11 +100,25 @@ private:
     bool start_ranging();
     bool read_distance(uint16_t &distance_mm);
 
+    // Pack the per-zone distance/status/signal arrays plus the selected distance
+    // (mm) into _debug_buf, captured each frame on the I2C thread for later
+    // broadcast via get_flexdebug().
+    void store_debug_frame(const int16_t *dist, const uint8_t *status, const uint32_t *signal, uint16_t selected_mm);
+
     // State
     uint8_t  _streamcount{0xFF};
-    uint16_t _distance_mm{0};
-    bool     _new_distance{false};
-    uint32_t _data_read_size{0};  // computed in start_ranging()
+    uint16_t _distance_mm;
+    bool     _new_distance;
+    uint32_t _data_read_size; // computed in start_ranging()
+
+    // Deferred bring-up state (see bootstrap()/timer()).
+    bool     _booted;
+    uint8_t  _boot_attempts;
+
+    // Latest packed FlexDebug payload, captured each frame; guarded by _sem.
+    uint8_t  _debug_buf[DEBUG_LEN];
+    uint8_t  _debug_len{0};
+    bool     _debug_new{false};
 
     // Scratch buffer for DCI transfers, offset/xtalk-calibration assembly, and
     // the result stream (data_read_size ~172 bytes for the 4x4 output set).

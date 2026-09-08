@@ -8,6 +8,14 @@
 
 #include <dronecan_msgs.h>
 
+#if AP_RANGEFINDER_VL53L5CX_ENABLED
+#include <AP_RangeFinder/AP_RangeFinder_VL53L5CX.h>
+// FlexDebug message id tagging the VL53L5CX per-zone debug arrays.
+#ifndef AP_PERIPH_VL53L5CX_FLEXDEBUG_ID
+#define AP_PERIPH_VL53L5CX_FLEXDEBUG_ID 0x53C5
+#endif
+#endif
+
 #ifndef AP_PERIPH_PROBE_CONTINUOUS
 #define AP_PERIPH_PROBE_CONTINUOUS 0
 #endif
@@ -56,6 +64,22 @@ void AP_Periph_FW::can_rangefinder_update(void)
         if (backend == nullptr) {
             continue;
         }
+
+#if AP_RANGEFINDER_VL53L5CX_ENABLED
+        // Broadcast the VL53L5CX per-zone debug arrays as a FlexDebug message,
+        // gated by the DEBUG parameter's FLEXDEBUG bit.  Runs here on the main
+        // thread — DroneCAN TX is stack-heavy and must not run on the small I2C
+        // bus thread.  Sent before the status gating below so it goes out even
+        // when no zone yields a valid range (over water).
+        if (backend->type() == RangeFinder::Type::VL53L5CX &&
+            debug_option_is_set(DebugOptions::FLEXDEBUG)) {
+            uint8_t dbg[AP_RangeFinder_VL53L5CX::DEBUG_LEN];
+            const uint8_t n = ((AP_RangeFinder_VL53L5CX *)backend)->get_flexdebug(dbg, sizeof(dbg));
+            if (n > 0) {
+                AP_Periph_send_flexdebug(AP_PERIPH_VL53L5CX_FLEXDEBUG_ID, dbg, n);
+            }
+        }
+#endif // AP_RANGEFINDER_VL53L5CX_ENABLED
 
         const RangeFinder::Status status = backend->status();
         switch (status) {

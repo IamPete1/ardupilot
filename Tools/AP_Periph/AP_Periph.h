@@ -520,6 +520,7 @@ public:
         SHOW_STACK = 0,
         AUTOREBOOT = 1,
         ENABLE_STATS = 2,
+        FLEXDEBUG = 3,
     };
 
     // check if an option is set
@@ -670,3 +671,7 @@ namespace AP
 }
 
 extern AP_Periph_FW periph;
+
+// Bridge for libraries to broadcast a DroneCAN FlexDebug message without
+// depending on the AP_Periph app headers.  Defined in can.cpp.
+bool AP_Periph_send_flexdebug(uint16_t id, const uint8_t *data, uint8_t len);

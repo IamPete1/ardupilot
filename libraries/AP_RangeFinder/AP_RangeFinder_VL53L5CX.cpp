@@ -83,10 +83,9 @@ static constexpr uint16_t IDX_DISTANCE       = 0xD33C;
 static constexpr uint16_t IDX_TARGET_STATUS  = 0xD47C;
 static constexpr uint16_t IDX_SIGNAL         = 0xCFBC;  // signal per SPAD (kcps/SPAD)
 
-// Resolution constant = number of zones.  This driver runs the sensor in its
-// native 4x4 mode (16 zones) for a higher ranging rate (up to 60 Hz vs 15 Hz
-// at 8x8).
-static constexpr uint8_t  RESOLUTION_4X4     = 16;
+// This driver runs the sensor in its native 4x4 mode (NUM_ZONES = 16 zones) for
+// a higher ranging rate (up to 60 Hz vs 15 Hz at 8x8).  The zone count lives in
+// the class as NUM_ZONES.
 
 // -------------------------------------------------------------------------
 // SwapBuffer: reverse byte order within each 4-byte group (big↔little endian)
@@ -366,6 +365,27 @@ bool AP_RangeFinder_VL53L5CX::init()
         return false;
     }
 
+    // The full bring-up (firmware download, calibration, configuration) takes
+    // several seconds.  Defer it to bootstrap(), run from the periodic callback
+    // on the I2C bus thread, so init() itself returns immediately.  This matters
+    // on AP_Periph where init() runs on the main thread — a multi-second bring-up
+    // there stalls CAN start-up / DNA and can trip the watchdog.
+    dev.register_periodic_callback(
+        15000,
+        FUNCTOR_BIND_MEMBER(&AP_RangeFinder_VL53L5CX::timer, void));
+
+    return true;
+}
+
+// -------------------------------------------------------------------------
+// bootstrap()
+//
+// Full sensor bring-up (ported from vl53l5cx_init + start_ranging).  Runs once
+// from the periodic callback (I2C bus thread), NOT on the caller's thread.  The
+// bus semaphore is already held by the callback, so it is not taken here.
+// -------------------------------------------------------------------------
+bool AP_RangeFinder_VL53L5CX::bootstrap()
+{
     // ------------------------------------------------------------------
     // 2. SW reboot sequence (vl53l5cx_init phase 1)
     // ------------------------------------------------------------------
@@ -609,12 +629,6 @@ bool AP_RangeFinder_VL53L5CX::init()
         return false;
     }
 
-    // Register periodic callback at ~66 Hz, a little above the 60 Hz 4x4 ranging
-    // rate so no frame is missed (the stream-count check skips stale reads).
-    dev.register_periodic_callback(
-        15000,
-        FUNCTOR_BIND_MEMBER(&AP_RangeFinder_VL53L5CX::timer, void));
-
     return true;
 }
 
@@ -784,9 +798,9 @@ bool AP_RangeFinder_VL53L5CX::read_distance(uint16_t &out_mm)
     swap_buffer(_tmp, _data_read_size);
 
     // Parse block headers starting at byte 16 (skip 16-byte stream header)
-    int16_t  dist[RESOLUTION_4X4];
-    uint8_t  status[RESOLUTION_4X4];
-    uint32_t signal[RESOLUTION_4X4];   // signal per SPAD, kcps/SPAD
+    int16_t  dist[NUM_ZONES];
+    uint8_t  status[NUM_ZONES];
+    uint32_t signal[NUM_ZONES];   // signal per SPAD, kcps/SPAD
     bool have_dist   = false;
     bool have_status = false;
     bool have_signal = false;
@@ -843,6 +857,12 @@ bool AP_RangeFinder_VL53L5CX::read_distance(uint16_t &out_mm)
         }
     }
 
+    // Capture the raw per-zone arrays plus the finally-selected distance for the
+    // FlexDebug broadcast (done from the main thread via get_flexdebug()).  Every
+    // parsed frame — including frames where no centre zone yields a valid range
+    // (selected distance stored as 0), which is what we want to inspect over water.
+    store_debug_frame(dist, status, signal, found ? best_mm : 0);
+
     if (!found) {
         return false;
     }
@@ -851,11 +871,56 @@ bool AP_RangeFinder_VL53L5CX::read_distance(uint16_t &out_mm)
 }
 
 // -------------------------------------------------------------------------
+// store_debug_frame() / get_flexdebug()
+//
+// The I2C thread packs each parsed frame into _debug_buf (store_debug_frame);
+// AP_Periph copies it out from the main thread (get_flexdebug) and broadcasts it
+// as a DroneCAN FlexDebug message.  Keeping the DroneCAN encode+TX off the small
+// (1 KB) I2C bus thread avoids overflowing its stack.  Payload layout (all
+// little-endian):
+//   [NUM_ZONES x int16 distance][NUM_ZONES x uint8 status]
+//   [NUM_ZONES x uint32 signal][uint16 selected distance mm]
+// -------------------------------------------------------------------------
+void AP_RangeFinder_VL53L5CX::store_debug_frame(const int16_t *dist,
+                                                const uint8_t *status,
+                                                const uint32_t *signal,
+                                                uint16_t selected_mm)
+{
+    WITH_SEMAPHORE(_sem);
+    uint8_t off = 0;
+    memcpy(&_debug_buf[off], dist,   NUM_ZONES * sizeof(dist[0]));   off += NUM_ZONES * sizeof(dist[0]);
+    memcpy(&_debug_buf[off], status, NUM_ZONES * sizeof(status[0])); off += NUM_ZONES * sizeof(status[0]);
+    memcpy(&_debug_buf[off], signal, NUM_ZONES * sizeof(signal[0])); off += NUM_ZONES * sizeof(signal[0]);
+    memcpy(&_debug_buf[off], &selected_mm, sizeof(selected_mm));     off += sizeof(selected_mm);
+    _debug_len = off;
+    _debug_new = true;
+}
+
+uint8_t AP_RangeFinder_VL53L5CX::get_flexdebug(uint8_t *buf, uint8_t buf_size)
+{
+    WITH_SEMAPHORE(_sem);
+    if (!_debug_new || buf_size < _debug_len) {
+        return 0;
+    }
+    memcpy(buf, _debug_buf, _debug_len);
+    _debug_new = false;
+    return _debug_len;
+}
+
+// -------------------------------------------------------------------------
 // Periodic timer (runs in I2C thread context)
 // -------------------------------------------------------------------------
 
 void AP_RangeFinder_VL53L5CX::timer()
 {
+    // Run the deferred bring-up on the first callback(s).  This is the slow work
+    // (firmware download, calibration, config) kept off the caller's thread.
+    if (!_booted) {
+        _booted = true;
+        bootstrap();
+        return;
+    }
+
     // Check data ready: read 4 bytes from address 0x0000 and verify all
     // four status conditions (matches vl53l5cx_check_data_ready() in ULD)
     uint8_t hdr[4];
