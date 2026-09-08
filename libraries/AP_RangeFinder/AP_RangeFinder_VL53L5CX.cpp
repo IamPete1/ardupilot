@@ -81,8 +81,7 @@ static constexpr uint32_t BH_MOTION_DETECT      = 0xCC5008C0U;
 static constexpr uint16_t IDX_DISTANCE       = 0xD33C;
 static constexpr uint16_t IDX_TARGET_STATUS  = 0xD47C;
 
-// Resolution constants
-static constexpr uint8_t  RESOLUTION_4X4     = 16;
+// Resolution constant (this driver always runs the sensor in 8x8 mode)
 static constexpr uint8_t  RESOLUTION_8X8     = 64;
 
 // -------------------------------------------------------------------------
@@ -241,45 +240,13 @@ bool AP_RangeFinder_VL53L5CX::dci_read(uint32_t index,
 // in the ST ULD vl53l5cx_api.c
 // -------------------------------------------------------------------------
 
-bool AP_RangeFinder_VL53L5CX::send_offset_data(const uint8_t *nvm_buf, uint8_t resolution)
+bool AP_RangeFinder_VL53L5CX::send_offset_data()
 {
-    static const uint8_t dss_4x4[]  = {0x0F, 0x04, 0x04, 0x00, 0x08, 0x10, 0x10, 0x07};
-    static const uint8_t footer[]   = {0x00, 0x00, 0x00, 0x0F, 0x03, 0x01, 0x01, 0xE4};
+    static const uint8_t footer[] = {0x00, 0x00, 0x00, 0x0F, 0x03, 0x01, 0x01, 0xE4};
 
-    uint8_t *buf = _tmp2;
-    memcpy(buf, nvm_buf, VL53L5CX_OFFSET_BUFFER_SIZE);
-
-    if (resolution == 16) {
-        // 4x4: patch DSS config and downsample signal/range grids from 8x8 to 4x4.
-        memcpy(&buf[0x10], dss_4x4, sizeof(dss_4x4));
-        swap_buffer(buf, VL53L5CX_OFFSET_BUFFER_SIZE);
-
-        uint32_t signal_grid[64];
-        int16_t  range_grid[64];
-        memcpy(signal_grid, &buf[0x3C],  sizeof(signal_grid));
-        memcpy(range_grid,  &buf[0x140], sizeof(range_grid));
-
-        for (int8_t j = 0; j < 4; j++) {
-            for (int8_t i = 0; i < 4; i++) {
-                signal_grid[i + 4*j] =
-                    (signal_grid[(2*i) + (16*j) + 0] +
-                     signal_grid[(2*i) + (16*j) + 1] +
-                     signal_grid[(2*i) + (16*j) + 8] +
-                     signal_grid[(2*i) + (16*j) + 9]) / (uint32_t)4;
-                range_grid[i + 4*j] =
-                    (range_grid[(2*i) + (16*j) + 0] +
-                     range_grid[(2*i) + (16*j) + 1] +
-                     range_grid[(2*i) + (16*j) + 8] +
-                     range_grid[(2*i) + (16*j) + 9]) / (int16_t)4;
-            }
-        }
-        memset(&range_grid[0x10],  0, 96);
-        memset(&signal_grid[0x10], 0, 192);
-        memcpy(&buf[0x3C],  signal_grid, sizeof(signal_grid));
-        memcpy(&buf[0x140], range_grid,  sizeof(range_grid));
-        swap_buffer(buf, VL53L5CX_OFFSET_BUFFER_SIZE);
-    }
-    // 8x8: NVM data is already in native 8x8 format — no modification needed.
+    // NVM offset data is already in native 8x8 format — no modification needed.
+    uint8_t *buf = _tmp;
+    memcpy(buf, _nvm_buf, VL53L5CX_OFFSET_BUFFER_SIZE);
 
     // Shift buffer down 8 bytes (remove DCI header)
     for (uint16_t k = 0; k < VL53L5CX_OFFSET_BUFFER_SIZE - 4; k++) {
@@ -296,69 +263,16 @@ bool AP_RangeFinder_VL53L5CX::send_offset_data(const uint8_t *nvm_buf, uint8_t r
     return read_block(UI_CMD_STATUS, st, 4) && st[0] == 0x03;
 }
 
-bool AP_RangeFinder_VL53L5CX::send_xtalk_data(uint8_t resolution)
+bool AP_RangeFinder_VL53L5CX::send_xtalk_data()
 {
-    // Use _tmp2 as working buffer (VL53L5CX_XTALK_BUFFER_SIZE = 776 bytes)
-    uint8_t *buf = _tmp2;
-    memcpy(buf, VL53L5CX_DEFAULT_XTALK, VL53L5CX_XTALK_BUFFER_SIZE);
-
-    if (resolution == RESOLUTION_4X4) {
-        static const uint8_t res4x4[]     = {0x0F, 0x04, 0x04, 0x17, 0x08, 0x10, 0x10, 0x07};
-        static const uint8_t dss_4x4[]    = {0x00, 0x78, 0x00, 0x08, 0x00, 0x00, 0x00, 0x08};
-        static const uint8_t profile_4x4[]= {0xA0, 0xFC, 0x01, 0x00};
-
-        // ULD order: apply res4x4/dss_4x4 BEFORE the first SwapBuffer.
-        memcpy(&buf[0x08], res4x4,  sizeof(res4x4));
-        memcpy(&buf[0x20], dss_4x4, sizeof(dss_4x4));
-
-        // Swap to host order for signal-grid arithmetic
-        swap_buffer(buf, VL53L5CX_XTALK_BUFFER_SIZE);
-
-        uint32_t signal_grid[64];
-        memcpy(signal_grid, &buf[0x34], sizeof(signal_grid));
-
-        for (int8_t j = 0; j < 4; j++) {
-            for (int8_t i = 0; i < 4; i++) {
-                signal_grid[i + 4*j] =
-                    (signal_grid[(2*i) + (16*j) + 0] +
-                     signal_grid[(2*i) + (16*j) + 1] +
-                     signal_grid[(2*i) + (16*j) + 8] +
-                     signal_grid[(2*i) + (16*j) + 9]) / (uint32_t)4;
-            }
-        }
-        memset(&signal_grid[0x10], 0, 192);
-        memcpy(&buf[0x34], signal_grid, sizeof(signal_grid));
-
-        // Swap back to device order; apply remaining modifications (unswapped)
-        swap_buffer(buf, VL53L5CX_XTALK_BUFFER_SIZE);
-        memcpy(&buf[0x134], profile_4x4, sizeof(profile_4x4));
-        memset(&buf[0x078], 0, 4);
-    }
-
-    // Ensure page 0x02 is selected (UI_CMD region lives there)
-    //if (!write_byte(REG_PAGE, 0x02)) {
-    //    return false;
-    //}
-    if (!write_block(0x2cf8, buf, VL53L5CX_XTALK_BUFFER_SIZE)) {
+    // 8x8: the default xtalk data is used verbatim (native 8x8 format), so it
+    // can be written straight from flash with no working copy.
+    if (!write_block(0x2cf8, VL53L5CX_DEFAULT_XTALK, VL53L5CX_XTALK_BUFFER_SIZE)) {
         return false;
     }
-    // Diagnostic read-back: read first 4 bytes at 0x2CF8 to confirm the xtalk
-    // data actually landed.  Appears in I2C trace.
-    //   0x9F 0xD8 0x00 0xC0 = data stored on page 0x02 (trigger register is
-    //                          write-only; firmware received the write)
-    //   0x00 0x00 0x00 0x00 = data NOT stored (wrong page or write-protection)
-    //uint8_t xt_dbg[4] = {};
-    //read_block(0x2cf8, xt_dbg, 4);
-    // Also read 0x2FFF to see if it's a write-only trigger (always returns 0x00)
-    // or if the data simply didn't land (also 0x00 but different root cause).
-    //uint8_t xt_end_chk = 0;
-    //read_byte(UI_CMD_END, xt_end_chk);
-
     hal.scheduler->delay(100);
-    // Read all 4 status bytes for diagnosis (not just byte[1])
-    uint8_t st4[4] = {};
-    read_block(UI_CMD_STATUS, st4, 4);
-    return st4[1] == 0x03;
+    uint8_t st[4] = {};
+    return read_block(UI_CMD_STATUS, st, 4) && st[1] == 0x03;
 }
 
 // -------------------------------------------------------------------------
@@ -552,7 +466,7 @@ bool AP_RangeFinder_VL53L5CX::init()
     }
 
     // ------------------------------------------------------------------
-    // 8. Read NVM offset calibration and send to firmware
+    // 8. Read NVM offset calibration and stash for set_resolution()
     // ------------------------------------------------------------------
     // NVM step is non-fatal: ranging still works without factory offset data.
     // Poll at 10 ms intervals (matching ST ULD).
@@ -576,34 +490,18 @@ bool AP_RangeFinder_VL53L5CX::init()
     if (!read_block(UI_CMD_START, _tmp, VL53L5CX_NVM_DATA_SIZE)) {
         return false;
     }
-    // Stash first 488 bytes for reuse by set_resolution()
+    // Stash the offset calibration (first 488 bytes) for set_resolution(), which
+    // sends it — together with the xtalk data — at the final 8x8 resolution.
+    // The ST ULD sends both at 4x4 here and again at 8x8 in set_resolution(); we
+    // skip that throwaway 4x4 pass and configure 8x8 directly in a single pass.
     memcpy(_nvm_buf, _tmp, VL53L5CX_OFFSET_BUFFER_SIZE);
-    // Send offset calibration (first 488 bytes of NVM data)
-    if (!send_offset_data(_nvm_buf, RESOLUTION_4X4)) {
-        return false;
-    }
 
     // ------------------------------------------------------------------
-    // 9. Send default xtalk correction (non-fatal — calibration data may
-    //    be absent on some units; ranging proceeds with default xtalk)
+    // 9. Write default configuration, poll for acceptance
     // ------------------------------------------------------------------
-    if (!send_xtalk_data(RESOLUTION_4X4)) {
+    if (!write_block(0x2c34, VL53L5CX_DEFAULT_CONFIGURATION, VL53L5CX_CONFIGURATION_SIZE)) {
         return false;
     }
-
-    // ------------------------------------------------------------------
-    // 10. Write default configuration, poll for acceptance
-    // ------------------------------------------------------------------
-    if (//!write_byte(REG_PAGE, 0x02) ||
-        !write_block(0x2c34, VL53L5CX_DEFAULT_CONFIGURATION, VL53L5CX_CONFIGURATION_SIZE)) {
-        return false;
-    }
-    // Diagnostic: read 0x2FFF immediately after the write to verify 0xC8
-    // actually landed.  This appears in the I2C trace.
-    //   0xC8 → write OK but firmware not reacting
-    //   0x00 → wrong page or write-protection active
-    //uint8_t cfg_end_chk = 0;
-    //read_byte(UI_CMD_END, cfg_end_chk);
     bool cfg_ok = false;
     for (uint8_t i = 0; i < 200; i++) {
         hal.scheduler->delay(10);
@@ -618,7 +516,7 @@ bool AP_RangeFinder_VL53L5CX::init()
     }
 
     // ------------------------------------------------------------------
-    // 11. DCI: pipe control and single-range mode
+    // 10. DCI: pipe control and single-range mode
     // ------------------------------------------------------------------
     uint8_t pipe_ctrl[4] = {1, 0x00, 0x01, 0x00};  // NB_TARGET_PER_ZONE=1
     if (!dci_write(DCI_PIPE_CONTROL, pipe_ctrl, sizeof(pipe_ctrl))) {
@@ -630,7 +528,7 @@ bool AP_RangeFinder_VL53L5CX::init()
     }
 
     // ------------------------------------------------------------------
-    // 12. Configure and start ranging
+    // 11. Configure resolution/outputs and start ranging
     // ------------------------------------------------------------------
     if (!start_ranging()) {
         return false;
@@ -675,12 +573,12 @@ bool AP_RangeFinder_VL53L5CX::set_resolution()
         return false;
     }
 
-    // Send offset calibration using stashed NVM data
-    if (!send_offset_data(_nvm_buf, RESOLUTION_8X8)) {
+    // Send offset calibration using stashed NVM data, then default xtalk
+    if (!send_offset_data()) {
         return false;
     }
 
-    if (!send_xtalk_data(RESOLUTION_8X8)) {
+    if (!send_xtalk_data()) {
         return false;
     }
 

@@ -75,9 +75,10 @@ private:
     bool dci_write(uint32_t index, const uint8_t *data, uint16_t size);
     bool dci_read(uint32_t index, uint8_t *data, uint16_t size);
 
-    // Calibration helpers (ported from ST ULD internal functions)
-    bool send_offset_data(const uint8_t *nvm_buf, uint8_t resolution);
-    bool send_xtalk_data(uint8_t resolution);
+    // Calibration helpers (ported from ST ULD internal functions).
+    // 8x8 only — this driver always configures the sensor for 8x8.
+    bool send_offset_data();
+    bool send_xtalk_data();
 
     bool set_resolution();
     bool start_ranging();
@@ -89,16 +90,11 @@ private:
     bool     _new_distance{false};
     uint32_t _data_read_size{0};  // computed in start_ranging()
 
-    // Scratch buffers used during DCI and calibration operations.
-    // _tmp must also hold the result stream (data_read_size = 1440 for 8x8 all-outputs).
-    // _tmp2 must hold the largest calibration buffer (xtalk = 776 bytes).
+    // Scratch buffer for DCI transfers, offset-calibration assembly, and the
+    // result stream (data_read_size = 1440 for 8x8 all-outputs).
     uint8_t _tmp[1500];
-    uint8_t _tmp2[800];
     // NVM offset data (488 bytes) stashed during init for reuse by set_resolution()
     uint8_t _nvm_buf[488];
-
-    // 8x8 mode: 64 zones
-    static constexpr uint8_t NUM_ZONES = 64;
 
     // Target status values indicating a valid range (from ST ULD)
     static bool status_is_valid(uint8_t s) {
