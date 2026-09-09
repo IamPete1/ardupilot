@@ -41,7 +41,7 @@ end
 ---@return string|nil -- source of stop if command received
 local function parse()
 
-    for source in string.gmatch(buffer, "[\r\n]+(.-): *StopStopStop.-[\r\n]") do
+    for source in string.gmatch(buffer, "[\r\n]*(.-): *StopStopStop.-[\r\n]") do
         if source then
             -- If we found a valid stop then we can dump the buffer
             buffer = ""
