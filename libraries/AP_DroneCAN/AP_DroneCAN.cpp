@@ -1549,6 +1549,39 @@ void AP_DroneCAN::handle_FlexDebug(const CanardRxTransfer& transfer, const drone
         return;
     }
 
+#if HAL_LOGGING_ENABLED
+    // Dump the raw message into the log with a generic header.  Chunked into
+    // 128-byte rows (two 64-byte binary fields) so any FlexDebug length (up to
+    // 255) can be reconstructed by grouping on (Node, Id) and ordering by Off.
+    if (AP::logger().logging_enabled()) {
+// @LoggerMessage: FLXD
+// @Description: DroneCAN FlexDebug message contents, chunked at 128 bytes/row
+// @Field: TimeUS: Time since system startup
+// @Field: Node: source node id
+// @Field: Id: FlexDebug message id
+// @Field: Len: total message length in bytes
+// @Field: Off: byte offset of this chunk within the message
+// @Field: Data0: message bytes [Off .. Off+64) (zero-padded past Len)
+// @Field: Data1: message bytes [Off+64 .. Off+128) (zero-padded past Len)
+        for (uint16_t off = 0; off < msg.u8.len; off += 128) {
+            int16_t chunk[64] {};  // two 64-byte 'a' fields
+            memcpy(chunk, &msg.u8.data[off], MIN(uint16_t(128), uint16_t(msg.u8.len - off)));
+            AP::logger().WriteStreaming("FLXD",
+                                        "TimeUS,Node,Id,Len,Off,Data0,Data1",
+                                        "s#-----",
+                                        "F------",
+                                        "QBHBBaa",
+                                        AP_HAL::micros64(),
+                                        transfer.source_node_id,
+                                        msg.id,
+                                        msg.u8.len,
+                                        uint8_t(off),
+                                        &chunk[0],
+                                        &chunk[32]);
+        }
+    }
+#endif // HAL_LOGGING_ENABLED
+
     // find an existing element in the list
     const uint8_t source_node = transfer.source_node_id;
     for (auto *p = flexDebug_list; p != nullptr; p = p->next) {
