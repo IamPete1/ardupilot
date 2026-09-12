@@ -657,8 +657,7 @@ __INITFUNC__ void RangeFinder::detect_instance(uint8_t instance, uint8_t& serial
 
 #if AP_RANGEFINDER_VL53L5CX_ENABLED
     case Type::VL53L5CX: {
-        const uint8_t addr = params[instance].address ? params[instance].address : 0x29;
-        probe_i2c_buses(instance, addr, AP_RangeFinder_VL53L5CX::detect);
+        probe_i2c_buses(instance, 0x29, AP_RangeFinder_VL53L5CX::detect);
         break;
     }
 #endif // AP_RANGEFINDER_VL53L5CX_ENABLED
