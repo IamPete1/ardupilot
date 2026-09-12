@@ -1,10 +1,10 @@
 -- Control a ODrive based actuator and home with a analog pot feedback
 
-local STATE = {
+local OD_STATE = {
    UNDEFINED = 0,
    IDLE = 1,
-   ENCODER_INDEX_SEARCH = 6,
    CLOSED_LOOP_CONTROL = 8,
+   HOMING = 11,
 }
 
 local CMD = {
@@ -22,11 +22,10 @@ local CMD = {
 local LOCAL_STATE = {
    SETTINGS_REQUIRED = 0,
    NOT_CALIBRATED = 1,
-   MOVE_FOIL_BACK = 2,
-   RETURN_TO_CENTER = 3,
-   MOVE_FOIL_FORWARD = 4,
-   DISARMED = 5,
-   ARMED = 6,
+   MOVE_FORWARD = 2,
+   RUN_HOMING = 3,
+   DISARMED = 4,
+   ARMED = 5,
 }
 
 local CONTROL_MODE = {
@@ -39,7 +38,7 @@ local state = LOCAL_STATE.SETTINGS_REQUIRED
 
 local odrive_status = {
    axis_errors = uint32_t(0),
-   axis_state = STATE.UNDEFINED,
+   axis_state = OD_STATE.UNDEFINED,
 }
 
 local target_node_id = 10
@@ -48,7 +47,6 @@ local last_heartbeat_ms = uint32_t(0)
 local HEARTBEAT_TIMEOUT = uint32_t(2000)
 local position_est = nil
 local velocity_est = 0
-local havePositionEst = false
 
 -- ODrive settings as found from: https://odrive-cdn.nyc3.digitaloceanspaces.com/releases/firmware/P5x-2epyHO8DXkyYEYQCpBsdw9skZ1GP04WKg4RVIjo/flat_endpoints.json
 local axis0 = {}
@@ -78,6 +76,13 @@ axis0.controller.config.vel_limit = {
     type = "f" -- float
 }
 
+axis0.min_endstop = {}
+axis0.min_endstop.config = {}
+axis0.min_endstop.config.enabled = {
+    id = 417,
+    type = "B" -- bool
+}
+
 local PARAM_TABLE_KEY = 2
 local PARAM_TABLE_PREFIX = "OD_"
 
@@ -90,11 +95,10 @@ end
 -- setup script specific parameters
 assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 10), 'could not add param table')
 
-local POS_MAX = bind_add_param('POS_MAX', 1, 10) -- Max endpoint position, turns from centre
-local POS_MIN = bind_add_param('POS_MIN', 2, -10) -- Min endpoint position, turns from centre
 local DEBUG = bind_add_param('DEBUG', 5, 0.0) -- Debug enable/disable
 local MAX_LIMIT = bind_add_param('MAX_LIMIT', 6,  13.15) -- Maximum operational limit in turns from center, will move to this at 2000PWM
 local MIN_LIMIT = bind_add_param('MIN_LIMIT', 7, -13.15) -- Minimum operational limit in turns from center, will move to this at 1000PWM
+local FWD_DIR = bind_add_param('FWD_DIR', 8, 1) -- Direction to move forward prior to homing
 
 -- Load CAN driver. The first will attach to a protocol of 10
 local driver = assert(CAN:get_device(20), "No scripting CAN interfaces found")
@@ -178,7 +182,6 @@ local function update_position_est(frame)
    else
       position_est = nil
    end
-   havePositionEst = true
 
    velocity_est = unpack_data(frame, 4, 7, "f") -- float
 
@@ -306,9 +309,6 @@ end
 
 -- Send all required settings to odrive when we first start talking to it
 -- returns true when all setup has complete
-local homing_start_ms = uint32_t(0)
-local homing_min = 0
-local homing_max = 0
 local last_moving_ms = uint32_t(0)
 local function run_setup()
 
@@ -336,72 +336,32 @@ local function run_setup()
    elseif state == LOCAL_STATE.NOT_CALIBRATED then
       -- wait until safety switch is disabled before trying to home
       if not SRV_Channels:get_safety_state() and not is_armed() then
-         state = LOCAL_STATE.MOVE_FOIL_BACK
+         state = LOCAL_STATE.MOVE_FORWARD
          send_write_RxSdo(axis0.controller.config.vel_limit, homing_vel_limit)
          send_set_control_mode(CONTROL_MODE.TORQUE_CONTROL)
-         set_odrive_state(STATE.CLOSED_LOOP_CONTROL)
+         set_odrive_state(OD_STATE.CLOSED_LOOP_CONTROL)
          last_moving_ms = now_ms
-         homing_start_ms = now_ms
       end
 
-   elseif state == LOCAL_STATE.MOVE_FOIL_BACK then
+   elseif state == LOCAL_STATE.MOVE_FORWARD then
       -- Send constant torque
-      send_torque_command(homing_torque)
-
-      homing_max = math.max(homing_max, position_est)
-      homing_min = math.min(homing_min, position_est)
+      send_torque_command(homing_torque * FWD_DIR:get())
 
       -- Move on once stopped
       if stopped then
-         state = LOCAL_STATE.RETURN_TO_CENTER
-         homing_start_ms = now_ms
-         set_odrive_state(STATE.IDLE)
+         send_write_RxSdo(axis0.min_endstop.config.enabled, 1)
+         set_odrive_state(OD_STATE.HOMING)
          send_write_RxSdo(axis0.controller.config.vel_limit, normal_vel_limit)
+         state = LOCAL_STATE.RUN_HOMING
+      end
+
+   elseif state == LOCAL_STATE.RUN_HOMING then
+      -- Wait for the state to return to idle
+      if (position_est ~= nil) and (odrive_status.axis_state == OD_STATE.IDLE) then
+         -- Turn off the endstop and return to position control
+         send_write_RxSdo(axis0.min_endstop.config.enabled, 0)
          send_set_control_mode(CONTROL_MODE.POSITION_CONTROL)
-         set_odrive_state(STATE.CLOSED_LOOP_CONTROL)
-      end
-
-   elseif state == LOCAL_STATE.RETURN_TO_CENTER then
-      -- Return to zero
-      send_position_command(0)
-
-      -- Wait for sometime to allow the actuator to move
-      if (now_ms - homing_start_ms) > 2000 then
-         state = LOCAL_STATE.MOVE_FOIL_FORWARD
-         last_moving_ms = now_ms
-         homing_start_ms = now_ms
-
-         -- Torque control again
-         set_odrive_state(STATE.IDLE)
-         send_write_RxSdo(axis0.controller.config.vel_limit, homing_vel_limit)
-         send_set_control_mode(CONTROL_MODE.TORQUE_CONTROL)
-         set_odrive_state(STATE.CLOSED_LOOP_CONTROL)
-      end
-
-   elseif state == LOCAL_STATE.MOVE_FOIL_FORWARD then
-      -- Send constant torque
-      send_torque_command(-homing_torque)
-
-      homing_max = math.max(homing_max, position_est)
-      homing_min = math.min(homing_min, position_est)
-
-      -- Move on once stopped
-      if stopped then
          state = LOCAL_STATE.DISARMED
-         -- Return to position control and idle state
-         set_odrive_state(STATE.IDLE)
-         send_set_control_mode(CONTROL_MODE.POSITION_CONTROL)
-         send_write_RxSdo(axis0.controller.config.vel_limit, normal_vel_limit)
-
-         -- Wrap the position estimate down to +-0.5
-         local subTurn = math.fmod(position_est, 1.0)
-         if subTurn < -0.5 then
-            subTurn = subTurn + 1.0
-         end
-
-         print(string.format("Homed min: %f max: %f subturn: %f", homing_min, homing_max, subTurn))
-
---       send_write_RxSdo(axis0.pos_estimate, turn + subTurn)
       end
    end
 end
@@ -449,15 +409,12 @@ local function update()
    end
 
    -- Wait until any start up or calibration is done
-   if (odrive_status.axis_state ~= STATE.IDLE) and (odrive_status.axis_state ~= STATE.CLOSED_LOOP_CONTROL) then
+   if (odrive_status.axis_state ~= OD_STATE.IDLE) and (odrive_status.axis_state ~= OD_STATE.CLOSED_LOOP_CONTROL) then
       return update, 10
    end
 
    if state < LOCAL_STATE.DISARMED then
-      -- Must be getting position data for calibration
-      if havePositionEst then
-         run_setup()
-      end
+      run_setup()
       return update, 10
    end
 
@@ -467,7 +424,7 @@ local function update()
    -- If disarmed then arm on safety state change
    if state == LOCAL_STATE.DISARMED then
       if allowClosedLoop then
-         set_odrive_state(STATE.CLOSED_LOOP_CONTROL)
+         set_odrive_state(OD_STATE.CLOSED_LOOP_CONTROL)
          state = LOCAL_STATE.ARMED
       end
       return update, 10
@@ -476,13 +433,13 @@ local function update()
    if state == LOCAL_STATE.ARMED then
       -- Return to idle if safety is disabled
       if not allowClosedLoop then
-         set_odrive_state(STATE.IDLE)
+         set_odrive_state(OD_STATE.IDLE)
          state = LOCAL_STATE.DISARMED
          return update, 10
       end
 
       -- Make sure the ODrive state is correct
-      if odrive_status.axis_state == STATE.CLOSED_LOOP_CONTROL then
+      if odrive_status.axis_state == OD_STATE.CLOSED_LOOP_CONTROL then
          -- Send position commands
          local PWMCmd = SRV_Channels:get_output_pwm_chan(0)
          if PWMCmd ~= 0 then

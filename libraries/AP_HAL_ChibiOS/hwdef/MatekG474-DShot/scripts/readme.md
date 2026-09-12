@@ -15,9 +15,8 @@ Setup the ODrive for motor and encoder and run calibration.
     * Node ID: 10
     * Heartbeat enabled
     * Feedback sent every 250ms
-* Setup [absolute encoder reference frame](https://docs.odriverobotics.com/v/latest/manual/control.html#absolute-encoder-reference-frame)
 
-If the setup is successful you should be able to control the motor from the web gui in position mode.
+Setup a min endstop (but leave it disabled), set absolute_setpoints.
 
 # AP setup
 
@@ -30,8 +29,6 @@ The safety switch must be enabled, changing safety state is what causes the scri
 Setup a flight controller with the script and a scripting CAN port. Setup the GCS to display some named value floats.
 
 * `stat`: script state
-* `potVolt`: raw potentiometer voltage
-* `potPos`: calculated potentiometer positions
 * `pos`: position reported by ODrive (maybe NaN)
 
 
@@ -47,39 +44,12 @@ There are a number of parameters with the `OD_` prefix:
 
 * `OD_POS_MAX`: Max endpoint position, turns from centre
 * `OD_POS_MIN`: Min endpoint position, turns from centre
-* `OD_POT_MAX_VOLT`: Potentiometer voltage reading corresponding to max position endpoint position
-* `OD_POT_MIN_VOLT`: Potentiometer voltage reading corresponding to min position endpoint position
 * `OD_DEBUG`: Debug print enable on periph 0 to disable, 1 to enable.
 
 The script is looking at the first servo output function, set this to `SERVOn_TRIM`, the output should be 1500 PWM.
 
 # Setup
 
-Now the endpoints of the potentiometer and feedback voltage from the pot must be calibrated.
-
-1. Use the web gui to position the motor such that the rear surface of the foil is vertical.
-
-2. Set `odrv0.axis0.pos_vel_mapper.config.offset` to the negative of the currently reported raw encoder position in the ODrive tool. This number should be in the range -0.5 to 0.5.
-
-3. Reboot the ODrive without moving it and verify that the reported position is now zero.
-
-4. Using the gui drive the motor to a number of positions (5+) in the possible full travel including the min and max endpoints. At each position take a note of:
-    * The reported position in the gui.
-    * The voltage reported to the GCS as `potVolt`.
-
-5. Plot the points to double check that they are linear. If not check wiring.
-
-6. Set the extreme endpoints in the flight controller parameters. `OD_POS_MAX` is the largest reported position and `OD_POT_MAX_VOLT` is the voltage which corresponds with that position. `OD_POS_MIN` and `OD_POT_MIN_VOLT` are for the smallest reported position.
-
-7. The extremes of position should be larger than 13.15 turns as the code is expecting +-13.15 turns to equate to +-10 deg of foil movement.
-
-8. Reboot both the ODrive and the flight controller.
-
-9. Disable the safety switch, this will cause the script to set the position of the ODrive. It will then drive to the zero point as the servo output is 1500.
-
-10. Verify that the foil has correctly returned to zero.
-
-11. Change the servo trim to control the position demand. Move it to a few points in the travel and reboot both the flight controller and ODrive so it starts up again away from zero. Return the servo trim to 1500 and disable the safety switch and verify that the foil correctly returns to zero.
 
 # Node setup
 
