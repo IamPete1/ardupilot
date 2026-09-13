@@ -23,9 +23,11 @@ local LOCAL_STATE = {
    SETTINGS_REQUIRED = 0,
    NOT_CALIBRATED = 1,
    MOVE_FORWARD = 2,
-   RUN_HOMING = 3,
-   DISARMED = 4,
-   ARMED = 5,
+   RUN_HOMING_FAST = 3,
+   MOVE_ONE_TURN = 4,
+   RUN_HOMING_SLOW = 5,
+   DISARMED = 6,
+   ARMED = 7,
 }
 
 local CONTROL_MODE = {
@@ -73,6 +75,10 @@ axis0.controller = {}
 axis0.controller.config = {}
 axis0.controller.config.vel_limit = {
     id = 384,
+    type = "f" -- float
+}
+axis0.controller.config.homing_speed = {
+    id = 395,
     type = "f" -- float
 }
 
@@ -321,6 +327,8 @@ local function run_setup()
    local homing_torque = 0.1
    local homing_vel_limit = 2.0
    local normal_vel_limit = 150
+   local fast_home_vel = homing_vel_limit
+   local final_home_vel = 0.25
 
    -- Finish homing when velocity is less than 5 deg/sec for half a second
    if math.abs(velocity_est) > (5 / 360.0) then
@@ -354,24 +362,50 @@ local function run_setup()
 
       -- Move on once stopped
       if stopped then
-         -- Revert velocity limit
-         send_write_RxSdo(axis0.controller.config.vel_limit, normal_vel_limit)
-
          -- Enable endstop and set offset
          send_write_RxSdo(axis0.min_endstop.config.enabled, 1)
          send_write_RxSdo(axis0.min_endstop.config.offset, HOME_OFFSET:get())
 
-         -- Set to homeing mode
+         -- Set to homeing mode at fast speed
+         send_write_RxSdo(axis0.controller.config.homing_speed, fast_home_vel * FWD_DIR:get())
          set_odrive_state(OD_STATE.HOMING)
-         state = LOCAL_STATE.RUN_HOMING
+         state = LOCAL_STATE.RUN_HOMING_FAST
       end
 
-   elseif state == LOCAL_STATE.RUN_HOMING then
+   elseif state == LOCAL_STATE.RUN_HOMING_FAST then
       -- Wait for the state to return to idle
       if (position_est ~= nil) and (odrive_status.axis_state == OD_STATE.IDLE) then
-         -- Turn off the endstop and return to position control
+         -- Turn off the endstop so it does not trip while moving off it
          send_write_RxSdo(axis0.min_endstop.config.enabled, 0)
+
+         -- Revert velocity limit
+         send_write_RxSdo(axis0.controller.config.vel_limit, normal_vel_limit)
+
+         -- Move slowly to one turn away from the endstop
          send_set_control_mode(CONTROL_MODE.POSITION_CONTROL)
+         set_odrive_state(OD_STATE.CLOSED_LOOP_CONTROL)
+         last_moving_ms = now_ms
+         state = LOCAL_STATE.MOVE_ONE_TURN
+      end
+
+   elseif state == LOCAL_STATE.MOVE_ONE_TURN then
+      local target_pos = HOME_OFFSET:get() + 2 * FWD_DIR:get()
+      send_position_command(target_pos)
+
+      -- Move on once at the target
+      if (position_est ~= nil) and (math.abs(position_est - target_pos) < 0.05) then
+         -- Re-enable endstop and home again at slow speed
+         send_write_RxSdo(axis0.min_endstop.config.enabled, 1)
+         send_write_RxSdo(axis0.controller.config.homing_speed, final_home_vel * FWD_DIR:get())
+         set_odrive_state(OD_STATE.HOMING)
+         state = LOCAL_STATE.RUN_HOMING_SLOW
+      end
+
+   elseif state == LOCAL_STATE.RUN_HOMING_SLOW then
+      -- Wait for the state to return to idle
+      if (position_est ~= nil) and (odrive_status.axis_state == OD_STATE.IDLE) then
+         -- Turn off the endstop
+         send_write_RxSdo(axis0.min_endstop.config.enabled, 0)
          state = LOCAL_STATE.DISARMED
       end
    end
