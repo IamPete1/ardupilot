@@ -82,6 +82,10 @@ axis0.min_endstop.config.enabled = {
     id = 417,
     type = "B" -- bool
 }
+axis0.min_endstop.config.offset = {
+    id = 418,
+    type = "f" -- float
+}
 
 local PARAM_TABLE_KEY = 2
 local PARAM_TABLE_PREFIX = "OD_"
@@ -99,6 +103,7 @@ local DEBUG = bind_add_param('DEBUG', 5, 0.0) -- Debug enable/disable
 local MAX_LIMIT = bind_add_param('MAX_LIMIT', 6,  13.15) -- Maximum operational limit in turns from center, will move to this at 2000PWM
 local MIN_LIMIT = bind_add_param('MIN_LIMIT', 7, -13.15) -- Minimum operational limit in turns from center, will move to this at 1000PWM
 local FWD_DIR = bind_add_param('FWD_DIR', 8, 1) -- Direction to move forward prior to homing
+local HOME_OFFSET = bind_add_param('HOME_OFFSET', 9, 0) -- Sets axis0.min_endstop.config.offset
 
 -- Load CAN driver. The first will attach to a protocol of 10
 local driver = assert(CAN:get_device(20), "No scripting CAN interfaces found")
@@ -349,9 +354,15 @@ local function run_setup()
 
       -- Move on once stopped
       if stopped then
-         send_write_RxSdo(axis0.min_endstop.config.enabled, 1)
-         set_odrive_state(OD_STATE.HOMING)
+         -- Revert velocity limit
          send_write_RxSdo(axis0.controller.config.vel_limit, normal_vel_limit)
+
+         -- Enable endstop and set offset
+         send_write_RxSdo(axis0.min_endstop.config.enabled, 1)
+         send_write_RxSdo(axis0.min_endstop.config.offset, HOME_OFFSET:get())
+
+         -- Set to homeing mode
+         set_odrive_state(OD_STATE.HOMING)
          state = LOCAL_STATE.RUN_HOMING
       end
 
