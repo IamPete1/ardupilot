@@ -324,7 +324,7 @@ local last_moving_ms = uint32_t(0)
 local function run_setup()
 
    local now_ms = millis()
-   local homing_torque = 0.1
+   local homing_torque = 0.25
    local homing_vel_limit = 2.0
    local normal_vel_limit = 150
    local fast_home_vel = homing_vel_limit
