@@ -9,7 +9,7 @@
 -- Configuration
 -- ---------------------------------------------------------------------------
 local I2C_BUS     = 0       -- external I2C bus number
-local UPDATE_MS   = 2000    -- how often to poll and report
+local UPDATE_MS   = 100     -- how often to poll and report
 local SEVERITY    = 6       -- MAV_SEVERITY_INFO for gcs:send_text
 
 local PARAM_TABLE_KEY = 73
@@ -57,19 +57,26 @@ local function typec_advertised_A()
   if cc == nil then
     return nil
   end
-  -- bits[1:0] = CC1 state, bits[3:2] = CC2 state; the connected pin is non-zero.
-  local state = cc & 0x03
+  local CONNECT_RESULT = (cc >> 4) & 0x01
+  if CONNECT_RESULT ~= 1 then
+    return 0
+  end
+
+  local CC1 = cc & 0x03
+  local CC2 = (cc >> 2) & 0x03
+
+  local state = CC1
   if state == 0 then
-    state = (cc >> 2) & 0x03
+    state = CC2
   end
   if state == 0x01 then
-    return 0.5    -- USB default (500mA for USB 2.0; chip can't tell 500 vs 900)
+    return 0.5 -- USB default (500mA for USB 2.0; chip can't tell 500 vs 900)
   elseif state == 0x02 then
     return 1.5
   elseif state == 0x03 then
     return 3.0
   end
-  return 0        -- not connected
+  return 0
 end
 
 -- ---------------------------------------------------------------------------
@@ -412,40 +419,70 @@ local function nvn_check()
     return true
 end
 
+local last_limit
+local last_is_pd
+local function update_current_limit(is_pd, limit)
+
+    if (is_pd == last_is_pd) and (limit == last_limit) then
+        -- No change
+        return
+    end
+    last_is_pd = is_pd
+    last_limit = limit
+
+    local pd_string = ""
+    if is_pd then
+        pd_string = "PD "
+    end
+
+    gcs:send_text(SEVERITY, string.format("USB: %s%0.2fA", pd_string, limit))
+
+end
+
 -- ---------------------------------------------------------------------------
 -- Main loop
 -- ---------------------------------------------------------------------------
 local current_mask = uint32_t(0x3FF)
+local last_inactive_ms = millis()
 local function update()
-  local status = read_u32(RDO_REG_STATUS_0)
-  if status == nil then
-    -- The STUSB4500 is powered by the USB, so if USB is not present then it is expected to fail to read
-    return update, UPDATE_MS
-  end
-
-  if USB_NVM:get() == 1 then
-    if nvn_check() then
-        USB_NVM:set_and_save(0)
+    local now_ms = millis()
+    local status = read_u32(RDO_REG_STATUS_0)
+    if status == nil then
+        -- The STUSB4500 is powered by the USB, so if USB is not present then it is expected to fail to read
+        last_inactive_ms = now_ms
+        last_limit = nil
+        last_is_pd = nil
+        return update, UPDATE_MS
     end
-    nvm_dump()
-    return update, UPDATE_MS
-  end
 
-  -- Object position (bits 30:28) is non-zero only when a PD contract exists.
-  local obj = ((status >> 28) & 0x07):toint()
-  if obj ~= 0 then
-    local current = ((status >> 10) & current_mask):tofloat() * 0.01
-    local current_limit = (status & current_mask):tofloat() * 0.01
-    gcs:send_text(SEVERITY, string.format("STUSB4500: PD %0.2fA / %0.2fA", current, current_limit))
-  else
-    -- No PD contract: fall back to the Type-C Rp advertised current.
-    local limit = typec_advertised_A()
-    if limit ~= nil then
-      gcs:send_text(SEVERITY, string.format("STUSB4500: no PD, Type-C limit %0.2fA", limit))
+    -- Check NVM if set
+    if USB_NVM:get() == 1 then
+        if nvn_check() then
+            USB_NVM:set_and_save(0)
+        end
+        nvm_dump()
+        return update, UPDATE_MS
     end
-  end
 
-  return update, UPDATE_MS
+    -- Wait at least 500ms for PD negotiation to complete
+    if now_ms - last_inactive_ms < uint32_t(500) then
+        return update, UPDATE_MS
+    end
+
+    -- Object position (bits 30:28) is non-zero only when a PD contract exists.
+    local obj = ((status >> 28) & 0x07):toint()
+    if obj ~= 0 then
+        local current = ((status >> 10) & current_mask):tofloat() * 0.01
+        update_current_limit(true, current)
+    else
+        -- No PD contract: fall back to the Type-C Rp advertised current.
+        local limit = typec_advertised_A()
+        if limit ~= nil then
+            update_current_limit(false, limit)
+        end
+    end
+
+    return update, UPDATE_MS
 end
 
 return update, UPDATE_MS
