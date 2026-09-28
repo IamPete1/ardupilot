@@ -28,8 +28,61 @@ AP_Airspeed_Backend* AP_Airspeed_DroneCAN::probe(AP_Airspeed &_frontend, uint8_t
 
     AP_Airspeed_DroneCAN* backend = nullptr;
 
+    // If an override is set use the slot the node has already been detected in,
+    // otherwise take an empty slot so no other detected module is lost,
+    // failing that take the slot of a detected module no instance has reserved
+    const uint8_t override_node_id = _frontend.get_can_override_node_id(_instance);
+    if (override_node_id > 0) {
+        int8_t slot = -1;
+        int8_t unreserved_slot = -1;
+        for (uint8_t i = 0; i < AIRSPEED_MAX_SENSORS; i++) {
+            if (_detected_modules[i].driver != nullptr) {
+                continue;
+            }
+            if (_detected_modules[i].ap_dronecan != nullptr && _detected_modules[i].node_id == override_node_id) {
+                slot = i;
+                break;
+            }
+            if (_detected_modules[i].ap_dronecan == nullptr) {
+                if (slot < 0) {
+                    slot = i;
+                }
+            } else if (unreserved_slot < 0 && !node_id_overridden(_frontend, _detected_modules[i].node_id)) {
+                unreserved_slot = i;
+            }
+        }
+        if (slot < 0 && unreserved_slot < 0) {
+            return nullptr;
+        }
+        backend = NEW_NOTHROW AP_Airspeed_DroneCAN(_frontend, _instance);
+        if (backend == nullptr) {
+            return nullptr;
+        }
+        if (slot < 0) {
+            // no empty slot, drop a detected module that no instance has reserved
+            slot = unreserved_slot;
+            _detected_modules[slot].ap_dronecan = nullptr;
+        }
+        _detected_modules[slot].driver = backend;
+        if (_detected_modules[slot].ap_dronecan != nullptr) {
+            // already detected, bus is known
+            backend->set_bus_id(AP_HAL::Device::make_bus_id(AP_HAL::Device::BUS_TYPE_UAVCAN,
+                                                            _detected_modules[slot].ap_dronecan->get_driver_index(),
+                                                            override_node_id, 0));
+        } else {
+            // Not yet detected, the bus number and devid are filled in at run time
+            _detected_modules[slot].node_id = override_node_id;
+            backend->clear_bus_id();
+        }
+        return backend;
+    }
+
     for (uint8_t i = 0; i < AIRSPEED_MAX_SENSORS; i++) {
         if (_detected_modules[i].driver == nullptr && _detected_modules[i].ap_dronecan != nullptr) {
+            if (node_id_overridden(_frontend, _detected_modules[i].node_id)) {
+                // reserved for an instance with a node id override
+                continue;
+            }
             const auto bus_id = AP_HAL::Device::make_bus_id(AP_HAL::Device::BUS_TYPE_UAVCAN,
                                                             _detected_modules[i].ap_dronecan->get_driver_index(),
                                                             _detected_modules[i].node_id, 0);
@@ -49,6 +102,17 @@ AP_Airspeed_Backend* AP_Airspeed_DroneCAN::probe(AP_Airspeed &_frontend, uint8_t
     return backend;
 }
 
+// return true if any DroneCAN airspeed instance has its node id override set to this node
+bool AP_Airspeed_DroneCAN::node_id_overridden(const AP_Airspeed &_frontend, uint8_t node_id)
+{
+    for (uint8_t i = 0; i < AIRSPEED_MAX_SENSORS; i++) {
+        if (_frontend.get_can_override_node_id(i) == node_id) {
+            return true;
+        }
+    }
+    return false;
+}
+
 AP_Airspeed_DroneCAN* AP_Airspeed_DroneCAN::get_dronecan_backend(AP_DroneCAN* ap_dronecan, uint8_t node_id)
 {
     if (ap_dronecan == nullptr) {
@@ -56,10 +120,22 @@ AP_Airspeed_DroneCAN* AP_Airspeed_DroneCAN::get_dronecan_backend(AP_DroneCAN* ap
     }
 
     for (uint8_t i = 0; i < AIRSPEED_MAX_SENSORS; i++) {
-        if (_detected_modules[i].driver != nullptr &&
-            _detected_modules[i].ap_dronecan == ap_dronecan &&
-            _detected_modules[i].node_id == node_id ) {
-            return _detected_modules[i].driver;
+        if ((_detected_modules[i].driver != nullptr) && (_detected_modules[i].node_id == node_id)) {
+            // A driver without a bus is waiting for its override node id, bind it to this bus
+            if (_detected_modules[i].ap_dronecan == nullptr) {
+                _detected_modules[i].ap_dronecan = ap_dronecan;
+                // Set the correct devid now the bus is known
+                _detected_modules[i].driver->set_bus_id(
+                    AP_HAL::Device::make_bus_id(AP_HAL::Device::BUS_TYPE_UAVCAN,
+                                                ap_dronecan->get_driver_index(),
+                                                node_id,
+                                                0)
+                );
+            }
+
+            if (_detected_modules[i].ap_dronecan == ap_dronecan) {
+                return _detected_modules[i].driver;
+            }
         }
     }
 
@@ -74,7 +150,7 @@ AP_Airspeed_DroneCAN* AP_Airspeed_DroneCAN::get_dronecan_backend(AP_DroneCAN* ap
 
     if (!detected) {
         for (uint8_t i = 0; i < AIRSPEED_MAX_SENSORS; i++) {
-            if (_detected_modules[i].ap_dronecan == nullptr) {
+            if ((_detected_modules[i].ap_dronecan == nullptr) && (_detected_modules[i].driver == nullptr)) {
                 _detected_modules[i].ap_dronecan = ap_dronecan;
                 _detected_modules[i].node_id = node_id;
                 break;

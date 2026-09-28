@@ -129,6 +129,16 @@ const AP_Param::GroupInfo AP_Airspeed_Params::var_info[] = {
     // @User: Advanced
     AP_GROUPINFO_FLAGS("DEVID", 11, AP_Airspeed_Params, bus_id, 0, AP_PARAM_FLAG_INTERNAL_USE_ONLY),
 
+#if AP_AIRSPEED_DRONECAN_ENABLED
+    // @Param: CAN_OVRID
+    // @DisplayName: DroneCAN Airspeed NODE ID override
+    // @Description: DroneCAN Node id override for airspeed. Note that the bus number is not matched, so sensors on different buses should use different Node ids. If 0 the airspeed sensor will be automatically selected on a first-come-first-airspeed basis.
+    // @Range: 0 127
+    // @User: Advanced
+    // @RebootRequired: True
+    AP_GROUPINFO("CAN_OVRID", 12, AP_Airspeed_Params, override_node_id, 0),
+#endif // AP_AIRSPEED_DRONECAN_ENABLED
+
     AP_GROUPEND
 };
 

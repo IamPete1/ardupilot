@@ -116,6 +116,13 @@ protected:
     // set bus ID of this instance, for ARSPD_DEVID parameters
     void set_bus_id(uint32_t id);
 
+#if AP_AIRSPEED_DRONECAN_ENABLED
+    // clear bus ID of this instance without saving, for a sensor not yet detected
+    void clear_bus_id(void) {
+        frontend.param[instance].bus_id.set(0);
+    }
+#endif // AP_AIRSPEED_DRONECAN_ENABLED
+
     enum class DevType {
         SITL     = 0x01,
         MS4525   = 0x02,

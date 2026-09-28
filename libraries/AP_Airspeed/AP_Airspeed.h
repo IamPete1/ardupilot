@@ -32,6 +32,10 @@ public:
     AP_Int8  use;
     AP_Int8  pin;
 
+#if AP_AIRSPEED_DRONECAN_ENABLED
+    AP_Int8 override_node_id;
+#endif // AP_AIRSPEED_DRONECAN_ENABLED
+
     enum class SkipCalType : int8_t {
         // Do not skip boot calibration, this is the default
         None = 0,
@@ -243,6 +247,11 @@ public:
 
     // get number of sensors
     uint8_t get_num_sensors(void) const { return num_sensors; }
+
+#if AP_AIRSPEED_DRONECAN_ENABLED
+    // get DroneCAN node id override for a given instance, 0 if not a DroneCAN sensor or no override
+    uint8_t get_can_override_node_id(uint8_t i) const;
+#endif // AP_AIRSPEED_DRONECAN_ENABLED
 
 #if AP_AIRSPEED_SCRIPTING_ENABLED
     // get backend for a given instance, used by scripting

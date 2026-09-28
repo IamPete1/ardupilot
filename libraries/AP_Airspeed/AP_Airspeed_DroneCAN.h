@@ -37,6 +37,8 @@ private:
 
     static AP_Airspeed_DroneCAN* get_dronecan_backend(AP_DroneCAN* ap_dronecan, uint8_t node_id);
 
+    static bool node_id_overridden(const AP_Airspeed &_frontend, uint8_t node_id);
+
     float _pressure; // Pascal
     float _temperature; // Celcius
     uint32_t _last_sample_time_ms;

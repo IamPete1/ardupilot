@@ -1119,6 +1119,17 @@ AP_Airspeed_Backend *AP_Airspeed::get_backend(uint8_t id) const
 }
 #endif // AP_AIRSPEED_SCRIPTING_ENABLED
 
+#if AP_AIRSPEED_DRONECAN_ENABLED
+// get DroneCAN node id override for a given instance, 0 if not a DroneCAN sensor or no override
+uint8_t AP_Airspeed::get_can_override_node_id(uint8_t i) const
+{
+    if ((enum airspeed_type)param[i].type.get() != TYPE_UAVCAN || param[i].override_node_id <= 0) {
+        return 0;
+    }
+    return uint8_t(param[i].override_node_id.get());
+}
+#endif // AP_AIRSPEED_DRONECAN_ENABLED
+
 #else  // build type is not appropriate; provide a dummy implementation:
 const AP_Param::GroupInfo AP_Airspeed::var_info[] = { AP_GROUPEND };
 
@@ -1144,6 +1155,10 @@ AP_Airspeed::AP_Airspeed() { _singleton = this; }
 #if AP_AIRSPEED_SCRIPTING_ENABLED
 AP_Airspeed_Backend *AP_Airspeed::get_backend(uint8_t id) const { return nullptr; }
 #endif // AP_AIRSPEED_SCRIPTING_ENABLED
+
+#if AP_AIRSPEED_DRONECAN_ENABLED
+uint8_t AP_Airspeed::get_can_override_node_id(uint8_t i) const { return 0; }
+#endif // AP_AIRSPEED_DRONECAN_ENABLED
 
 #endif // #if AP_AIRSPEED_DUMMY_METHODS_ENABLED
 
