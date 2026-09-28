@@ -170,6 +170,8 @@ for t in $CI_BUILD_TARGET; do
         $waf copter
         run_autotest "Copter" "build.SITLPeriphUniversal" "test.CAN"
         run_autotest "Copter" "build.SITLPeriphBattMon" "test.BattCAN"
+        $waf plane
+        run_autotest "Plane" "build.SITLPeriphUniversal" "test.PlaneCAN"
         continue
     fi
     if [ "$t" == "sitltest-plane-tests1a" ]; then

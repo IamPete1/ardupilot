@@ -303,6 +303,7 @@ __bin_names = {
     "SITLPeriphBattMon": ("sitl_periph_battmon", "AP_Periph"),
     "CAN": "arducopter",
     "BattCAN": "arducopter",
+    "PlaneCAN": "arduplane",
 }
 
 
@@ -377,6 +378,7 @@ tester_class_map = {
     "test.Tracker": antennatracker.AutoTestTracker,
     "test.CAN": arducopter.AutoTestCAN,
     "test.BattCAN": arducopter.AutoTestBattCAN,
+    "test.PlaneCAN": arduplane.AutoTestPlaneCAN,
 }
 
 supplementary_test_binary_map = {
@@ -385,6 +387,9 @@ supplementary_test_binary_map = {
     "test.BattCAN": [
         "sitl_periph_battmon:AP_Periph:0:Tools/autotest/default_params/periph-battmon.parm,Tools/autotest/default_params/quad-periph.parm", # noqa: E501
     ],
+    "test.PlaneCAN": ["sitl_periph_universal:AP_Periph:0:Tools/autotest/default_params/periph.parm",
+                      "sitl_periph_universal:AP_Periph:1:Tools/autotest/default_params/periph.parm",
+                      "sitl_periph_universal:AP_Periph:2:Tools/autotest/default_params/periph.parm"],
 }
 
 
@@ -1167,6 +1172,9 @@ if __name__ == "__main__":
 
         'build.SITLPeriphBattMon',
         'test.BattCAN',
+
+        'build.SITLPeriphUniversal',
+        'test.PlaneCAN',
 
         # convertgps disabled as it takes 5 hours
         # 'convertgpx',
