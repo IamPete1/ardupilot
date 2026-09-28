@@ -10684,6 +10684,198 @@ class AutoTestPlane(vehicle_test_suite.TestSuite):
                                  wallclock_timeout=True)
         self.progress("PPP link established: %s" % m.text.strip())
 
+    def set_can_airspeed_parameters(self, override_node_ids):
+        '''configure both airspeed instances as DroneCAN with the given node id overrides'''
+        self.set_parameters({
+            "CAN_P1_DRIVER": 1,
+            "ARSPD_TYPE": 8,
+            "ARSPD2_TYPE": 8,
+            # a sensor powered up after boot misses the boot calibration
+            "ARSPD_SKIP_CAL": 1,
+            "ARSPD2_SKIP_CAL": 1,
+            "ARSPD_CAN_OVRID": override_node_ids[0],
+            "ARSPD2_CAN_OVRID": override_node_ids[1],
+        })
+
+    def can_airspeed_node_id(self, instance):
+        '''return the DroneCAN node id held in an airspeed instance's DEVID'''
+        name = "ARSPD_DEVID" if instance == 0 else "ARSPD%u_DEVID" % (instance + 1)
+        return (int(self.get_parameter(name)) >> 8) & 0xff
+
+    def wait_can_airspeed_health(self, expected, timeout=60, minimum_duration=3):
+        '''wait for the health of each airspeed instance to match expected, a list of bools'''
+        tstart = self.get_sim_time()
+        healthy = [None] * len(expected)
+        matched_since = None
+        while True:
+            now = self.get_sim_time_cached()
+            if now - tstart > timeout:
+                raise NotAchievedException("Airspeed health %s never matched %s" % (healthy, expected))
+            m = self.assert_receive_message('AIRSPEED')
+            if m.id >= len(expected):
+                continue
+            healthy[m.id] = (m.flags & mavutil.mavlink.AIRSPEED_SENSOR_UNHEALTHY) == 0
+            if healthy != expected:
+                matched_since = None
+                continue
+            if matched_since is None:
+                matched_since = now
+            if now - matched_since >= minimum_duration:
+                self.progress("Airspeed health %s" % healthy)
+                return
+
+    def reboot_can_airspeed(self):
+        self.reboot_sitl()
+        self.set_message_rate_hz('AIRSPEED', 10)
+
+    def assert_can_airspeed_routing(self, sup_instance, airspeed_instance):
+        '''stop a periph and check that only the expected airspeed instance loses its data'''
+        expected = [True, True]
+        expected[airspeed_instance] = False
+        self.stop_sup_program(instance=sup_instance)
+        self.wait_can_airspeed_health(expected)
+        self.start_sup_program(instance=sup_instance)
+        self.wait_can_airspeed_health([True, True])
+
+    def restart_stopped_sup_programs(self):
+        for i in range(len(self.sup_prog)):
+            if self.sup_prog[i] is None:
+                self.start_sup_program(instance=i)
+
+    def can_airspeed_auto_detect(self):
+        '''auto detect two DroneCAN airspeed sensors and return their node ids'''
+        self.set_can_airspeed_parameters((0, 0))
+        self.reboot_can_airspeed()
+        self.wait_can_airspeed_health([True, True])
+        detected = [self.can_airspeed_node_id(0), self.can_airspeed_node_id(1)]
+        if 0 in detected or detected[0] == detected[1]:
+            raise NotAchievedException("Bad auto detected airspeed node ids %s" % detected)
+        return detected
+
+    def can_airspeed_periph_node_ids(self):
+        '''return the node id of each periph, leaving periphs 0 and 1 running and periph 2 stopped'''
+        # there are only two airspeed slots, so detect two periphs at a time
+        self.stop_sup_program(instance=1)
+        detected_02 = self.can_airspeed_auto_detect()
+
+        self.stop_sup_program(instance=2)
+        self.start_sup_program(instance=1)
+        # the periph must be on the bus before the airspeed sensors are probed at boot
+        self.delay_sim_time(10, "periph 1 to boot")
+        detected = self.can_airspeed_auto_detect()
+
+        # find which node belongs to periph 1 by powering it down
+        self.stop_sup_program(instance=1)
+        tstart = self.get_sim_time()
+        lost = None
+        while lost is None:
+            if self.get_sim_time_cached() - tstart > 60:
+                raise NotAchievedException("No airspeed went unhealthy with periph 1 stopped")
+            m = self.assert_receive_message('AIRSPEED')
+            if m.id < 2 and (m.flags & mavutil.mavlink.AIRSPEED_SENSOR_UNHEALTHY):
+                lost = m.id
+        expected = [True, True]
+        expected[lost] = False
+        self.wait_can_airspeed_health(expected)
+        self.start_sup_program(instance=1)
+        self.wait_can_airspeed_health([True, True])
+
+        ret = [detected[1 - lost], detected[lost]]
+        if ret[0] not in detected_02:
+            raise NotAchievedException("Periph 0 node %u not detected with periph 2 %s" % (ret[0], detected_02))
+        ret.append(detected_02[1 - detected_02.index(ret[0])])
+        if ret[2] == ret[1]:
+            raise NotAchievedException("Periphs 1 and 2 share node id %u" % ret[2])
+        self.progress("Periph airspeed node ids %s" % ret)
+        return ret
+
+    def CANAirspeedNodeOverride(self):
+        '''DroneCAN airspeed instances ordered with ARSPDn_CAN_OVRID'''
+        self.context_push()
+        try:
+            node = self.can_airspeed_periph_node_ids()
+
+            # (ARSPD_CAN_OVRID, ARSPD2_CAN_OVRID, periph expected on instance 0, periph expected on instance 1)
+            cases = [
+                (node[1], node[0], 1, 0),
+                (node[0], node[1], 0, 1),
+                # the auto detected instance must get the node not overridden
+                (node[1], 0, 1, 0),
+                # instance 0 is probed first and must not take the node reserved by instance 1
+                (0, node[0], 1, 0),
+            ]
+            for (ovr0, ovr1, sup0, sup1) in cases:
+                self.start_subtest("ARSPD_CAN_OVRID=%u ARSPD2_CAN_OVRID=%u" % (ovr0, ovr1))
+                self.set_can_airspeed_parameters((ovr0, ovr1))
+                self.reboot_can_airspeed()
+                self.wait_can_airspeed_health([True, True])
+                got = [self.can_airspeed_node_id(0), self.can_airspeed_node_id(1)]
+                want = [node[sup0], node[sup1]]
+                if got != want:
+                    raise NotAchievedException("Airspeed node ids %s, expected %s" % (got, want))
+                self.assert_can_airspeed_routing(sup0, 0)
+        finally:
+            self.restart_stopped_sup_programs()
+            self.context_pop()
+        self.reboot_sitl()
+
+    def CANAirspeedLatePowerUp(self):
+        '''DroneCAN airspeed with ARSPD_CAN_OVRID powered up after boot'''
+        self.context_push()
+        try:
+            node = self.can_airspeed_periph_node_ids()
+
+            # instance 0 is overridden to periph 1, which is not powered at boot
+            self.set_can_airspeed_parameters((node[1], 0))
+            self.stop_sup_program(instance=1)
+            self.reboot_can_airspeed()
+            self.wait_can_airspeed_health([False, True], minimum_duration=5)
+            if int(self.get_parameter("ARSPD_DEVID")) != 0:
+                raise NotAchievedException("ARSPD_DEVID set before the sensor was seen")
+            if self.can_airspeed_node_id(1) != node[0]:
+                raise NotAchievedException("ARSPD2 did not auto detect periph 0")
+
+            self.progress("Powering up periph 1")
+            self.start_sup_program(instance=1)
+            self.wait_can_airspeed_health([True, True])
+            got = [self.can_airspeed_node_id(0), self.can_airspeed_node_id(1)]
+            want = [node[1], node[0]]
+            if got != want:
+                raise NotAchievedException("Airspeed node ids %s, expected %s" % (got, want))
+            self.assert_can_airspeed_routing(1, 0)
+        finally:
+            self.restart_stopped_sup_programs()
+            self.context_pop()
+        self.reboot_sitl()
+
+    def CANAirspeedOverrideSlotFull(self):
+        '''DroneCAN airspeed with ARSPD_CAN_OVRID powered up after boot with all slots detected'''
+        self.context_push()
+        try:
+            node = self.can_airspeed_periph_node_ids()
+
+            # periphs 0 and 1 fill both detection slots at boot, instance 0 is
+            # overridden to periph 2 which is not powered and must take the
+            # slot of periph 0 which no instance has reserved
+            self.set_can_airspeed_parameters((node[2], node[1]))
+            self.reboot_can_airspeed()
+            self.wait_can_airspeed_health([False, True], minimum_duration=5)
+            if int(self.get_parameter("ARSPD_DEVID")) != 0:
+                raise NotAchievedException("ARSPD_DEVID set before the sensor was seen")
+
+            self.progress("Powering up periph 2")
+            self.start_sup_program(instance=2)
+            self.wait_can_airspeed_health([True, True])
+            got = [self.can_airspeed_node_id(0), self.can_airspeed_node_id(1)]
+            want = [node[2], node[1]]
+            if got != want:
+                raise NotAchievedException("Airspeed node ids %s, expected %s" % (got, want))
+            self.assert_can_airspeed_routing(2, 0)
+        finally:
+            self.restart_stopped_sup_programs()
+            self.context_pop()
+        self.reboot_sitl()
+
     def tests1c(self):
         '''kind of reserved for flapping tests which we still have hopes for'''
         return [
@@ -10719,3 +10911,12 @@ class AutoTestPlaneTests1b(AutoTestPlane):
 class AutoTestPlaneTests1c(AutoTestPlane):
     def tests(self):
         return self.tests1c()
+
+
+class AutoTestPlaneCAN(AutoTestPlane):
+    def tests(self):
+        return [
+            self.CANAirspeedNodeOverride,
+            self.CANAirspeedLatePowerUp,
+            self.CANAirspeedOverrideSlotFull,
+        ]
