@@ -12,3 +12,15 @@ env AP_PERIPH 1
 # the location where the bootloader will put the firmware
 # the H757 has 128k sectors, assign 2 sectors for BL
 FLASH_BOOTLOADER_LOAD_KB 256
+
+# CAN1
+PD0 CAN1_RX CAN1
+PD1 CAN1_TX CAN1
+
+# CAN2
+#PB5    CAN2_RX    CAN2
+#PB6    CAN2_TX    CAN2
+
+# CAN Common
+PG1 SLEEPCAN OUTPUT PUSHPULL SPEED_LOW LOW
+PG0 SHUTDOWNCAN OUTPUT PUSHPULL SPEED_LOW LOW
