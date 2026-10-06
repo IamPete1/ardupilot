@@ -533,14 +533,16 @@ assert(bq_cc5 ~= nil, "BQ25798: read Charger Control 5 failed")
 assert(bq:write_register(BQ_CHG_CTRL_5, (bq_cc5 | BQ_EN_IBAT) & ~BQ_EN_EXTILIM),
     "BQ25798: Charger Control 5 set failed")
 
--- REG12 Charger Control 3: set PFM_FWD_DIS (bit4) to force continuous PWM in
--- forward (charge) mode. Without this the converter drops into pulsed PFM at low
--- input voltage / near the buck-boost boundary, which caps charge current.
+-- REG12 Charger Control 3: force continuous PWM in forward (charge) mode so the
+-- switching matches the datasheet CCM waveforms:
+--   PFM_FWD_DIS (bit4) - disable forward PFM (no pulse-skipping at light load)
+--   DIS_FWD_OOA (bit0) - disable forward out-of-audio mode
 local BQ_CHG_CTRL_3 = 0x12
 local BQ_PFM_FWD_DIS = 0x10
+local BQ_DIS_FWD_OOA = 0x01
 local bq_cc3 = bq:read_registers(BQ_CHG_CTRL_3)
 assert(bq_cc3 ~= nil, "BQ25798: read Charger Control 3 failed")
-assert(bq:write_register(BQ_CHG_CTRL_3, bq_cc3 | BQ_PFM_FWD_DIS),
+assert(bq:write_register(BQ_CHG_CTRL_3, bq_cc3 | BQ_PFM_FWD_DIS | BQ_DIS_FWD_OOA),
     "BQ25798: Charger Control 3 set failed")
 
 -- Disable D+/D- Detection (there not connected)
@@ -656,6 +658,10 @@ local function bq_update()
         local ICO_STAT = (st2 >> 6) & 0x03
         print(string.format("ICO: %d", ICO_STAT))
 
+        -- REG12 Charger Control 3: confirm PFM_FWD_DIS (bit4) + DIS_FWD_OOA (bit0)
+        local d_r12 = bq:read_registers(0x12) or 0
+        gcs:send_text(SEVERITY, string.format("R12=0x%02X", d_r12))
+
         --local VINDPM = bq:read_registers(0x05)
         --print(string.format("VINDPM: %0.01f", VINDPM * 0.1))
 
@@ -759,12 +765,12 @@ local function update()
     local obj = ((status >> 28) & 0x07):toint()
     if obj ~= 0 then
         local current = ((status >> 10) & current_mask):tofloat() * 0.01
-        update_current_limit(true, current)
+        --update_current_limit(true, current)
     else
         -- No PD contract: fall back to the Type-C Rp advertised current.
         local limit = typec_advertised_A()
         if limit ~= nil then
-            update_current_limit(false, limit)
+            --update_current_limit(false, limit)
         end
     end
 
