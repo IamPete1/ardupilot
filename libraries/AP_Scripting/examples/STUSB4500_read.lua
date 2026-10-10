@@ -13,7 +13,7 @@ local UPDATE_MS   = 100     -- how often to poll and report
 local SEVERITY    = 6       -- MAV_SEVERITY_INFO for gcs:send_text
 
 local PARAM_TABLE_KEY = 73
-assert(param:add_table(PARAM_TABLE_KEY, "CHARGE_", 1), "Charger: could not add param table")
+assert(param:add_table(PARAM_TABLE_KEY, "CHARGE_", 2), "Charger: could not add param table")
 
 --[[
   // @Param: CHARGE_USB_NVM
@@ -24,6 +24,17 @@ assert(param:add_table(PARAM_TABLE_KEY, "CHARGE_", 1), "Charger: could not add p
 --]]
 assert(param:add_param(PARAM_TABLE_KEY, 1, "USB_NVM", 1))
 local USB_NVM = Parameter("CHARGE_USB_NVM")
+
+--[[
+  // @Param: CHARGE_CURRENT
+  // @DisplayName: Charge current limit
+  // @Description: Battery charge current limit set in the BQ25798 charger.
+  // @Units: A
+  // @Range: 0.05 5.0
+  // @User: Standard
+--]]
+assert(param:add_param(PARAM_TABLE_KEY, 2, "CURRENT", 1.0))
+local CHARGE_CURRENT = Parameter("CHARGE_CURRENT")
 
 -- ---------------------------------------------------------------------------
 -- STUSB4500 register map
@@ -524,7 +535,10 @@ for _ = 1, 100 do
 end
 assert(reset_done, "BQ25798: reset did not complete")
 
-assert(bq:write_register(BQ_ADC_CTRL, 0x80), "BQ25798: ADC setup failed")
+-- ADC: enable (bit7), continuous, 15-bit, running average (bit3 ADC_AVG) so the
+-- pulsed/discontinuous IBUS and IBAT currents read as their true average instead
+-- of a single sample that lands in the off-time gap and reads ~0.
+assert(bq:write_register(BQ_ADC_CTRL, 0x88), "BQ25798: ADC setup failed")
 -- REG14: set EN_IBAT (bit5, else IBAT ADC reads 0) and clear EN_EXTILIM (bit1)
 -- so the IINDPM register alone sets the input current limit (no ILIM_HIZ clamp).
 -- Read-modify-write to preserve the other Charger Control 5 fields.
@@ -550,6 +564,12 @@ local BQ_CHG_CTRL_2 = 0x11
 assert(bq:write_register(BQ_CHG_CTRL_2, 0x00),
     "BQ25798: Charger Control 2 set failed")
 
+-- REG00 VSYSMIN (250mV/LSB, +2500mV offset): lower the minimum system voltage
+-- below the pack range so VBAT stays above it and the charger runs in efficient
+-- NVDC mode (BATFET fully on) rather than the lossy VSYSMIN/LDO mode it uses when
+-- VBAT < VSYSMIN. The load is on BAT, not SYS, so SYS voltage doesn't matter.
+assert(bq:write_register(0x00, 10), "BQ25798: VSYSMIN set failed")   -- 5.0V
+
 -- Read a 16-bit big-endian ADC register (signed = two's complement).
 -- Returns the raw value, or nil on bus error.
 local function bq_read16(reg, signed)
@@ -569,6 +589,17 @@ function bq_set_input_limit(amps)
     bq:transfer(string.char(BQ_IINDPM, (reg >> 8) & 0xFF, reg & 0xFF), 0)
 end
 
+-- Battery charge current limit (ICHG, REG03/04, 10mA/LSB) from the CHARGE_ICHG
+-- parameter. Reset leaves this at the cell-count default (~1A); we drive it from
+-- the parameter instead (applied on change, see bq_update).
+local function bq_set_charge_current(amps)
+    local reg = math.floor((amps * 100) + 0.5)   -- amps -> 10mA units
+    if reg < 5   then reg = 5   end              -- 50mA minimum
+    if reg > 500 then reg = 500 end              -- 5000mA maximum
+    bq:transfer(string.char(0x03, (reg >> 8) & 0xFF, reg & 0xFF), 0)
+end
+local charge_current_last = nil
+
 local charge_state = BattMonitorScript_State()
 local usb_state = BattMonitorScript_State()
 
@@ -584,7 +615,6 @@ local CHG_STAT_NAME = {
 }
 local last_chg_stat = 0
 local last_vbus_stat = 0
-local last_diag_ms  = uint32_t(0)
 
 -- TS pin 103AT 10k NTC network (datasheet Fig 7-12): RT1 from REGN to TS,
 -- RT2 in parallel with the NTC from TS to GND.
@@ -618,12 +648,19 @@ local function bq_update()
     -- Pat the watchdog
     bq:write_register(BQ_CHG_CTRL_1, 0x80 | BQ_WD_RST | BQ_WD_RATE)
 
+    -- Apply the charge current limit when the CHARGE_CURRENT parameter changes
+    local charge_current_new = CHARGE_CURRENT:get()
+    if charge_current_new ~= charge_current_last then
+        charge_current_last = charge_current_new
+        bq_set_charge_current(charge_current_new)
+    end
+
     local charge_status = bq:read_registers(BQ_CHG_STAT_2)
     if charge_status == nil then
         return
     end
 
-    bq_set_input_limit(3.0)
+    --bq_set_input_limit(3.0)
 
     --bq:write_register(0x0F, 0xA2)
 
@@ -638,61 +675,6 @@ local function bq_update()
     if vbus_stat ~= last_vbus_stat then
         last_vbus_stat = vbus_stat
         gcs:send_text(SEVERITY, string.format("VBus: 0x%02X", vbus_stat))
-    end
-
-    -- diagnostic: while charging, report regulation loops, ICHG and JEITA state
-    local diag_now = millis()
-    if (diag_now - last_diag_ms) > uint32_t(5000) then
-        last_diag_ms = diag_now
-        local st0 = bq:read_registers(BQ_CHG_STAT_0) or 0   -- REG1B: IINDPM(7) VINDPM(6)
-        local st2 = bq:read_registers(0x1D) or 0            -- REG1D: TREG(2)
-        local st3 = bq:read_registers(0x1E) or 0            -- REG1E: VSYS(4)
-        local st4 = bq:read_registers(0x1F) or 0            -- REG1F: TS cool(2) warm(1)
-        local ichg = (bq_read16(0x03, false) or 0) & 0x1FF  -- REG03/04 ICHG, 10mA/LSB
-        gcs:send_text(SEVERITY, string.format(
-            "Chg%d VDPM%d IDPM%d TREG%d VSYS%d ICHG%d c%d w%d",
-            chg_stat,
-            (st0 >> 6) & 1, (st0 >> 7) & 1, (st2 >> 2) & 1, (st3 >> 4) & 1,
-            ichg * 10, (st4 >> 2) & 1, (st4 >> 1) & 1))
-
-        local ICO_STAT = (st2 >> 6) & 0x03
-        print(string.format("ICO: %d", ICO_STAT))
-
-        -- REG12 Charger Control 3: confirm PFM_FWD_DIS (bit4) + DIS_FWD_OOA (bit0)
-        local d_r12 = bq:read_registers(0x12) or 0
-        gcs:send_text(SEVERITY, string.format("R12=0x%02X", d_r12))
-
-        --local VINDPM = bq:read_registers(0x05)
-        --print(string.format("VINDPM: %0.01f", VINDPM * 0.1))
-
-        -- input vs output power flow
-        local d_vbus = (bq_read16(BQ_VBUS_ADC, false) or 0) * 0.001
-        local d_ibus = (bq_read16(BQ_IBUS_ADC, true) or 0) * 0.001
-        local d_vbat = (bq_read16(BQ_VBAT_ADC, false) or 0) * 0.001
-        local d_ibat = (bq_read16(BQ_IBAT_ADC, true) or 0) * 0.001
-        gcs:send_text(SEVERITY, string.format(
-            "in %0.2fV %0.2fA  out %0.2fV %0.2fA", d_vbus, d_ibus, d_vbat, d_ibat))
-
-        local d_iindpm = (bq_read16(BQ_IINDPM, false) or 0) & 0x1FF  -- REG06 IINDPM
-        local d_ico    = (bq_read16(0x19, false) or 0) & 0x1FF       -- REG19 ICO_ILIM (effective)
-        gcs:send_text(SEVERITY, string.format(
-            "IINDPM %0.2fA ICO %0.2fA", d_iindpm * 0.01, d_ico * 0.01))
-
-        local d_vsys = (bq_read16(BQ_VSYS_ADC, false) or 0) * 0.001           -- REG3D VSYS ADC
-        local d_vreg = ((bq_read16(0x01, false) or 0) & 0x7FF) * 0.01        -- REG01/02 VREG (10mV/LSB)
-        local d_r14  = bq:read_registers(BQ_CHG_CTRL_5) or 0         -- REG14 EN_IBAT bit5 / EN_EXTILIM bit1
-        local d_r2f  = bq:read_registers(0x2F) or 0                  -- REG2F ADC disables (bit6 = IBAT_ADC_DIS)
-        local d_vindpm = (bq:read_registers(0x05) or 0) * 0.1        -- REG05 VINDPM (100mV/LSB)
-        gcs:send_text(SEVERITY, string.format(
-            "VSYS %0.2fV VREG%0.2fV VINDPM %0.2fV R14=0x%02X R2F=0x%02X", d_vsys, d_vreg, d_vindpm, d_r14, d_r2f))
-
-        -- fault registers (raw hex): FAULT_STATUS_0/1 (0x20/0x21), FAULT_FLAG_0/1 (0x22/0x23)
-        local d_fs0 = bq:read_registers(0x20) or 0
-        local d_fs1 = bq:read_registers(0x21) or 0
-        local d_ff0 = bq:read_registers(0x22) or 0
-        local d_ff1 = bq:read_registers(0x23) or 0
-        gcs:send_text(SEVERITY, string.format(
-            "FLT S0 0x%02X S1 0x%02X F0 0x%02X F1 0x%02X", d_fs0, d_fs1, d_ff0, d_ff1))
     end
 
     -- charger output = the battery being charged (VBAT/IBAT), NTC temperature
@@ -765,12 +747,12 @@ local function update()
     local obj = ((status >> 28) & 0x07):toint()
     if obj ~= 0 then
         local current = ((status >> 10) & current_mask):tofloat() * 0.01
-        --update_current_limit(true, current)
+        update_current_limit(true, current)
     else
         -- No PD contract: fall back to the Type-C Rp advertised current.
         local limit = typec_advertised_A()
         if limit ~= nil then
-            --update_current_limit(false, limit)
+            update_current_limit(false, limit)
         end
     end
 
