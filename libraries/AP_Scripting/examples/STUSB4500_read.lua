@@ -381,10 +381,13 @@ end
 
 -- ---------------------------------------------------------------------------
 -- Desired sink PDO configuration (priority is by PDO index: PDO3 > PDO2 > PDO1)
---   PDO3 (1st) = 9V @ 3A, PDO2 (2nd) = 15V @ 2A, PDO1 = fixed 5V, 3 PDOs.
+--   Only PDO1 (fixed 5V) is advertised, and POWER_ONLY_ABOVE_5V is set so the
+--   chip never enables its VBUS power path for a plain 5V contract. This
+--   effectively disables the output. PDO2/PDO3 values below are left for when
+--   the higher-voltage PDOs are re-enabled (restore CFG_PDO_NUMB to 3).
 -- Voltages are stored in 50mV units; currents as I_SNK_LUT index codes.
 -- ---------------------------------------------------------------------------
-local CFG_PDO_NUMB = 3
+local CFG_PDO_NUMB = 1
 local CFG_PDO2_V   = 300   -- 15.0V / 0.05  -> SNK_PDO_FLEX1_V
 local CFG_PDO3_V   = 400   -- 20.0V / 0.05  -> SNK_PDO_FLEX2_V
 local CFG_PDO2_I   = 7     -- I_SNK_LUT[7]  = 2.0A -> LUT_SNK_PDO2_I
@@ -410,6 +413,9 @@ local function patch_s4(s)
     E3 = (E3 & ~0x03) | ((CFG_PDO3_V >> 8) & 0x03)
     -- REQ_SRC_CURRENT: E6 (0xE6) bit 4
     E6 = E6 | (1 << 4)
+    -- POWER_ONLY_ABOVE_5V: E6 (0xE6) bit 3 - keep the power path off for a 5V
+    -- contract so the output stays disabled until a higher-voltage PDO is used.
+    E6 = E6 | (1 << 3)
     return string.char(E0, E1, E2, E3, E4, E5, E6, E7)
 end
 
