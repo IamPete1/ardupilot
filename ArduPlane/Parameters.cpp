@@ -1082,6 +1082,7 @@ const AP_Param::GroupInfo ParametersG2::var_info[] = {
     // @Bitmask: 15: Enable autoflap in manual modes and use minimum of target and actual speed for flap setting
     // @Bitmask: 16: Enable full aerodynamic load factor-based roll limits when an airspeed sensor is enabled and AIRSPEED_STALL is set
     // @Bitmask: 17: Reset ALT_OFFSET on flight mode or AUTO waypoint changes
+    // @Bitmask: 18: Ignore min throttle at zero throttle demand in pilot control modes allowing motor to come to a complete stop
     // @User: Advanced
     AP_GROUPINFO("FLIGHT_OPTIONS", 13, ParametersG2, flight_options, 0),
 

@@ -533,6 +533,13 @@ void Plane::throttle_watt_limiter(int8_t &min_throttle, int8_t &max_throttle)
  */
 float Plane::apply_throttle_limits(float throttle_in)
 {
+    // Allow bypassing throttle min for zero throttle demand in manual throttle modes.
+    if (!control_mode->does_auto_throttle() &&
+        flight_option_enabled(FlightOptions::IGNORE_MIN_THROTTLE_AT_ZERO_DEMAND) &&
+        is_zero(throttle_in)) {
+        return 0.0;
+    }
+
     // Pull the base throttle limits.
     // These are usually set to map the ESC operating range.
     int8_t min_throttle = aparm.throttle_min.get();

@@ -165,6 +165,7 @@ enum FlightOptions {
     FLAP_ACTUAL_SPEED = (1<<15),
     ENABLE_FULL_AERO_LF_ROLL_LIMITS = (1<<16),
     RESET_ALT_OFFSET = (1<<17),
+    IGNORE_MIN_THROTTLE_AT_ZERO_DEMAND = (1<<18),
 };
 
 enum CrowFlapOptions {
