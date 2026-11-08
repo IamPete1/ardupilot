@@ -317,7 +317,7 @@ local function update()
         local roll_lower = roll_relax or outputs.rearLeft.lowerLimit or outputs.rearRight.upperLimit
 
         local pitch_upper = I_relax or outputs.rearLeft.lowerLimit or outputs.rearRight.lowerLimit
-        local pitch_lower = I_relax or outputs.rearLeft.lowerLimit or outputs.rearRight.lowerLimit
+        local pitch_lower = I_relax or outputs.rearLeft.upperLimit or outputs.rearRight.upperLimit
 
         local flap_upper = I_relax or outputs.frontRight.upperLimit or outputs.frontLeft.upperLimit
         local flap_lower = I_relax or outputs.frontRight.lowerLimit or outputs.frontLeft.lowerLimit
@@ -329,8 +329,10 @@ local function update()
         end
 
         -- If not flying decay I term to 0, limit flags will prevent I increase
-        if I_relax then
+        if roll_relax then
             roll_PID.relax_integrator(0.0, dt)
+        end
+        if I_relax then
             pitch_PID.relax_integrator(0.0, dt)
         end
 
