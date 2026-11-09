@@ -28,7 +28,7 @@ SRV_Channels:set_output_pwm_chan(outputChan, 1000)
 -- ESC index to use for feedback
 local escID = 4
 
-local PARAM_TABLE_KEY = 11
+local PARAM_TABLE_KEY = 20
 local PARAM_TABLE_PREFIX = "LYNX_"
 
 -- add a parameter and bind it to a variable
