@@ -41,7 +41,7 @@ end
 assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 5), 'could not add param table')
 
 -- Roll angle limit in degrees, engine is stopped if exceeded. 0 or less disables.
-local ROLL_LIMIT = bind_add_param('RLL_LIM', 1, 10)
+local ROLL_LIMIT = bind_add_param('RLL_LIM', 1, 7)
 
 -- Switch positions
 local modes = {
@@ -347,7 +347,7 @@ local function update()
 
     SRV_Channels:set_output_pwm_chan_timeout(outputChan, PWM, 500)
 
-    return update, 100
+    return update, 40
 end
 
 return update()
