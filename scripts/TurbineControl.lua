@@ -28,6 +28,21 @@ SRV_Channels:set_output_pwm_chan(outputChan, 1000)
 -- ESC index to use for feedback
 local escID = 4
 
+local PARAM_TABLE_KEY = 11
+local PARAM_TABLE_PREFIX = "LYNX_"
+
+-- add a parameter and bind it to a variable
+local function bind_add_param(name, idx, default_value)
+    assert(param:add_param(PARAM_TABLE_KEY, idx, name, default_value), string.format('could not add param %s', name))
+    return Parameter(PARAM_TABLE_PREFIX .. name)
+end
+
+-- setup script specific parameters
+assert(param:add_table(PARAM_TABLE_KEY, PARAM_TABLE_PREFIX, 5), 'could not add param table')
+
+-- Roll angle limit in degrees, engine is stopped if exceeded. 0 or less disables.
+local ROLL_LIMIT = bind_add_param('RLL_LIM', 1, 10)
+
 -- Switch positions
 local modes = {
     Unknown = 0,
@@ -284,6 +299,12 @@ local function update()
     -- Check for remote stop
     if getRemoteStop() then
         failsafeReason = "remote kill"
+    end
+
+    -- Check for roll angle limit
+    local rollLimit = ROLL_LIMIT:get()
+    if (rollLimit > 0) and (math.abs(math.deg(ahrs:get_roll_rad())) > rollLimit) then
+        failsafeReason = "roll angle"
     end
 
     -- Read in RC switch, apply commaded mode on change

@@ -215,6 +215,9 @@ end
 local flying_height = 0.2
 
 local output_slew = 0
+
+local inverted = false
+
 local last_update_us = micros()
 local function update()
 
@@ -255,16 +258,32 @@ local function update()
     local pitch_out = 0
     local flap_out = 0
 
+    -- Check if inverted
+    local is_inverted = math.abs(math.deg(ahrs:get_roll_rad())) > 90.0
+    if is_inverted then
+        if not inverted then
+            gcs:send_text(4, "FoilControl: inverted, holding foils") -- MAV_SEVERITY_WARNING
+        end
+        inverted = true
+    end
+
     -- If armed run the PIDs
     local is_flying = false
     local scale = 1
-    if not arming:is_armed() then
+    local disarmed = not arming:is_armed()
+    if disarmed or inverted then
+
         -- Pilot controls direct to outputs
         -- Roll pitch inputs scale -1 to 1 to -0.5 to 0.5
-        if rc:has_valid_input() then
+        if rc:has_valid_input() and not inverted then
             roll_out = roll_chan:norm_input() * 0.5
             pitch_out = pitch_chan:norm_input() * 0.5
             flap_out = flap_chan:norm_input() * 0.5
+        end
+
+        -- Clear inverted flag if disarmed
+        if disarmed and not is_inverted then
+            inverted = false
         end
 
         -- Reset and relax PIDs
