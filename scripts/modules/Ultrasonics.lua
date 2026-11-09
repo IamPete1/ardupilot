@@ -106,7 +106,7 @@ local function Rangefinder(instance, filt)
     return self
 end
 
---- Init rangefinders with make height and filter frequency
+--- Init front rangefinder and filters
 ---@param param_prefix string -- param table prefix
 ---@param param_key integer -- param table key
 function ultrasonics.init(param_prefix, param_key)
@@ -125,30 +125,23 @@ function ultrasonics.init(param_prefix, param_key)
     local comp_filt = bind_add_param('CFLT', 2, 10)
 
     ultrasonics.front = Rangefinder(0, rng_filt)
-    ultrasonics.rear = Rangefinder(1, rng_filt)
     ultrasonics.complementary_filter = filter.get_complementary_filter(comp_filt)
 end
 
---- Update rangefinders and return a height above water estimate
+--- Update front rangefinder and return a height above water estimate
 ---@param vertical_velocity number -- earth frame climb rate in m/s
 ---@param attitude Quaternion_ud -- quaternion representing the vehicle attitude
 ---@param dt number -- time since last call in seconds
 ---@return number|nil -- height above water in meters, nil if not available
 function ultrasonics.get_height(vertical_velocity, attitude, dt)
 
-    -- Update both sensors
+    -- Update front sensor
     ultrasonics.front.update(vertical_velocity, attitude, dt)
-    ultrasonics.rear.update(vertical_velocity, attitude, dt)
 
-    -- Use front sensor by preference
+    -- Use front sensor if it has a recent valid reading
     local now_ms = millis()
     if ((now_ms - ultrasonics.front.last_valid_ms) < 200) and (ultrasonics.front.filter.value ~= nil) then
         return ultrasonics.complementary_filter.update(ultrasonics.front.filter.value, vertical_velocity, dt)
-    end
-
-    -- Otherwise use rear sensor
-    if ((now_ms - ultrasonics.rear.last_valid_ms) < 200) and (ultrasonics.rear.filter.value ~= nil) then
-        return ultrasonics.complementary_filter.update(ultrasonics.rear.filter.value, vertical_velocity, dt)
     end
 
     -- No readings
